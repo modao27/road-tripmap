@@ -142,18 +142,26 @@ async function init() {
   function doRenderMap()     { renderMap(getVisible(), markers, markerLayer); }
   function doRenderPlaces()  { renderPlaces(getVisible(), placeListEl, visibleCountEl, categories, searchQuery); }
   function doRenderFilters() { renderFilters(filtersEl, categories, getAllPlaces, activeCategories); }
+  const routeBadgeEl       = document.getElementById('routeBadge');
+  const routeBadgeCountEl  = document.getElementById('routeBadgeCount');
+  const routeBadgePluralEl = document.getElementById('routeBadgePlural');
+  let tabBadgeEl = null; // initialisé après la création des onglets
+
   function onRefresh()       { doRenderFilters(); doRenderPlaces(); doRenderMap(); routePlanner?.refresh(); updateRouteBadge(); }
 
-  const routeBadgeEl      = document.getElementById('routeBadge');
-  const routeBadgeCountEl = document.getElementById('routeBadgeCount');
-  const routeBadgePluralEl = document.getElementById('routeBadgePlural');
-
   function updateRouteBadge() {
-    if (!routeBadgeEl) return;
     const count = routePlanner?.getStepCount() ?? 0;
-    routeBadgeEl.hidden = count === 0 || sidebarEl.classList.contains('open');
-    if (routeBadgeCountEl) routeBadgeCountEl.textContent = count;
-    if (routeBadgePluralEl) routeBadgePluralEl.hidden = count === 1;
+    // Badge flottant mobile
+    if (routeBadgeEl) {
+      routeBadgeEl.hidden = count === 0 || sidebarEl.classList.contains('open');
+      if (routeBadgeCountEl) routeBadgeCountEl.textContent = count;
+      if (routeBadgePluralEl) routeBadgePluralEl.hidden = count === 1;
+    }
+    // Badge sur l'onglet Road Trip
+    if (tabBadgeEl) {
+      tabBadgeEl.hidden = count === 0;
+      tabBadgeEl.textContent = count;
+    }
   }
   function doFocusPlace(p)   {
     focusPlace(p, map, markerLayer, markers, mobileQuery, sidebarEl, sidebarToggleEl, CONFIG);
@@ -221,6 +229,47 @@ async function init() {
   // ── UI ────────────────────────────────────────────────────────────────────
   initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map, updateRouteBadge);
   initResizer(map, CONFIG);
+
+  // ── Onglets ───────────────────────────────────────────────────────────────
+  const tabPlacesBtn  = document.getElementById('tabPlaces');
+  const tabRouteBtn   = document.getElementById('tabRoute');
+  tabBadgeEl          = document.getElementById('tabRouteBadge');
+  const panePlaces    = document.getElementById('tabPanePlaces');
+  const paneRoute     = document.getElementById('tabPaneRoute');
+
+  function switchTab(tab) {
+    const isPlaces = tab === 'places';
+    tabPlacesBtn?.classList.toggle('active', isPlaces);
+    tabPlacesBtn?.setAttribute('aria-selected', String(isPlaces));
+    tabRouteBtn?.classList.toggle('active', !isPlaces);
+    tabRouteBtn?.setAttribute('aria-selected', String(!isPlaces));
+    panePlaces?.classList.toggle('active', isPlaces);
+    paneRoute?.classList.toggle('active', !isPlaces);
+    localStorage.setItem('activeTab', tab);
+    setTimeout(() => map.invalidateSize(), 10);
+  }
+
+  tabPlacesBtn?.addEventListener('click', () => switchTab('places'));
+  tabRouteBtn?.addEventListener('click',  () => switchTab('route'));
+  switchTab(localStorage.getItem('activeTab') || 'places');
+
+  // ── En-tête collapsible ───────────────────────────────────────────────────
+  const headerToggleBtn = document.getElementById('headerToggleBtn');
+  const sidebarIntro    = document.getElementById('sidebarIntro');
+
+  function setHeaderCollapsed(collapsed) {
+    sidebarIntro?.classList.toggle('collapsed', collapsed);
+    headerToggleBtn?.setAttribute('aria-expanded', String(!collapsed));
+    if (headerToggleBtn) headerToggleBtn.textContent = collapsed ? '▼' : '▲';
+    localStorage.setItem('headerCollapsed', collapsed ? '1' : '0');
+  }
+
+  headerToggleBtn?.addEventListener('click', () => {
+    setHeaderCollapsed(!sidebarIntro?.classList.contains('collapsed'));
+  });
+
+  // Collapsé par défaut après la première visite
+  setHeaderCollapsed(localStorage.getItem('headerCollapsed') === '1');
 
   // ── Modale de partage (désactivée en mode lecture d'une carte partagée) ───
   if (!isSharedMap) {
@@ -305,13 +354,9 @@ async function init() {
   routeBadgeEl?.addEventListener('click', () => {
     sidebarEl.classList.add('open');
     sidebarToggleEl.setAttribute('aria-expanded', 'true');
-    const routeSection = document.getElementById('routeSection');
-    if (routeSection) routeSection.open = true;
+    switchTab('route');
     updateRouteBadge();
-    setTimeout(() => {
-      document.getElementById('routePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      map.invalidateSize();
-    }, 230);
+    setTimeout(() => map.invalidateSize(), 230);
   });
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
