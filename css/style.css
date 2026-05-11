@@ -1126,6 +1126,68 @@ mark.search-highlight {
   background: rgba(31, 95, 67, 0.14);
 }
 
+/* ── Découvrir / Overpass ────────────────────────────────────────────── */
+.overpass-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 8px 0 10px;
+}
+
+.overpass-cat-btn {
+  padding: 5px 10px;
+  border: 1.5px solid rgba(28, 37, 32, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 130ms ease, border-color 130ms ease, color 130ms ease;
+}
+
+.overpass-cat-btn:hover:not(.active) {
+  background: white;
+  color: var(--ink);
+}
+
+.overpass-cat-btn.active {
+  background: var(--forest);
+  color: white;
+  border-color: transparent;
+}
+
+.overpass-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overpass-status {
+  margin: 6px 0 2px;
+  font-size: 0.76rem;
+  color: var(--muted);
+  text-align: center;
+  min-height: 1em;
+}
+
+/* Marqueur circulaire sur la carte (distinct des pins habituels) */
+.overpass-marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: white;
+  border: 2.5px solid var(--color);
+  font-size: 0.9rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  transition: transform 120ms ease;
+}
+
+.overpass-marker:hover { transform: scale(1.15); }
+
 /* ── Route panel ─────────────────────────────────────────────────────── */
 .route-panel {
   padding: 12px 16px 16px;

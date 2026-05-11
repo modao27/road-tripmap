@@ -61,6 +61,25 @@
                 <button class="filter-footer-btn" id="hideAllButton" type="button">tout masquer</button>
               </div>
             </details>
+
+            <!-- Découvrir via OpenStreetMap -->
+            <details class="filter-section" id="overpassSection">
+              <summary>🔍 Découvrir autour <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
+              <div class="overpass-cats">
+                <button class="overpass-cat-btn active" data-overpass-cat="bivouac"    type="button">⛺ Bivouac</button>
+                <button class="overpass-cat-btn active" data-overpass-cat="shelter"    type="button">🏠 Refuges</button>
+                <button class="overpass-cat-btn"        data-overpass-cat="water"      type="button">💧 Sources</button>
+                <button class="overpass-cat-btn"        data-overpass-cat="waterfall"  type="button">🌊 Cascades</button>
+                <button class="overpass-cat-btn"        data-overpass-cat="viewpoint"  type="button">🔭 Panoramas</button>
+                <button class="overpass-cat-btn"        data-overpass-cat="via_ferrata" type="button">🧗 Via ferrata</button>
+                <button class="overpass-cat-btn"        data-overpass-cat="trailhead"  type="button">🥾 Départs</button>
+              </div>
+              <div class="overpass-actions">
+                <button class="button" id="overpassSearch" type="button">Chercher dans la zone visible</button>
+                <button class="secondary" id="overpassClear" type="button" hidden>✕ Effacer les résultats</button>
+              </div>
+              <p class="overpass-status" id="overpassStatus"></p>
+            </details>
           </section>
           <section class="places-panel">
             <p class="places-title"><span>Lieux visibles</span><span id="visibleCount" aria-live="polite" aria-atomic="true"></span></p>

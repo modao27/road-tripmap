@@ -13,6 +13,7 @@ import { fetchUserPins, fetchOverrides,
          loadSharedMap } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
+import { initOverpass } from './overpass.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 export const CONFIG = {
@@ -339,6 +340,9 @@ async function init() {
       }
     },
   });
+
+  // ── Découvrir (Overpass OSM) ──────────────────────────────────────────────
+  initOverpass({ map, toastWrap, showToastFn: showToast });
 
   // ── Itinéraire ────────────────────────────────────────────────────────────
   // Déclaré en let pour que onRefresh() y ait accès via la closure
