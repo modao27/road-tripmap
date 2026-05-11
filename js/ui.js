@@ -133,20 +133,4 @@ export function initResizer(map, config) {
   });
 }
 
-// ── Bouton de partage ─────────────────────────────────────────────────────────
-
-export function initShareButton(mapId, getShareUrlFn, toastWrap) {
-  const btn = document.getElementById('shareButton');
-  if (!btn) return;
-
-  btn.addEventListener('click', async () => {
-    const url = getShareUrlFn(mapId);
-    try {
-      await navigator.clipboard.writeText(url);
-      showToast(toastWrap, '🔗 Lien copié dans le presse-papier !', 'success');
-    } catch {
-      // Fallback si l'API clipboard est bloquée
-      prompt('Copie ce lien pour partager ta carte :', url);
-    }
-  });
-}
+// ── (initShareButton supprimé — remplacé par initShareModal dans share.js) ───
