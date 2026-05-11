@@ -107,7 +107,7 @@ export function initShareModal({
   });
 }
 
-// ── Bannière carte partagée ───────────────────────────────────────────────────
+// ── Bannière "carte partagée chargée" ────────────────────────────────────────
 
 export function showSharedMapBanner(title) {
   const banner  = document.getElementById('sharedMapBanner');
@@ -117,5 +117,40 @@ export function showSharedMapBanner(title) {
   banner.hidden = false;
   document.getElementById('sharedMapClose')?.addEventListener('click', () => {
     banner.hidden = true;
+  });
+}
+
+// ── Modale de confirmation avant chargement ───────────────────────────────────
+
+export function confirmSharedMapLoad(title) {
+  return new Promise((resolve) => {
+    const backdrop  = document.getElementById('sharedMapConfirmBackdrop');
+    const nameEl    = document.getElementById('sharedMapConfirmName');
+    const loadBtn   = document.getElementById('sharedMapLoadConfirm');
+    const cancelBtn = document.getElementById('sharedMapCancelConfirm');
+
+    if (!backdrop) { resolve(true); return; }
+
+    nameEl.textContent = title;
+    backdrop.hidden = false;
+
+    function done(value) {
+      backdrop.hidden = true;
+      loadBtn.removeEventListener('click', onLoad);
+      cancelBtn.removeEventListener('click', onCancel);
+      backdrop.removeEventListener('click', onOutside);
+      document.removeEventListener('keydown', onKey);
+      resolve(value);
+    }
+
+    const onLoad    = () => done(true);
+    const onCancel  = () => done(false);
+    const onOutside = (e) => { if (e.target === backdrop) done(false); };
+    const onKey     = (e) => { if (e.key === 'Escape') done(false); };
+
+    loadBtn.addEventListener('click', onLoad);
+    cancelBtn.addEventListener('click', onCancel);
+    backdrop.addEventListener('click', onOutside);
+    document.addEventListener('keydown', onKey);
   });
 }

@@ -64,10 +64,23 @@
     </section>
   </main>
 
-  <!-- Bannière carte partagée -->
+  <!-- Bannière carte partagée chargée -->
   <div class="shared-map-banner" id="sharedMapBanner" hidden>
-    <span>📤 Carte partagée : <strong id="sharedMapTitle"></strong></span>
+    <span>✅ Carte partagée chargée : <strong id="sharedMapTitle"></strong></span>
     <button type="button" id="sharedMapClose" aria-label="Fermer la bannière">✕</button>
+  </div>
+
+  <!-- Modale de confirmation avant chargement -->
+  <div class="pin-modal-backdrop" id="sharedMapConfirmBackdrop" hidden>
+    <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="sharedConfirmHeading">
+      <h3 id="sharedConfirmHeading">Carte partagée</h3>
+      <p>Afficher la carte <strong id="sharedMapConfirmName"></strong>&nbsp;?</p>
+      <p class="shared-confirm-note">Tes pins personnels et ta carte restent intacts — ce chargement n'écrase rien.</p>
+      <div class="pin-modal-actions">
+        <button class="secondary" id="sharedMapCancelConfirm" type="button">Annuler</button>
+        <button class="button"    id="sharedMapLoadConfirm"   type="button">Charger la carte</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modale de partage -->

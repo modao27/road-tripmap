@@ -10,7 +10,7 @@ import { fetchUserPins, fetchOverrides,
          upsertUserPin, deleteUserPinRemote,
          upsertOverride, deleteOverrideRemote,
          loadSharedMap } from './supabase.js';
-import { initShareModal, showSharedMapBanner } from './share.js';
+import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 export const CONFIG = {
@@ -33,21 +33,47 @@ if (typeof L === 'undefined') {
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function init() {
-  const mapParam     = getMapIdFromUrl();
-  const isSharedMap  = !!mapParam && !isUUID(mapParam); // slug = carte partagée
-  const mapId        = isSharedMap ? null : getOrCreateMapId();
+  const mapParam = getMapIdFromUrl();
+  // Un slug (non UUID) dans ?map= indique une carte partagée
+  let isSharedMap = !!mapParam && !isUUID(mapParam);
 
-  // ── Chargement des données ────────────────────────────────────────────────
-  let userPlaces, placeOverrides, sharedData = null;
-
+  // ── 1. Tentative de chargement de la carte partagée ──────────────────────
+  let sharedData = null;
   if (isSharedMap) {
     try {
-      sharedData     = await loadSharedMap(mapParam);
-      userPlaces     = sharedData.pins     || [];
-      placeOverrides = sharedData.overrides || {};
+      sharedData = await loadSharedMap(mapParam);
     } catch {
-      userPlaces = []; placeOverrides = {};
+      // Slug introuvable ou hors ligne → on retombe sur la carte personnelle
+      isSharedMap = false;
+      history.replaceState(null, '', window.location.pathname);
     }
+  }
+
+  // ── 2. Confirmation si l'utilisateur a déjà des données locales ──────────
+  if (isSharedMap && sharedData) {
+    const localPins      = loadUserPins();
+    const localOverrides = loadOverrides();
+    const hasLocalData   = localPins.length > 0 || Object.keys(localOverrides).length > 0;
+
+    if (hasLocalData) {
+      const confirmed = await confirmSharedMapLoad(sharedData.title);
+      if (!confirmed) {
+        // L'utilisateur refuse → on reste sur sa carte perso, on nettoie l'URL
+        isSharedMap = false;
+        sharedData  = null;
+        history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }
+
+  const mapId = isSharedMap ? null : getOrCreateMapId();
+
+  // ── 3. Chargement effectif des données ───────────────────────────────────
+  let userPlaces, placeOverrides;
+
+  if (isSharedMap && sharedData) {
+    userPlaces     = sharedData.pins      || [];
+    placeOverrides = sharedData.overrides || {};
   } else {
     try {
       [userPlaces, placeOverrides] = await Promise.all([
