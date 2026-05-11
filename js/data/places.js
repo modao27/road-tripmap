@@ -1,6 +1,7 @@
 // Coordonnées vérifiées par recherche web — précision à 4 décimales.
 // Via ferrata Roche au Dade : fermée depuis mars 2026 (roche dégradée) — vérifier réouverture.
 // Gorges de l'Abîme : fermées par arrêté municipal depuis déc. 2023 — travaux en cours (2026).
+// Échelles de la Mort : fermées jusqu'au 30 avril 2026 (fermeture temporaire).
 export const places = [
   {
     id: "baume-les-messieurs",
@@ -89,6 +90,83 @@ export const places = [
     interest: "Passerelle suspendue à 90 m au-dessus des eaux turquoise du lac de Vouglans : l'une des expériences les plus aériennes du Jura. Variante athlétique (niveau D) avec échelle dans le vide.",
     tip: "Parking du Regardoir à Moirans-en-Montagne (GPS 46.4456, 5.7083), puis 10 min à pied. Ouverture de fin juin à mi-novembre. Matériel de via ferrata obligatoire (location possible à Moirans). Durée : 1h30.",
     mood: "Aérien / sportif"
+  },
+  {
+    id: "via-ferrata-roche-au-dade",
+    name: "Via ferrata de la Roche au Dade",
+    category: "via",
+    lat: 46.5259,
+    lng: 6.0199,
+    description: "Via ferrata de 216 m de dénivelé dominant la ville de Morez et le bassin morézien, dans les gorges de la Bienne. Culmine à 918 m d'altitude. Trois parcours : classique (AD), variante athlétique avec tyrolienne montante (D) et parcours ludique avec pont népalais.",
+    interest: "Vue plongeante sur les méandres de la Bienne et les toits de Morez depuis le point haut à 918 m. Tyroliennes de 70 m, ponts de singe et échelles pour tous les niveaux. Site aménagé en plein Parc Naturel du Haut-Jura.",
+    tip: "ATTENTION : fermée depuis le 18 mars 2026 en raison de roches dégradées (rapport de contrôle du 17/03/2026). Vérifier la réouverture auprès de Jura Tourisme avant de vous déplacer. Alternative : Via ferrata du Regardoir (lac de Vouglans, 45 min en voiture).",
+    mood: "Via sportive"
+  },
+  {
+    id: "via-ferrata-echelles-de-la-mort",
+    name: "Via ferrata des Échelles de la Mort",
+    category: "via",
+    lat: 47.1867,
+    lng: 6.8729,
+    description: "Via ferrata de 500 m sur 100 m de dénivelé positif, dans les gorges du Doubs à Charquemont (Doubs, 25), à la frontière franco-suisse. La plus longue et la plus variée du département du Doubs. Ponts tibétains, rampes, poutres et tyrolienne finale de 60 m.",
+    interest: "Ancienne route de contrebandiers franco-suisses aux XVIIIe-XIXe siècles, chargée de légendes. Gorges du Doubs vertigineuses et accès libre toute l'année depuis la manufacture du Refrain. Tyrolienne finale de 60 m au-dessus de la forêt.",
+    tip: "Situé à Charquemont (Doubs, dép. 25), à ~1h30 de voiture depuis Baume-les-Messieurs. Fermée jusqu'au 30 avril 2026 (fermeture temporaire). Départ depuis la manufacture du Refrain. Durée : 2 à 3h. Accessible à la plupart des pratiquants (équipement via ferrata obligatoire). Prévoir 4 à 5h en tout avec l'approche.",
+    mood: "Aventure / sensation"
+  },
+  {
+    id: "via-ferrata-baumes-du-verneau",
+    name: "Via ferrata des Baumes du Verneau",
+    category: "via",
+    lat: 46.9768,
+    lng: 5.9991,
+    description: "Via ferrata de 1 500 m de câble total sur 186 m de dénivelé, à Nans-sous-Sainte-Anne (Doubs, 25), au bord des gorges du Lison. Quatre niveaux progressifs : F, PD, D et ED avec tyrolienne de 35 m. Parcours enfants possible dès 1,20 m. Accès libre.",
+    interest: "Le site le plus complet du secteur : tous niveaux sur une même falaise calcaire boisée avec fossiles visibles le long du parcours. Chamois et bouquetins en liberté sur la paroi. Les gorges du Lison et la cascade du Verneau accessibles après la via.",
+    tip: "Parking gratuit au village de Nans-sous-Sainte-Anne (GPS 46.9768, 5.9991), puis 15 min à pied. Ouvert toute l'année sauf fermetures exceptionnelles — vérifier (les sections Château rouge et noire restent fermées). Location de matériel au gîte Les Repaires sur place. Durée : 2 à 4h selon le parcours choisi.",
+    mood: "Via familiale / tous niveaux"
+  },
+  {
+    id: "via-ferrata-roche-du-mont-ornans",
+    name: "Via ferrata de la Roche du Mont",
+    category: "via",
+    lat: 47.1066,
+    lng: 6.1489,
+    description: "Via ferrata de 550 m de câble sur la falaise calcaire dominant la ville d'Ornans (Doubs, 25), ville natale de Gustave Courbet. Deux niveaux : section AD accessible (1h15, 3 ponts népalais, 2 poutres) et section ED extrêmement difficile réservée aux confirmés. Dénivelé faible (20 m), progression essentiellement horizontale.",
+    interest: "Vue panoramique sur les toits d'Ornans et la vallée de la Loue depuis la vire sommitale. La section ED figure parmi les passages les plus durs de Franche-Comté. Site accessible depuis le centre-ville et gratuit, idéal pour une demi-journée.",
+    tip: "Parking de la Visitation à Ornans (GPS 47.1066, 6.1489), puis 15 min à pied. Accès libre toute l'année. Durée section AD : 1h15. Cinq sorties de secours jalonnent le parcours. Contact : Office de tourisme d'Ornans 03 81 62 21 50.",
+    mood: "Via technique / patrimoine"
+  },
+  {
+    id: "via-ferrata-fort-lecluse",
+    name: "Via ferrata de Fort l'Écluse",
+    category: "via",
+    lat: 46.1200,
+    lng: 5.8902,
+    description: "Via ferrata de 400 m sur 150 m de dénivelé (430 m à 580 m d'altitude) sur la paroi calcaire dominant les gorges de l'Écluse et le Rhône, à Léaz (Ain, 01). Niveau AD, vires progressives entrecoupées de terrasses confortables, pont de singe de 15 m au-dessus du fossé du fort militaire.",
+    interest: "Fort militaire historique perché sur la falaise, panorama exceptionnel sur le Rhône et les gorges de l'Écluse. Un des sites les plus accessibles en début de saison grâce à la faible altitude (exposition sud). Pont de singe de 15 m en clôture spectaculaire sur le fossé du fort.",
+    tip: "Parking gratuit au Fort l'Écluse (GPS 46.1200, 5.8902) depuis la D1206, juste avant le tunnel côté Léaz. Approche 5 min seulement. Accès libre toute l'année. Durée : 1h à 1h30. Location de matériel via Fort l'Écluse Aventure (04 50 41 31 49). Non recommandé aux débutants sans guide.",
+    mood: "Via historique / vertige"
+  },
+  {
+    id: "via-ferrata-guinguette-hostiaz",
+    name: "Via ferrata de La Guinguette",
+    category: "via",
+    lat: 45.9161,
+    lng: 5.5194,
+    description: "Via ferrata de 700 m de câble sur 83 m de dénivelé dans la falaise calcaire surplombant Tenay, à Hostiaz (Ain, 01), sur le plateau d'Hauteville. Deux parcours complémentaires — Parcours des Buis (PD à D, 700 m, 1h40) et Parcours de la Grotte (AD, 350 m, 40 min) — avec passerelle de 20 m, ponts de singe, surplombs et passages aériens.",
+    interest: "Vue dégagée sur la vallée de l'Albarine, la Cluse des Hôpitaux et le village de Tenay. Falaise à l'architecture karstique très variée : grotte, surplomb jaune, vires étroites et traversées aériennes. Accessible en transport en commun depuis Ambérieu-en-Bugey ou Aix-les-Bains.",
+    tip: "Parking gratuit à Hostiaz (GPS 45.9161, 5.5194), puis 10 min d'approche. Accès libre toute l'année. À éviter par temps humide (départ glissant). Location de matériel aux Guides du Bugey à Tenay. Durée : 1h30 à 2h30 selon le parcours.",
+    mood: "Via aérienne / Bugey"
+  },
+  {
+    id: "sentier-du-vertige-pic-de-laigle",
+    name: "Sentier du Vertige – Pic de l'Aigle",
+    category: "via",
+    lat: 46.6096,
+    lng: 5.9042,
+    description: "Parcours aérien de type via ferrata sur les vires et falaises du Pic de l'Aigle (993 m), à La Chaux-du-Dombief (Jura, 39). Tracé en boucle depuis le village avec progression sur vires étroites, passages câblés et rappel géant de 60 m en option. À mi-chemin entre la randonnée, l'escalade et la via ferrata.",
+    interest: "Combinaison unique d'escalade, de randonnée et de via ferrata dans le cadre du plateau des 4 Lacs. Le rappel optionnel de 60 m dans le vide est l'un des plus impressionnants du Jura. Vue plongeante sur les 4 lacs glaciaires (Ilay, Narlay, Maclu) depuis les vires sommitales.",
+    tip: "Départ depuis La Chaux-du-Dombief, parking gratuit au village (GPS 46.6096, 5.9042). Possible en demi-journée. Activité idéale avec guide (Rock'n Jump Adventure ou Eskaléo). Rappel optionnel de 60 m possible en fin de parcours. Équipement via ferrata recommandé.",
+    mood: "Via vertige / lacs"
   },
   {
     id: "reculee-des-planches",
@@ -188,28 +266,6 @@ export const places = [
     interest: "Musée de la Pipe et du Diamant : seul musée en France consacré à ces deux artisanats qui ont façonné l'identité de la ville. Architecture de gorge originale avec maisons accrochées aux falaises. Portes d'entrée des gorges de l'Abîme et des via ferratas du Haut-Jura.",
     tip: "Parking des Quatre Vents ou en centre-ville. Ville commerçante complète pour le ravitaillement. Base idéale pour rayonner vers le Crêt de Chalam, les Échelles de la Mort et les lacs de Lamoura.",
     mood: "Ville / montagne"
-  },
-  {
-    id: "via-ferrata-roche-au-dade",
-    name: "Via ferrata de la Roche au Dade",
-    category: "via",
-    lat: 46.5259,
-    lng: 6.0199,
-    description: "Via ferrata de 216 m de dénivelé dominant la ville de Morez et le bassin morézien, dans les gorges de la Bienne. Culmine à 918 m d'altitude. Trois parcours : classique (AD), variante athlétique avec tyrolienne montante (D) et parcours ludique avec pont népalais.",
-    interest: "Vue plongeante sur les méandres de la Bienne et les toits de Morez depuis le point haut à 918 m. Tyroliennes de 70 m, ponts de singe et échelles pour tous les niveaux. Site aménagé en plein Parc Naturel du Haut-Jura.",
-    tip: "ATTENTION : fermée depuis le 18 mars 2026 en raison de roches dégradées (rapport de contrôle du 17/03/2026). Vérifier la réouverture auprès de Jura Tourisme avant de vous déplacer. Alternative : Via ferrata du Regardoir (lac de Vouglans, 45 min en voiture).",
-    mood: "Via sportive"
-  },
-  {
-    id: "via-ferrata-echelles-de-la-mort",
-    name: "Via ferrata des Échelles de la Mort",
-    category: "via",
-    lat: 47.1867,
-    lng: 6.8729,
-    description: "Via ferrata de 500 m sur 100 m de dénivelé positif, dans les gorges du Doubs à Charquemont (Doubs, 25), à la frontière franco-suisse. La plus longue et la plus variée du département du Doubs. Ponts tibétains, rampes, poutres et tyrolienne finale de 60 m.",
-    interest: "Ancienne route de contrebandiers franco-suisses aux XVIIIe-XIXe siècles, chargée de légendes. Gorges du Doubs vertigineuses et accès libre toute l'année depuis la manufacture du Refrain. Tyrolienne finale de 60 m au-dessus de la forêt.",
-    tip: "Situé à Charquemont (Doubs, dép. 25), à ~1h30 de voiture depuis Baume-les-Messieurs. Départ depuis la manufacture du Refrain. Durée : 2 à 3h. Accessible à la plupart des pratiquants (équipement via ferrata obligatoire). Prévoir 4 à 5h en tout avec l'approche.",
-    mood: "Aventure / sensation"
   },
   {
     id: "source-du-lison",
