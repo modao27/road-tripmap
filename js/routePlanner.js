@@ -249,14 +249,6 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         .bindTooltip(place.name, { direction: 'top', offset: [0, -14] })
         .addTo(routeLayer);
 
-      // Marker → highlight étape dans la liste
-      m.on('mouseover', () => {
-        stepsEl.querySelector(`[data-step-index="${i}"]`)?.classList.add('route-step--hover');
-      });
-      m.on('mouseout', () => {
-        stepsEl.querySelector(`[data-step-index="${i}"]`)?.classList.remove('route-step--hover');
-      });
-
       stepMarkers.push(m);
     });
   }
@@ -356,13 +348,6 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         scheduleFetch();
       });
 
-      // Étape → highlight marker (lazy : stepMarkers peut être vide si OSRM pas encore répondu)
-      el.addEventListener('mouseenter', () => {
-        stepMarkers[i]?.getElement()?.classList.add('marker-highlight');
-      });
-      el.addEventListener('mouseleave', () => {
-        stepMarkers[i]?.getElement()?.classList.remove('marker-highlight');
-      });
     });
 
     renderStats();
