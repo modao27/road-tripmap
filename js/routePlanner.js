@@ -230,6 +230,13 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         el.style.strokeDasharray  = len;
         el.style.strokeDashoffset = len;
         el.classList.add('route-draw-anim');
+        // Nettoyage après animation : retire les styles inline pour éviter
+        // tout artefact de rendu SVG (tracé partiellement invisible)
+        el.addEventListener('animationend', () => {
+          el.style.strokeDasharray  = '';
+          el.style.strokeDashoffset = '';
+          el.classList.remove('route-draw-anim');
+        }, { once: true });
       });
     }
   }
