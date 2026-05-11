@@ -1,7 +1,8 @@
 import { places as staticPlaces } from './data/places.js';
 import { categories } from './data/categories.js';
 import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
-         getOrCreateMapId, getMapIdFromUrl, isUUID } from './storage.js';
+         getOrCreateMapId, getMapIdFromUrl, isUUID,
+         saveMapView, loadMapView } from './storage.js';
 import { initMap, makeIcon, addMarker, focusPlace, renderMap, initLayerSwitcher } from './map.js';
 import { renderFilters, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
 import { showToast, setSyncStatus, initSidebar, initResizer } from './ui.js';
@@ -137,7 +138,7 @@ async function init() {
     return getVisiblePlaces(getAllPlaces, activeCategories, searchQuery, categoryRank);
   }
   function doRenderMap()     { renderMap(getVisible(), markers, markerLayer); }
-  function doRenderPlaces()  { renderPlaces(getVisible(), placeListEl, visibleCountEl, categories); }
+  function doRenderPlaces()  { renderPlaces(getVisible(), placeListEl, visibleCountEl, categories, searchQuery); }
   function doRenderFilters() { renderFilters(filtersEl, categories, getAllPlaces, activeCategories); }
   function onRefresh()       { doRenderFilters(); doRenderPlaces(); doRenderMap(); routePlanner?.refresh(); }
   function doFocusPlace(p)   {
@@ -231,6 +232,7 @@ async function init() {
     setSyncStatusFn:  setSyncStatus,
     onRefresh,
     focusPlaceFn:     doFocusPlace,
+    onMarkerAdded:    setupMarkerHover,
     config:           CONFIG,
     mapId,
     upsertUserPinFn:  isSharedMap ? null : upsertUserPin,
@@ -252,16 +254,55 @@ async function init() {
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
   });
 
+  // ── Cross-highlight sidebar ↔ carte ──────────────────────────────────────
+  function setupMarkerHover(place) {
+    const marker = markers.get(place.id);
+    if (!marker) return;
+    marker.on('mouseover', () => {
+      const card = placeListEl.querySelector(`[data-place-id="${place.id}"]`);
+      if (card) { card.classList.add('card-highlight'); card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    });
+    marker.on('mouseout', () => {
+      placeListEl.querySelector(`[data-place-id="${place.id}"]`)?.classList.remove('card-highlight');
+    });
+  }
+
+  // Carte → marker (délégation sur la liste)
+  placeListEl.addEventListener('mouseover', e => {
+    const btn = e.target.closest('[data-place-id]');
+    if (btn) markers.get(btn.dataset.placeId)?.getElement()?.classList.add('marker-highlight');
+  });
+  placeListEl.addEventListener('mouseout', e => {
+    const btn = e.target.closest('[data-place-id]');
+    if (btn) markers.get(btn.dataset.placeId)?.getElement()?.classList.remove('marker-highlight');
+  });
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────
-  getAllPlaces().forEach(place => addMarker(place, markers, makePopupHtml, makeIconFn));
+  const savedView = !isSharedMap ? loadMapView() : null;
+  if (savedView) map.setView([savedView.lat, savedView.lng], savedView.zoom, { animate: false });
+
+  getAllPlaces().forEach(place => {
+    addMarker(place, markers, makePopupHtml, makeIconFn);
+    setupMarkerHover(place);
+  });
   renderLegend(legendEl, categories);
   doRenderFilters();
   doRenderMap();
   doRenderPlaces();
 
+  // Sauvegarde de la vue (debounce 800 ms pour éviter les écritures pendant les animations)
+  let viewSaveTimer = null;
+  map.on('moveend', () => {
+    clearTimeout(viewSaveTimer);
+    viewSaveTimer = setTimeout(() => {
+      const c = map.getCenter();
+      saveMapView(c.lat, c.lng, map.getZoom());
+    }, 800);
+  });
+
   requestAnimationFrame(() => {
     map.invalidateSize();
-    if (!isSharedMap) doFocusPlace(basePlace);
+    if (!isSharedMap && !savedView) doFocusPlace(basePlace);
   });
 
   window.addEventListener('load',   () => map.invalidateSize());

@@ -1,5 +1,6 @@
 import { saveUserPins, saveOverrides } from './storage.js';
 import { addMarker, refreshMarker } from './map.js';
+import { trapFocus } from './ui.js';
 
 function openInOSM(lat, lng, zoom = 14) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
@@ -49,6 +50,7 @@ export function initPins({
   onRefresh,
   focusPlaceFn,
   onMapClick,
+  onMarkerAdded,
   config,
   // Supabase (optionnel — graceful degradation si non fourni)
   mapId,
@@ -90,6 +92,9 @@ export function initPins({
       setSyncStatusFn('error');
     }
   }
+
+  // ── Focus trap ────────────────────────────────────────────────────────────
+  let releaseFocusTrap = null;
 
   // ── Geocoding state ───────────────────────────────────────────────────────
   let geocodeDebounce = null;
@@ -157,10 +162,12 @@ export function initPins({
     }
     pinModalBackdrop.hidden = false;
     pinGeocodeInput.focus();
+    releaseFocusTrap = trapFocus(pinModalBackdrop);
   }
 
   function closePinModal() {
     pinModalBackdrop.hidden = true;
+    releaseFocusTrap?.(); releaseFocusTrap = null;
     pendingPinCoords = null;
     editingPinId = null;
     clearTimeout(geocodeDebounce);
@@ -188,6 +195,7 @@ export function initPins({
     syncRemote(upsertUserPinFn, pin);
     addMarker(pin, markers, makePopupHtml, makeIconFn);
     if (activeCategories.has(category)) markerLayer.addLayer(markers.get(pin.id));
+    onMarkerAdded?.(pin);
     onRefresh();
     focusPlaceFn(pin);
     showToastFn(toastWrap, `Pin "${name}" créé`, 'success');

@@ -1,3 +1,20 @@
+// ── Focus trap (accessibilité modales) ───────────────────────────────────────
+
+const FOCUSABLE = 'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+export function trapFocus(container) {
+  function onKey(e) {
+    if (e.key !== 'Tab') return;
+    const els = [...container.querySelectorAll(FOCUSABLE)].filter(el => !el.closest('[hidden]'));
+    if (els.length < 2) return;
+    const [first, last] = [els[0], els[els.length - 1]];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+  container.addEventListener('keydown', onKey);
+  return () => container.removeEventListener('keydown', onKey); // retourne cleanup
+}
+
 // ── Toasts ────────────────────────────────────────────────────────────────────
 
 export function showToast(toastWrap, msg, type = '', duration = 4000) {

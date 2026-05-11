@@ -23,7 +23,16 @@ export function renderLegend(legendEl, categories) {
   }).join('');
 }
 
-export function renderPlaces(visibleList, placeListEl, visibleCountEl, categories) {
+function highlight(text, query) {
+  if (!query) return text;
+  const i = text.toLowerCase().indexOf(query.toLowerCase());
+  if (i === -1) return text;
+  return text.slice(0, i)
+    + `<mark class="search-highlight">${text.slice(i, i + query.length)}</mark>`
+    + text.slice(i + query.length);
+}
+
+export function renderPlaces(visibleList, placeListEl, visibleCountEl, categories, searchQuery = '') {
   visibleCountEl.textContent = visibleList.length.toString();
 
   if (visibleList.length === 0) {
@@ -35,7 +44,7 @@ export function renderPlaces(visibleList, placeListEl, visibleCountEl, categorie
       return `
         <li class="place-item">
           <button class="${cardClass}" type="button" data-place-id="${place.id}" style="--color:${category.color}">
-            <strong>${place.name}</strong>
+            <strong>${highlight(place.name, searchQuery)}</strong>
             <span class="place-meta"><span class="place-icon">${category.icon}</span>${category.label}</span>
           </button>
           <button class="place-route-add" type="button" data-add-route-id="${place.id}" title="Ajouter à l'itinéraire">＋</button>

@@ -36,6 +36,17 @@ export function getMapIdFromUrl() {
   return new URLSearchParams(window.location.search).get('map') || null;
 }
 
+// ── Vue carte (centre + zoom) ─────────────────────────────────────────────────
+
+export function saveMapView(lat, lng, zoom) {
+  localStorage.setItem('mapView', JSON.stringify({ lat, lng, zoom }));
+}
+
+export function loadMapView() {
+  try { return JSON.parse(localStorage.getItem('mapView')); }
+  catch { return null; }
+}
+
 // ── Itinéraire ────────────────────────────────────────────────────────────────
 
 export function loadRouteSteps() {

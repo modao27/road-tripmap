@@ -818,6 +818,40 @@ body.resizing {
   border-left-style: dashed;
 }
 
+/* ── Cross-highlight sidebar ↔ carte ─────────────────────────────────── */
+.marker-highlight {
+  filter: drop-shadow(0 0 7px rgba(31, 95, 67, 0.85));
+  z-index: 9999 !important;
+  transition: filter 150ms ease;
+}
+
+.place-card.card-highlight {
+  background: rgba(31, 95, 67, 0.08) !important;
+  box-shadow: 0 0 0 2px var(--forest), 0 6px 18px rgba(31, 95, 67, 0.15) !important;
+}
+
+/* ── Highlight texte de recherche ─────────────────────────────────────── */
+mark.search-highlight {
+  background: rgba(213, 107, 29, 0.22);
+  color: inherit;
+  border-radius: 2px;
+  font-weight: inherit;
+}
+
+/* ── Bouton "+" déjà dans l'itinéraire ───────────────────────────────── */
+.place-route-add.in-route {
+  background: var(--forest);
+  color: white;
+  border-color: transparent;
+  cursor: default;
+}
+
+.popup-add-route.in-route {
+  background: rgba(31, 95, 67, 0.12);
+  color: var(--forest);
+  cursor: default;
+}
+
 /* ── Place item wrapper (card + bouton itinéraire) ───────────────────── */
 .place-item {
   display: flex;

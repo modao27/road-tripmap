@@ -61,6 +61,20 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     return steps.map(id => all.find(p => p.id === id) || null);
   }
 
+  // ── Mise à jour de l'état des boutons "Ajouter à l'itinéraire" ──────────
+  function updateRouteButtons() {
+    document.querySelectorAll('[data-add-route-id]').forEach(btn => {
+      const inRoute = steps.includes(btn.dataset.addRouteId);
+      btn.classList.toggle('in-route', inRoute);
+      if (btn.classList.contains('popup-add-route')) {
+        btn.textContent = inRoute ? "✓ Dans l'itinéraire" : '➕ Ajouter à l\'itinéraire';
+      } else {
+        btn.textContent = inRoute ? '✓' : '＋';
+        btn.title = inRoute ? "Déjà dans l'itinéraire" : "Ajouter à l'itinéraire";
+      }
+    });
+  }
+
   // ── Ajout / suppression d'étapes ─────────────────────────────────────────
   function addStep(placeId) {
     if (steps.includes(placeId)) {
@@ -70,6 +84,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     steps.push(placeId);
     persist();
     renderStepList();
+    updateRouteButtons();
     scheduleFetch();
     showToastFn(toastWrap, 'Étape ajoutée', 'success');
   }
@@ -78,6 +93,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     steps.splice(index, 1);
     persist();
     renderStepList();
+    updateRouteButtons();
     scheduleFetch();
   }
 
@@ -86,6 +102,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     routeData = null;
     persist();
     renderStepList();
+    updateRouteButtons();
     clearMapLayers();
     renderStats();
   }
@@ -117,6 +134,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     steps = result.map(p => p.id);
     persist();
     renderStepList();
+    updateRouteButtons();
     scheduleFetch();
     showToastFn(toastWrap, 'Itinéraire optimisé', 'success');
   }
@@ -125,6 +143,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   function scheduleFetch() {
     clearTimeout(fetchDebounce);
     if (steps.length < 2) { clearMapLayers(); renderStats(); return; }
+    // Spinner : affichage immédiat en attendant la réponse
+    distEl.textContent = '…';
+    durEl.textContent  = '…';
+    statsEl.hidden = false;
     fetchDebounce = setTimeout(fetchRoute, 700);
   }
 
@@ -426,12 +448,14 @@ ${trk}
   if (modeEl) modeEl.value = mode;
   restoreFromUrl();
   renderStepList();
+  updateRouteButtons();
   if (steps.length >= 2) scheduleFetch();
 
   return {
     addStep,
-    hasStep:         id => steps.includes(id),
+    hasStep:              id => steps.includes(id),
     serializeRoute,
-    refresh:         renderStepList,  // à appeler après un getAllPlaces() changé
+    refresh:              () => { renderStepList(); updateRouteButtons(); },
+    updateRouteButtons,
   };
 }
