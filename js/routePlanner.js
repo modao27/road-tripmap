@@ -1,7 +1,19 @@
 import { loadRouteSteps, saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
 
-const OSRM_BASE = 'https://router.project-osrm.org/route/v1';
-const OSRM_PROFILE = { driving: 'driving', cycling: 'cycling', walking: 'foot' };
+// Le serveur public OSRM ne supporte que le profil driving de façon fiable.
+// Pour vélo et marche, on récupère la géométrie (driving) mais on corrige
+// la durée avec des vitesses moyennes réalistes.
+const OSRM_BASE    = 'https://router.project-osrm.org/route/v1';
+const OSRM_PROFILE = { driving: 'driving', cycling: 'driving', walking: 'driving' };
+
+// Vitesses moyennes (km/h) pour la correction côté client
+const AVG_SPEED_KMH = { driving: null, cycling: 16, walking: 4 };
+
+function estimateDuration(distanceMeters, m) {
+  const kmh = AVG_SPEED_KMH[m];
+  if (!kmh) return null; // driving → utilise la durée OSRM
+  return Math.round((distanceMeters / 1000 / kmh) * 3600);
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -165,9 +177,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       const data = await res.json();
       if (!data.routes?.[0]) throw new Error('No route');
 
+      const dist = data.routes[0].distance;
       routeData = {
-        distance: data.routes[0].distance,
-        duration: data.routes[0].duration,
+        distance: dist,
+        duration: estimateDuration(dist, mode) ?? data.routes[0].duration,
         geometry: data.routes[0].geometry,
       };
       drawRoute(routeData.geometry, places);
