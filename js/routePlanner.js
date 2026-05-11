@@ -30,7 +30,7 @@ function escapeXml(s) {
 
 // ── Module ────────────────────────────────────────────────────────────────────
 
-export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn }) {
+export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn }) {
 
   // ── État ──────────────────────────────────────────────────────────────────
   let steps         = loadRouteSteps();   // tableau d'IDs de lieux
@@ -436,12 +436,14 @@ ${trk}
   shareBtn?.addEventListener('click',    shareRoute);
   gpxBtn?.addEventListener('click',      exportGPX);
 
-  // Clic sur étape → zoom carte
+  // Clic sur étape → zoom + popup
   stepsEl.addEventListener('click', e => {
     const li = e.target.closest('[data-step-index]');
     if (!li || e.target.closest('[data-remove-step]')) return;
     const place = resolvePlaces()[+li.dataset.stepIndex];
-    if (place) map.flyTo([place.lat, place.lng], 14, { animate: true, duration: 0.8 });
+    if (!place) return;
+    if (focusPlaceFn) focusPlaceFn(place);
+    else map.flyTo([place.lat, place.lng], 14, { animate: true, duration: 0.8 });
   });
 
   // ── Initialisation ────────────────────────────────────────────────────────

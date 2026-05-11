@@ -1267,3 +1267,108 @@ mark.search-highlight {
     display: none;
   }
 }
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --forest:      #4ea876;
+    --forest-dark: #6dc492;
+    --paper:       #1a211d;
+    --ink:         #dde8e0;
+    --muted:       #7a9184;
+    --line:        rgba(255, 255, 255, 0.09);
+    --shadow:      0 18px 55px rgba(0, 0, 0, 0.55);
+    --orange:      #e8843a;
+  }
+
+  body { background: #0f1511; }
+
+  .sidebar {
+    background: linear-gradient(180deg, #1a211d, #141a16);
+    border-right-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-header { border-bottom-color: rgba(255, 255, 255, 0.08); }
+
+  h1 { color: #6dc492; }
+
+  .place-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .place-card:hover,
+  .place-card:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .filter {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .legend { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); }
+  .legend-item { background: rgba(255, 255, 255, 0.07); color: var(--ink); }
+
+  .search,
+  .pin-field input,
+  .pin-field select,
+  .pin-field textarea,
+  .route-mode-select {
+    background: #0f1511;
+    color: var(--ink);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .search:focus,
+  .pin-field input:focus,
+  .pin-field select:focus,
+  .pin-field textarea:focus {
+    border-color: rgba(78, 168, 118, 0.5);
+    box-shadow: 0 0 0 3px rgba(78, 168, 118, 0.12);
+  }
+
+  .secondary, .geolocate, .pin-btn {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--ink);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .secondary:hover, .geolocate:hover { background: rgba(255, 255, 255, 0.12); }
+
+  .footer { background: rgba(0, 0, 0, 0.35); }
+
+  .pin-modal { background: #1a211d; }
+  .pin-modal-backdrop { background: rgba(0, 0, 0, 0.65); }
+
+  .toast { background: #2a3530; }
+  .toast.success { background: #1e4d30; }
+  .toast.error   { background: #4d1e1e; }
+
+  .layer-btn {
+    background: rgba(20, 30, 24, 0.95);
+    color: var(--ink);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .layer-btn.active { background: var(--forest); color: #0f1511; }
+
+  .route-step {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.09);
+  }
+
+  .place-route-add {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(78, 168, 118, 0.2);
+  }
+
+  .pin-location-tag { background: rgba(78, 168, 118, 0.12); }
+  .share-includes   { background: rgba(78, 168, 118, 0.08); border-color: rgba(78, 168, 118, 0.15); }
+
+  .leaflet-popup-content-wrapper { background: #1a211d; color: var(--ink); }
+  .leaflet-popup-tip             { background: #1a211d; }
+  .popup h2, .popup b            { color: var(--forest-dark); }
+  .popup p                       { color: #b8cec0; }
+}

@@ -252,6 +252,7 @@ async function init() {
   let routePlanner = null;
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
+    focusPlaceFn: doFocusPlace,
   });
 
   // ── Cross-highlight sidebar ↔ carte ──────────────────────────────────────
@@ -307,6 +308,20 @@ async function init() {
 
   window.addEventListener('load',   () => map.invalidateSize());
   window.addEventListener('resize', () => map.invalidateSize());
+
+  // ── Raccourcis clavier globaux ────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    // Ctrl+F / Cmd+F → focus sur la barre de recherche
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+      if (mobileQuery.matches) {
+        sidebarEl.classList.add('open');
+        sidebarToggleEl.setAttribute('aria-expanded', 'true');
+      }
+    }
+  });
 }
 
 init();
