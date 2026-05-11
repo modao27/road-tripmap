@@ -210,7 +210,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       lineJoin: 'round', lineCap: 'round',
     }).addTo(routeLayer);
 
-    L.polyline(latLngs, {
+    const poly = L.polyline(latLngs, {
       color: '#1f5f43',
       weight: 5,
       opacity: 0.88,
@@ -218,6 +218,18 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       lineJoin: 'round',
       lineCap:  'round',
     }).addTo(routeLayer);
+
+    // Animation de dessin progressif (uniquement pour les tracés OSRM)
+    if (!dashed) {
+      requestAnimationFrame(() => {
+        const el = poly.getElement();
+        if (!el) return;
+        const len = el.getTotalLength?.() ?? 3000;
+        el.style.strokeDasharray  = len;
+        el.style.strokeDashoffset = len;
+        el.classList.add('route-draw-anim');
+      });
+    }
   }
 
   function addStepMarkers(places) {
@@ -456,6 +468,7 @@ ${trk}
   return {
     addStep,
     hasStep:              id => steps.includes(id),
+    getStepCount:         () => steps.length,
     serializeRoute,
     refresh:              () => { renderStepList(); updateRouteButtons(); },
     updateRouteButtons,

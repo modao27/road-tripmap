@@ -140,7 +140,19 @@ async function init() {
   function doRenderMap()     { renderMap(getVisible(), markers, markerLayer); }
   function doRenderPlaces()  { renderPlaces(getVisible(), placeListEl, visibleCountEl, categories, searchQuery); }
   function doRenderFilters() { renderFilters(filtersEl, categories, getAllPlaces, activeCategories); }
-  function onRefresh()       { doRenderFilters(); doRenderPlaces(); doRenderMap(); routePlanner?.refresh(); }
+  function onRefresh()       { doRenderFilters(); doRenderPlaces(); doRenderMap(); routePlanner?.refresh(); updateRouteBadge(); }
+
+  const routeBadgeEl      = document.getElementById('routeBadge');
+  const routeBadgeCountEl = document.getElementById('routeBadgeCount');
+  const routeBadgePluralEl = document.getElementById('routeBadgePlural');
+
+  function updateRouteBadge() {
+    if (!routeBadgeEl) return;
+    const count = routePlanner?.getStepCount() ?? 0;
+    routeBadgeEl.hidden = count === 0 || sidebarEl.classList.contains('open');
+    if (routeBadgeCountEl) routeBadgeCountEl.textContent = count;
+    if (routeBadgePluralEl) routeBadgePluralEl.hidden = count === 1;
+  }
   function doFocusPlace(p)   {
     focusPlace(p, map, markerLayer, markers, mobileQuery, sidebarEl, sidebarToggleEl, CONFIG);
   }
@@ -205,7 +217,7 @@ async function init() {
   });
 
   // ── UI ────────────────────────────────────────────────────────────────────
-  initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map);
+  initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map, updateRouteBadge);
   initResizer(map, CONFIG);
 
   // ── Modale de partage (désactivée en mode lecture d'une carte partagée) ───
@@ -243,6 +255,7 @@ async function init() {
       if (mobileQuery.matches) {
         sidebarEl.classList.remove('open');
         sidebarToggleEl.setAttribute('aria-expanded', 'false');
+        updateRouteBadge();
       }
     },
   });
@@ -278,6 +291,19 @@ async function init() {
     if (btn) markers.get(btn.dataset.placeId)?.getElement()?.classList.remove('marker-highlight');
   });
 
+  // ── Badge itinéraire mobile ───────────────────────────────────────────────
+  routeBadgeEl?.addEventListener('click', () => {
+    sidebarEl.classList.add('open');
+    sidebarToggleEl.setAttribute('aria-expanded', 'true');
+    const routeSection = document.getElementById('routeSection');
+    if (routeSection) routeSection.open = true;
+    updateRouteBadge();
+    setTimeout(() => {
+      document.getElementById('routePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      map.invalidateSize();
+    }, 230);
+  });
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────
   const savedView = !isSharedMap ? loadMapView() : null;
   if (savedView) map.setView([savedView.lat, savedView.lng], savedView.zoom, { animate: false });
@@ -300,6 +326,8 @@ async function init() {
       saveMapView(c.lat, c.lng, map.getZoom());
     }, 800);
   });
+
+  updateRouteBadge();
 
   requestAnimationFrame(() => {
     map.invalidateSize();

@@ -52,18 +52,37 @@ export function setSyncStatus(status) {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
-export function initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map) {
+export function initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map, onToggle) {
+  function closeSidebar() {
+    sidebarEl.classList.remove('open');
+    sidebarToggleEl.setAttribute('aria-expanded', 'false');
+    setTimeout(() => map.invalidateSize(), 230);
+    onToggle?.();
+  }
+
   sidebarToggleEl.addEventListener('click', () => {
     const isOpen = sidebarEl.classList.toggle('open');
     sidebarToggleEl.setAttribute('aria-expanded', String(isOpen));
     setTimeout(() => map.invalidateSize(), 230);
+    onToggle?.();
   });
 
   sidebarEl.addEventListener('transitionend', (event) => {
-    if (event.propertyName === 'transform') {
-      map.invalidateSize();
-    }
+    if (event.propertyName === 'transform') map.invalidateSize();
   });
+
+  // ── Swipe-to-close sur mobile ─────────────────────────────────────────────
+  let swipeStartX = 0;
+
+  sidebarEl.addEventListener('touchstart', e => {
+    swipeStartX = e.touches[0].clientX;
+  }, { passive: true });
+
+  sidebarEl.addEventListener('touchend', e => {
+    if (!mobileQuery.matches) return;
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    if (dx < -72) closeSidebar();
+  }, { passive: true });
 }
 
 // ── Resizer ───────────────────────────────────────────────────────────────────
