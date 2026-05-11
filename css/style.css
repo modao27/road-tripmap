@@ -970,6 +970,7 @@ mark.search-highlight {
 .route-step.dragging      { opacity: 0.4; }
 .route-step.drag-over     { box-shadow: 0 0 0 2px var(--forest); background: rgba(31, 95, 67, 0.06); }
 .route-step--deleted      { opacity: 0.5; background: rgba(139, 30, 30, 0.04); border-color: rgba(139, 30, 30, 0.18); }
+.route-step--hover        { background: rgba(31, 95, 67, 0.08) !important; box-shadow: 0 0 0 2px var(--forest); }
 
 .route-step-handle { color: var(--muted); font-size: 0.88rem; flex-shrink: 0; }
 
@@ -1029,6 +1030,14 @@ mark.search-highlight {
 .route-step-remove:hover {
   background: rgba(139, 30, 30, 0.14);
   color: #8b1e1e;
+}
+
+.route-drop-target {
+  outline: 2px dashed var(--forest);
+  outline-offset: 3px;
+  background: rgba(31, 95, 67, 0.04);
+  border-radius: 10px;
+  transition: background 120ms ease;
 }
 
 .route-empty {

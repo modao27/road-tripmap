@@ -131,7 +131,9 @@ async function init() {
 
   // ── Factories ─────────────────────────────────────────────────────────────
   function makeIconFn(place)    { return makeIcon(place, categories); }
-  function makePopupHtml(place) { return popupHtml(place, categories, placeOverrides); }
+  function makePopupHtml(place) {
+    return popupHtml(place, categories, placeOverrides, routePlanner?.hasStep(place.id) ?? false);
+  }
 
   // ── Render helpers ────────────────────────────────────────────────────────
   function getVisible() {
@@ -282,6 +284,14 @@ async function init() {
   }
 
   // Carte → marker (délégation sur la liste)
+  // Drag d'une carte vers l'itinéraire
+  placeListEl.addEventListener('dragstart', e => {
+    const btn = e.target.closest('[data-place-id]');
+    if (!btn) return;
+    e.dataTransfer.setData('text/place-id', btn.dataset.placeId);
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+
   placeListEl.addEventListener('mouseover', e => {
     const btn = e.target.closest('[data-place-id]');
     if (btn) markers.get(btn.dataset.placeId)?.getElement()?.classList.add('marker-highlight');

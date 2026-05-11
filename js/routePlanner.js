@@ -38,6 +38,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   let routeData     = null;               // {distance, duration, geometry} OSRM
   let fetchDebounce = null;
   let dragSrcIndex  = null;
+  let stepMarkers   = [];                 // markers numérotés sur la carte
 
   // Couche Leaflet dédiée (indépendante des clusters)
   const routeLayer = L.layerGroup().addTo(map);
@@ -184,6 +185,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // ── Rendu carte ───────────────────────────────────────────────────────────
   function clearMapLayers() {
     routeLayer.clearLayers();
+    stepMarkers = [];
   }
 
   function drawRoute(geometry, places) {
@@ -233,8 +235,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   function addStepMarkers(places) {
+    stepMarkers = [];
     places.forEach((place, i) => {
-      L.marker([place.lat, place.lng], {
+      const m = L.marker([place.lat, place.lng], {
         icon: L.divIcon({
           className: '',
           html: `<div class="route-step-icon">${i + 1}</div>`,
@@ -245,6 +248,16 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       })
         .bindTooltip(place.name, { direction: 'top', offset: [0, -14] })
         .addTo(routeLayer);
+
+      // Marker → highlight étape dans la liste
+      m.on('mouseover', () => {
+        stepsEl.querySelector(`[data-step-index="${i}"]`)?.classList.add('route-step--hover');
+      });
+      m.on('mouseout', () => {
+        stepsEl.querySelector(`[data-step-index="${i}"]`)?.classList.remove('route-step--hover');
+      });
+
+      stepMarkers.push(m);
     });
   }
 
@@ -329,6 +342,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       el.addEventListener('drop', e => {
         e.preventDefault();
         e.currentTarget.classList.remove('drag-over');
+        // Drop d'une carte de lieu → ajout (priorité sur le réordonnancement)
+        const placeId = e.dataTransfer.getData('text/place-id');
+        if (placeId) { dragSrcIndex = null; addStep(placeId); return; }
+        // Réordonnancement d'une étape existante
         const target = +e.currentTarget.dataset.stepIndex;
         if (dragSrcIndex === null || dragSrcIndex === target) return;
         const moved = steps.splice(dragSrcIndex, 1)[0];
@@ -337,6 +354,14 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         persist();
         renderStepList();
         scheduleFetch();
+      });
+
+      // Étape → highlight marker (lazy : stepMarkers peut être vide si OSRM pas encore répondu)
+      el.addEventListener('mouseenter', () => {
+        stepMarkers[i]?.getElement()?.classList.add('marker-highlight');
+      });
+      el.addEventListener('mouseleave', () => {
+        stepMarkers[i]?.getElement()?.classList.remove('marker-highlight');
       });
     });
 
@@ -447,6 +472,34 @@ ${trk}
   optimizeBtn?.addEventListener('click', optimizeOrder);
   shareBtn?.addEventListener('click',    shareRoute);
   gpxBtn?.addEventListener('click',      exportGPX);
+
+  // ── Drop zone : accepte les cartes de lieu glissées depuis la sidebar ─────
+  function isPlaceCardDrag(e) {
+    return e.dataTransfer.types.includes('text/place-id');
+  }
+
+  const routePanelEl = document.getElementById('routePanel');
+  [routePanelEl, stepsEl, emptyEl].forEach(el => {
+    if (!el) return;
+    el.addEventListener('dragover', e => {
+      if (!isPlaceCardDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      routePanelEl?.classList.add('route-drop-target');
+    });
+    el.addEventListener('dragleave', e => {
+      if (!routePanelEl?.contains(e.relatedTarget)) {
+        routePanelEl?.classList.remove('route-drop-target');
+      }
+    });
+    el.addEventListener('drop', e => {
+      const placeId = e.dataTransfer.getData('text/place-id');
+      if (!placeId) return;
+      e.preventDefault();
+      routePanelEl?.classList.remove('route-drop-target');
+      addStep(placeId);
+    });
+  });
 
   // Clic sur étape → zoom + popup
   stepsEl.addEventListener('click', e => {

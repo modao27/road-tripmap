@@ -56,7 +56,9 @@ export function addMarker(place, markers, popupHtmlFn, makeIconFn) {
   const marker = L.marker([place.lat, place.lng], {
     icon: makeIconFn(place),
     title: place.name
-  }).bindPopup(popupHtmlFn(place));
+  // Popup lazy : le HTML est regénéré à chaque ouverture
+  // → reflète toujours l'état courant (route, overrides)
+  }).bindPopup(() => popupHtmlFn(place));
   markers.set(place.id, marker);
 }
 

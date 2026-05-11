@@ -6,7 +6,7 @@ function openInOSM(lat, lng, zoom = 14) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
 }
 
-export function popupHtml(place, categories, placeOverrides) {
+export function popupHtml(place, categories, placeOverrides, isInRoute = false) {
   const category = categories[place.category] || categories.water;
   const isOverridden = !place.userCreated && !!placeOverrides[place.id];
   const actions = `<div class="popup-user-actions">
@@ -27,7 +27,9 @@ export function popupHtml(place, categories, placeOverrides) {
       ${place.tip ? `<p><b>Conseil :</b> ${place.tip}</p>` : ''}
       ${place.mood ? `<p><b>Ambiance :</b> ${place.mood}</p>` : ''}
       <a class="osm-link" href="${openInOSM(place.lat, place.lng)}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
-      <button class="popup-add-route" data-add-route-id="${place.id}" type="button">➕ Ajouter à l'itinéraire</button>
+      <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${place.id}" type="button">
+        ${isInRoute ? "✓ Dans l'itinéraire" : "➕ Ajouter à l'itinéraire"}
+      </button>
       ${actions}
     </article>
   `;

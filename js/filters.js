@@ -43,7 +43,7 @@ export function renderPlaces(visibleList, placeListEl, visibleCountEl, categorie
       const cardClass = place.userCreated ? 'place-card user-pin' : 'place-card';
       return `
         <li class="place-item">
-          <button class="${cardClass}" type="button" data-place-id="${place.id}" style="--color:${category.color}">
+          <button class="${cardClass}" type="button" data-place-id="${place.id}" style="--color:${category.color}" draggable="true">
             <strong>${highlight(place.name, searchQuery)}</strong>
             <span class="place-meta"><span class="place-icon">${category.icon}</span>${category.label}</span>
           </button>
