@@ -1,3 +1,5 @@
+// ── Toasts ────────────────────────────────────────────────────────────────────
+
 export function showToast(toastWrap, msg, type = '', duration = 4000) {
   const el = document.createElement('div');
   el.className = 'toast' + (type ? ' ' + type : '');
@@ -8,6 +10,30 @@ export function showToast(toastWrap, msg, type = '', duration = 4000) {
     el.addEventListener('animationend', () => el.remove(), { once: true });
   }, duration);
 }
+
+// ── Indicateur de synchronisation ────────────────────────────────────────────
+
+const SYNC_LABELS = {
+  saving: '⟳ Synchronisation…',
+  saved:  '✓ Synchronisé',
+  error:  '⚠ Hors ligne',
+};
+
+let syncHideTimer = null;
+
+export function setSyncStatus(status) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  clearTimeout(syncHideTimer);
+  el.hidden = false;
+  el.className = `sync-status sync-${status}`;
+  el.textContent = SYNC_LABELS[status] ?? '';
+  if (status === 'saved') {
+    syncHideTimer = setTimeout(() => { el.hidden = true; }, 3000);
+  }
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 
 export function initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map) {
   sidebarToggleEl.addEventListener('click', () => {
@@ -22,6 +48,8 @@ export function initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map) {
     }
   });
 }
+
+// ── Resizer ───────────────────────────────────────────────────────────────────
 
 export function initResizer(map, config) {
   const resizer = document.getElementById('resizer');
@@ -85,5 +113,23 @@ export function initResizer(map, config) {
   resizer.addEventListener('dblclick', () => {
     document.documentElement.style.setProperty('--sidebar', config.sidebarDefault + 'px');
     map.invalidateSize();
+  });
+}
+
+// ── Bouton de partage ─────────────────────────────────────────────────────────
+
+export function initShareButton(mapId, getShareUrlFn, toastWrap) {
+  const btn = document.getElementById('shareButton');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const url = getShareUrlFn(mapId);
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast(toastWrap, '🔗 Lien copié dans le presse-papier !', 'success');
+    } catch {
+      // Fallback si l'API clipboard est bloquée
+      prompt('Copie ce lien pour partager ta carte :', url);
+    }
   });
 }

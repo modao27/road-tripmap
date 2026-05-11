@@ -44,10 +44,17 @@ export function initPins({
   makeIconFn,
   toastWrap,
   showToastFn,
+  setSyncStatusFn,
   onRefresh,
   focusPlaceFn,
   onMapClick,
-  config
+  config,
+  // Supabase (optionnel — graceful degradation si non fourni)
+  mapId,
+  upsertUserPinFn,
+  deleteUserPinFn,
+  upsertOverrideFn,
+  deleteOverrideFn,
 }) {
   let pinMode = false;
   let pendingPinCoords = null;
@@ -55,21 +62,33 @@ export function initPins({
   let pendingEditPin = null;
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
-  const pinModeBtn = document.getElementById('pinModeButton');
-  const pinHintEl = document.getElementById('pinHint');
+  const pinModeBtn       = document.getElementById('pinModeButton');
+  const pinHintEl        = document.getElementById('pinHint');
   const pinModalBackdrop = document.getElementById('pinModalBackdrop');
-  const pinNameInput = document.getElementById('pinName');
+  const pinNameInput     = document.getElementById('pinName');
   const pinCategorySelect = document.getElementById('pinCategory');
-  const pinNoteInput = document.getElementById('pinNote');
-  const pinGeocodeInput = document.getElementById('pinGeocode');
+  const pinNoteInput     = document.getElementById('pinNote');
+  const pinGeocodeInput  = document.getElementById('pinGeocode');
   const geocodeResultsEl = document.getElementById('geocodeResults');
-  const pinLocationTag = document.getElementById('pinLocationTag');
+  const pinLocationTag   = document.getElementById('pinLocationTag');
   const pinLocationLabel = document.getElementById('pinLocationLabel');
 
   // Populate category select
   pinCategorySelect.innerHTML = Object.entries(categories)
     .map(([key, cat]) => `<option value="${key}">${cat.icon} ${cat.label}</option>`)
     .join('');
+
+  // ── Supabase sync helper ──────────────────────────────────────────────────
+  async function syncRemote(fn, ...args) {
+    if (!fn) return;
+    setSyncStatusFn('saving');
+    try {
+      await fn(mapId, ...args);
+      setSyncStatusFn('saved');
+    } catch {
+      setSyncStatusFn('error');
+    }
+  }
 
   // ── Geocoding state ───────────────────────────────────────────────────────
   let geocodeDebounce = null;
@@ -117,8 +136,8 @@ export function initPins({
     document.getElementById('pinModalTitle').textContent = isEdit ? 'Modifier le pin' : 'Nouveau pin';
     document.getElementById('pinConfirmBtn').textContent = isEdit ? 'Enregistrer' : 'Créer le pin';
 
-    pinNameInput.value = isEdit ? existingPin.name : '';
-    pinNoteInput.value = isEdit ? (existingPin.description || '') : '';
+    pinNameInput.value   = isEdit ? existingPin.name : '';
+    pinNoteInput.value   = isEdit ? (existingPin.description || '') : '';
     if (isEdit) pinCategorySelect.value = existingPin.category;
     else pinCategorySelect.selectedIndex = 0;
 
@@ -152,83 +171,69 @@ export function initPins({
     refreshMarker(place, markers, markerLayer, makePopupHtml, makeIconFn, activeCategories);
   }
 
-  function updateUserPin(id, name, category, note, lat, lng) {
-    const pin = userPlacesRef.find(p => p.id === id);
-    if (!pin) return;
-    pin.name = name;
-    pin.category = category;
-    pin.description = note;
-    pin.lat = lat;
-    pin.lng = lng;
-    saveUserPins(userPlacesRef);
-    doRefreshMarker(pin);
-    map.closePopup();
-    onRefresh();
-    focusPlaceFn(pin);
-    showToastFn(toastWrap, `"${name}" mis à jour`, 'success');
-  }
-
-  function saveOverride(id, name, category, note, lat, lng) {
-    placeOverridesRef[id] = { name, category, description: note, lat, lng };
-    saveOverrides(placeOverridesRef);
-    const original = staticPlaces.find(p => p.id === id);
-    const ep = original ? { ...original, ...placeOverridesRef[id] } : null;
-    if (ep) {
-      doRefreshMarker(ep);
-      map.closePopup();
-      onRefresh();
-      focusPlaceFn(ep);
-    }
-    showToastFn(toastWrap, `"${name}" mis à jour`, 'success');
-  }
-
-  function resetOverride(id) {
-    delete placeOverridesRef[id];
-    saveOverrides(placeOverridesRef);
-    const original = staticPlaces.find(p => p.id === id);
-    if (!original) return;
-    doRefreshMarker(original);
-    map.closePopup();
-    onRefresh();
-    showToastFn(toastWrap, 'Lieu réinitialisé', '');
-  }
+  // ── CRUD ──────────────────────────────────────────────────────────────────
 
   function saveUserPin(name, category, note, lat, lng) {
     const pin = {
       id: 'user-' + Date.now(),
-      name,
-      category,
-      lat,
-      lng,
+      name, category, lat, lng,
       description: note,
-      interest: '',
-      tip: '',
-      mood: '',
-      userCreated: true
+      interest: '', tip: '', mood: '',
+      user_created: true,
+      userCreated: true,
     };
     userPlacesRef.push(pin);
     saveUserPins(userPlacesRef);
+    syncRemote(upsertUserPinFn, pin);
     addMarker(pin, markers, makePopupHtml, makeIconFn);
-    if (activeCategories.has(category)) {
-      markerLayer.addLayer(markers.get(pin.id));
-    }
+    if (activeCategories.has(category)) markerLayer.addLayer(markers.get(pin.id));
     onRefresh();
     focusPlaceFn(pin);
     showToastFn(toastWrap, `Pin "${name}" créé`, 'success');
+  }
+
+  function updateUserPin(id, name, category, note, lat, lng) {
+    const pin = userPlacesRef.find(p => p.id === id);
+    if (!pin) return;
+    pin.name = name; pin.category = category;
+    pin.description = note; pin.lat = lat; pin.lng = lng;
+    saveUserPins(userPlacesRef);
+    syncRemote(upsertUserPinFn, pin);
+    doRefreshMarker(pin);
+    map.closePopup(); onRefresh(); focusPlaceFn(pin);
+    showToastFn(toastWrap, `"${name}" mis à jour`, 'success');
   }
 
   function deleteUserPin(id) {
     const idx = userPlacesRef.findIndex(p => p.id === id);
     if (idx !== -1) userPlacesRef.splice(idx, 1);
     saveUserPins(userPlacesRef);
+    syncRemote(deleteUserPinFn, id);
     const marker = markers.get(id);
-    if (marker) {
-      markerLayer.removeLayer(marker);
-      markers.delete(id);
-    }
-    map.closePopup();
-    onRefresh();
+    if (marker) { markerLayer.removeLayer(marker); markers.delete(id); }
+    map.closePopup(); onRefresh();
     showToastFn(toastWrap, 'Pin supprimé', '');
+  }
+
+  function saveOverride(id, name, category, note, lat, lng) {
+    placeOverridesRef[id] = { name, category, description: note, lat, lng };
+    saveOverrides(placeOverridesRef);
+    syncRemote(upsertOverrideFn, id, placeOverridesRef[id]);
+    const original = staticPlaces.find(p => p.id === id);
+    const ep = original ? { ...original, ...placeOverridesRef[id] } : null;
+    if (ep) { doRefreshMarker(ep); map.closePopup(); onRefresh(); focusPlaceFn(ep); }
+    showToastFn(toastWrap, `"${name}" mis à jour`, 'success');
+  }
+
+  function resetOverride(id) {
+    delete placeOverridesRef[id];
+    saveOverrides(placeOverridesRef);
+    syncRemote(deleteOverrideFn, id);
+    const original = staticPlaces.find(p => p.id === id);
+    if (!original) return;
+    doRefreshMarker(original);
+    map.closePopup(); onRefresh();
+    showToastFn(toastWrap, 'Lieu réinitialisé', '');
   }
 
   // ── Geocoding listeners ───────────────────────────────────────────────────
@@ -241,10 +246,7 @@ export function initPins({
       geocodeController = new AbortController();
       try {
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=${config.geocodeLimit}&accept-language=fr`;
-        const res = await fetch(url, {
-          signal: geocodeController.signal,
-          headers: { 'Accept-Language': 'fr' }
-        });
+        const res = await fetch(url, { signal: geocodeController.signal });
         geocodeCandidates = await res.json();
         if (!geocodeCandidates.length) { geocodeResultsEl.hidden = true; return; }
         geocodeResultsEl.innerHTML = geocodeCandidates.map((r, i) => {
@@ -256,9 +258,7 @@ export function initPins({
         }).join('');
         geocodeResultsEl.hidden = false;
       } catch (e) {
-        if (e.name !== 'AbortError') {
-          showToastFn(toastWrap, 'Recherche indisponible', 'error', 3000);
-        }
+        if (e.name !== 'AbortError') showToastFn(toastWrap, 'Recherche indisponible', 'error', 3000);
       }
     }, config.geocodeDebounce);
   });
@@ -273,7 +273,7 @@ export function initPins({
   });
 
   pinGeocodeInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { geocodeResultsEl.hidden = true; }
+    if (e.key === 'Escape') geocodeResultsEl.hidden = true;
   });
 
   // ── Modal / mode listeners ────────────────────────────────────────────────
@@ -346,7 +346,7 @@ export function initPins({
     if (resetBtn) resetOverride(resetBtn.dataset.resetId);
   });
 
-  // ── Map click : pin placement or delegate to caller ──────────────────────
+  // ── Map click ─────────────────────────────────────────────────────────────
   map.on('click', (e) => {
     if (pinMode) {
       setPinMode(false);
@@ -358,7 +358,5 @@ export function initPins({
     if (onMapClick) onMapClick(e);
   });
 
-  return {
-    isPinMode: () => pinMode
-  };
+  return { isPinMode: () => pinMode };
 }

@@ -1,0 +1,10 @@
+# Dépendances
+node_modules/
+
+# Fichiers de config locaux avec secrets
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

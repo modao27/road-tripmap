@@ -94,18 +94,27 @@ export function focusPlace(place, map, markerLayer, markers, mobileQuery, sideba
 
 export function initLayerSwitcher(baseLayers, map) {
   let activeBaseLayer = baseLayers.osm;
+  let activeKey = 'osm';
 
-  document.getElementById('layerSwitcher').addEventListener('click', (e) => {
-    const btn = e.target.closest('.layer-btn');
-    if (!btn) return;
-    const key = btn.dataset.base;
+  function applyLayer(key) {
     if (!baseLayers[key] || baseLayers[key] === activeBaseLayer) return;
     map.removeLayer(activeBaseLayer);
     activeBaseLayer = baseLayers[key];
+    activeKey = key;
     activeBaseLayer.addTo(map);
     activeBaseLayer.bringToBack();
     document.querySelectorAll('.layer-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.base === key)
     );
+  }
+
+  document.getElementById('layerSwitcher').addEventListener('click', (e) => {
+    const btn = e.target.closest('.layer-btn');
+    if (btn) applyLayer(btn.dataset.base);
   });
+
+  return {
+    getActiveKey: () => activeKey,
+    setLayer: applyLayer,
+  };
 }

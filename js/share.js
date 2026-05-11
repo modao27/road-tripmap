@@ -1,0 +1,121 @@
+import { saveSharedMap } from './supabase.js';
+
+// ── Slug ──────────────────────────────────────────────────────────────────────
+
+function titleToSlug(title) {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')   // retire les accents
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 50) || 'carte';
+}
+
+export function buildShareUrl(slug) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('map', slug);
+  url.hash = '';
+  return url.toString();
+}
+
+// ── Modale de partage ─────────────────────────────────────────────────────────
+
+export function initShareModal({
+  map,
+  getActiveLayerKey,
+  activeCategories,
+  getUserPlaces,
+  getPlaceOverrides,
+  toastWrap,
+  showToastFn,
+  setSyncStatusFn,
+}) {
+  const backdrop    = document.getElementById('shareModalBackdrop');
+  const titleInput  = document.getElementById('shareTitle');
+  const descInput   = document.getElementById('shareDesc');
+  const confirmBtn  = document.getElementById('shareConfirmBtn');
+  const cancelBtn   = document.getElementById('shareCancelBtn');
+  const shareBtn    = document.getElementById('shareButton');
+
+  if (!backdrop) return;
+
+  function openModal() {
+    titleInput.value = '';
+    descInput.value  = '';
+    backdrop.hidden  = false;
+    titleInput.focus();
+  }
+
+  function closeModal() {
+    backdrop.hidden = true;
+  }
+
+  async function createShare() {
+    const title = titleInput.value.trim();
+    if (!title) { titleInput.focus(); return; }
+
+    confirmBtn.disabled    = true;
+    confirmBtn.textContent = 'Création…';
+    setSyncStatusFn('saving');
+
+    const center = map.getCenter();
+
+    try {
+      const slug = await saveSharedMap(titleToSlug(title), {
+        title,
+        description: descInput.value.trim(),
+        pins:        getUserPlaces(),
+        overrides:   getPlaceOverrides(),
+        center_lat:  center.lat,
+        center_lng:  center.lng,
+        zoom:        map.getZoom(),
+        base_layer:  getActiveLayerKey(),
+        filters:     [...activeCategories],
+      });
+
+      const url = buildShareUrl(slug);
+
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        prompt('Copie ce lien pour partager ta carte :', url);
+      }
+
+      setSyncStatusFn('saved');
+      closeModal();
+      showToastFn(toastWrap, '🔗 Lien copié dans le presse-papier !', 'success');
+    } catch (err) {
+      setSyncStatusFn('error');
+      showToastFn(toastWrap, 'Erreur lors de la création du lien', 'error');
+      console.error('[share]', err);
+    } finally {
+      confirmBtn.disabled    = false;
+      confirmBtn.textContent = 'Créer le lien';
+    }
+  }
+
+  shareBtn?.addEventListener('click', openModal);
+  cancelBtn.addEventListener('click', closeModal);
+  confirmBtn.addEventListener('click', createShare);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+  titleInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') createShare(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !backdrop.hidden) closeModal();
+  });
+}
+
+// ── Bannière carte partagée ───────────────────────────────────────────────────
+
+export function showSharedMapBanner(title) {
+  const banner  = document.getElementById('sharedMapBanner');
+  const titleEl = document.getElementById('sharedMapTitle');
+  if (!banner || !titleEl) return;
+  titleEl.textContent = title;
+  banner.hidden = false;
+  document.getElementById('sharedMapClose')?.addEventListener('click', () => {
+    banner.hidden = true;
+  });
+}

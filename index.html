@@ -24,6 +24,7 @@
         <button class="button" id="recenterButton" type="button">⌖ Recentrer sur Baume-les-Messieurs</button>
         <button class="geolocate" id="geolocateButton" type="button">📍 Ma position</button>
         <button class="secondary pin-btn" id="pinModeButton" type="button">📌 Ajouter un pin</button>
+        <button class="secondary" id="shareButton" type="button">🔗 Partager cette carte</button>
         <div class="tool-row">
           <button class="secondary" id="showAllButton" type="button">Tout afficher</button>
           <button class="secondary" id="hideAllButton" type="button">Masquer tout</button>
@@ -42,7 +43,10 @@
       </section>
       </div>
 
-      <footer class="footer">Fond de carte © OpenStreetMap contributors</footer>
+      <footer class="footer">
+        Fond de carte © OpenStreetMap contributors
+        <span id="syncStatus" class="sync-status" hidden></span>
+      </footer>
     </aside>
 
     <div id="resizer" class="resizer" role="separator" aria-orientation="vertical" aria-label="Redimensionner la sidebar"></div>
@@ -59,6 +63,40 @@
       <div id="map"></div>
     </section>
   </main>
+
+  <!-- Bannière carte partagée -->
+  <div class="shared-map-banner" id="sharedMapBanner" hidden>
+    <span>📤 Carte partagée : <strong id="sharedMapTitle"></strong></span>
+    <button type="button" id="sharedMapClose" aria-label="Fermer la bannière">✕</button>
+  </div>
+
+  <!-- Modale de partage -->
+  <div class="pin-modal-backdrop" id="shareModalBackdrop" hidden>
+    <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+      <h3 id="shareModalTitle">Partager cette carte</h3>
+      <label class="pin-field">
+        Titre de la carte
+        <input type="text" id="shareTitle" placeholder="Ex : Road trip Jura juin 2025" maxlength="80">
+      </label>
+      <label class="pin-field">
+        Description (facultatif)
+        <textarea id="shareDesc" placeholder="Notes, contexte, conseils…"></textarea>
+      </label>
+      <div class="share-includes">
+        <p>Ce lien inclura :</p>
+        <ul>
+          <li>Tes pins personnalisés</li>
+          <li>Le centre et le zoom de la carte</li>
+          <li>Le fond de carte actif</li>
+          <li>Les filtres actifs</li>
+        </ul>
+      </div>
+      <div class="pin-modal-actions">
+        <button class="secondary" id="shareCancelBtn" type="button">Annuler</button>
+        <button class="button" id="shareConfirmBtn" type="button">Créer le lien</button>
+      </div>
+    </div>
+  </div>
 
   <div class="pin-modal-backdrop" id="pinModalBackdrop" hidden>
     <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pinModalTitle">
@@ -94,9 +132,10 @@
     </div>
   </div>
 
-  <!-- Leaflet et MarkerCluster chargés en scripts classiques : L est global, disponible dans les modules ES -->
+  <!-- Scripts classiques (globaux) chargés avant les modules ES -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
