@@ -193,11 +193,12 @@ async function init() {
   const basePlace = staticPlaces.find(p => p.id === 'baume-les-messieurs');
   document.querySelector('#recenterButton').addEventListener('click', () => doFocusPlace(basePlace));
 
-  // ── Filtres ───────────────────────────────────────────────────────────────
+  // ── Filtres (pills) ───────────────────────────────────────────────────────
   filtersEl.addEventListener('change', (event) => {
     if (!event.target.matches("input[type='checkbox']")) return;
     if (event.target.checked) activeCategories.add(event.target.value);
     else activeCategories.delete(event.target.value);
+    event.target.closest('.filter-pill')?.classList.toggle('active', event.target.checked);
     doRenderMap(); doRenderPlaces();
   });
 
@@ -206,16 +207,44 @@ async function init() {
       input.checked = enabled;
       if (enabled) activeCategories.add(input.value);
       else activeCategories.delete(input.value);
+      input.closest('.filter-pill')?.classList.toggle('active', enabled);
     });
     doRenderMap(); doRenderPlaces();
   }
   document.querySelector('#showAllButton').addEventListener('click', () => setAllFilters(true));
   document.querySelector('#hideAllButton').addEventListener('click', () => setAllFilters(false));
 
-  // ── Recherche ─────────────────────────────────────────────────────────────
+  // ── Recherche déclenchable ────────────────────────────────────────────────
+  const searchToggle = document.getElementById('searchToggle');
+
+  function openSearch() {
+    searchInput.hidden = false;
+    searchToggle.hidden = true;
+    searchInput.focus();
+    switchTab('places');
+  }
+
+  function closeSearch() {
+    searchQuery = '';
+    searchInput.value = '';
+    searchInput.hidden = true;
+    searchToggle.hidden = false;
+    doRenderMap(); doRenderPlaces();
+  }
+
+  searchToggle?.addEventListener('click', openSearch);
+
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim().toLowerCase();
     doRenderMap(); doRenderPlaces();
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !searchInput.value) closeSearch();
+  });
+
+  searchInput.addEventListener('blur', () => {
+    if (!searchInput.value) closeSearch();
   });
 
   // ── Clic liste ────────────────────────────────────────────────────────────
@@ -397,12 +426,12 @@ async function init() {
     // Ctrl+F / Cmd+F → focus sur la barre de recherche
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
       e.preventDefault();
-      searchInput.focus();
-      searchInput.select();
       if (mobileQuery.matches) {
         sidebarEl.classList.add('open');
         sidebarToggleEl.setAttribute('aria-expanded', 'true');
       }
+      openSearch();
+      searchInput.select();
     }
   });
 }

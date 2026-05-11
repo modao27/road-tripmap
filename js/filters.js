@@ -1,12 +1,13 @@
 export function renderFilters(filtersEl, categories, getAllPlaces, activeCategories) {
   filtersEl.innerHTML = Object.entries(categories).map(([key, category]) => {
-    const count = getAllPlaces().filter(p => p.category === key).length;
+    const count  = getAllPlaces().filter(p => p.category === key).length;
+    const active = activeCategories.has(key);
     return `
-      <label class="filter" style="--color:${category.color}">
-        <input type="checkbox" value="${key}" ${activeCategories.has(key) ? 'checked' : ''}>
-        <span class="dot"></span>
-        <span class="filter-name">${category.label}</span>
-        <span class="count">${count}</span>
+      <label class="filter-pill${active ? ' active' : ''}"
+             style="--color:${category.color}" title="${category.label}">
+        <input type="checkbox" value="${key}" ${active ? 'checked' : ''}>
+        <span class="filter-pill-icon">${category.icon}</span>
+        <span class="filter-pill-count">${count}</span>
       </label>
     `;
   }).join('');

@@ -45,15 +45,21 @@
         <!-- Panneau Lieux -->
         <div class="tab-pane active" id="tabPanePlaces" role="tabpanel" aria-labelledby="tabPlaces">
           <section class="controls" aria-label="Filtres et recherche">
-            <div class="tool-row">
-              <button class="secondary" id="showAllButton" type="button">Tout afficher</button>
-              <button class="secondary" id="hideAllButton" type="button">Masquer tout</button>
-            </div>
-            <input id="searchInput" class="search" type="search" placeholder="Rechercher un lieu" aria-label="Recherche de lieu">
+            <!-- Recherche déclenchable -->
+            <button class="search-trigger" id="searchToggle" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Rechercher un lieu
+            </button>
+            <input id="searchInput" class="search" type="search" placeholder="Rechercher un lieu…" aria-label="Recherche de lieu" hidden>
+            <!-- Filtres avec show/hide intégré -->
             <details class="filter-section" open>
-              <summary>Filtres &amp; catégories <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
+              <summary>Filtres <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
               <div class="filters" id="filters"></div>
               <div class="legend" id="legend" aria-label="Légende des catégories"></div>
+              <div class="filter-footer">
+                <button class="filter-footer-btn" id="showAllButton" type="button">tout afficher</button>
+                <button class="filter-footer-btn" id="hideAllButton" type="button">tout masquer</button>
+              </div>
             </details>
           </section>
           <section class="places-panel">
