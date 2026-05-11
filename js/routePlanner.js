@@ -33,7 +33,7 @@ function escapeXml(s) {
 export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn }) {
 
   // ── État ──────────────────────────────────────────────────────────────────
-  let steps         = loadRouteSteps();   // tableau d'IDs de lieux
+  let steps         = [];                 // toujours vide au démarrage — restauré uniquement via ?route=
   let mode          = loadRouteMode();    // 'driving' | 'cycling' | 'walking'
   let routeData     = null;               // {distance, duration, geometry} OSRM
   let fetchDebounce = null;
