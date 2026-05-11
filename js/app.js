@@ -316,7 +316,7 @@ async function init() {
   }
 
   // ── Pins (sync Supabase désactivée pour les cartes partagées) ────────────
-  initPins({
+  pinsModule = initPins({
     map, markerLayer, markers, categories, getAllPlaces, staticPlaces,
     userPlacesRef:    userPlaces,
     placeOverridesRef: placeOverrides,
@@ -342,7 +342,12 @@ async function init() {
   });
 
   // ── Découvrir (Overpass OSM) ──────────────────────────────────────────────
-  initOverpass({ map, toastWrap, showToastFn: showToast });
+  // pinsModule est null ici mais sera assigné avant tout clic utilisateur
+  let pinsModule = null;
+  initOverpass({
+    map, toastWrap, showToastFn: showToast,
+    onAddToMap: data => pinsModule?.openForOverpass(data),
+  });
 
   // ── Itinéraire ────────────────────────────────────────────────────────────
   // Déclaré en let pour que onRefresh() y ait accès via la closure

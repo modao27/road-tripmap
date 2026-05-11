@@ -369,5 +369,30 @@ export function initPins({
     if (onMapClick) onMapClick(e);
   });
 
-  return { isPinMode: () => pinMode };
+  // ── Pré-remplissage depuis un résultat Overpass ──────────────────────────
+  function openForOverpass({ name, lat, lng, appCategory, description }) {
+    editingPinId = null;
+    resetGeocodeUI();
+
+    document.getElementById('pinModalTitle').textContent = 'Ajouter à ma carte';
+    document.getElementById('pinConfirmBtn').textContent = 'Ajouter';
+
+    pinNameInput.value      = name || '';
+    pinNoteInput.value      = description || '';
+    pinCategorySelect.value = appCategory || Object.keys(categories)[0];
+
+    // Coordonnées pré-remplies sans flyTo (le résultat est déjà visible)
+    pendingPinCoords = { lat: +lat, lng: +lng };
+    pinLocationLabel.textContent = name || `📍 ${(+lat).toFixed(4)}, ${(+lng).toFixed(4)}`;
+    pinLocationTag.hidden = false;
+    pinGeocodeInput.value = '';
+    pinGeocodeInput.hidden = false;
+    pinGeocodeInput.placeholder = 'Ou rechercher pour changer la position…';
+
+    pinModalBackdrop.hidden = false;
+    pinNameInput.focus();
+    releaseFocusTrap = trapFocus(pinModalBackdrop);
+  }
+
+  return { isPinMode: () => pinMode, openForOverpass };
 }

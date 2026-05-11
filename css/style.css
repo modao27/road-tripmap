@@ -1172,6 +1172,27 @@ mark.search-highlight {
   min-height: 1em;
 }
 
+/* Bouton "Ajouter à ma carte" dans les popups Overpass */
+.popup-add-to-map {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid rgba(31, 95, 67, 0.25);
+  border-radius: 8px;
+  background: rgba(31, 95, 67, 0.07);
+  color: var(--forest-dark);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 130ms ease;
+}
+
+.popup-add-to-map:hover { background: rgba(31, 95, 67, 0.15); }
+
 /* Marqueur circulaire sur la carte (distinct des pins habituels) */
 .overpass-marker {
   display: grid;

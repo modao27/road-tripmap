@@ -47,6 +47,30 @@ export const OVERPASS_CATEGORIES = {
   },
 };
 
+// ── Mapping catégorie OSM → catégorie de l'app ───────────────────────────────
+const OSM_TO_APP_CAT = {
+  bivouac:    'bivouac',
+  shelter:    'bivouac',
+  water:      'water',
+  waterfall:  'water',
+  viewpoint:  'hike',
+  via_ferrata:'via',
+  trailhead:  'hike',
+};
+
+// ── Description lisible depuis les tags OSM ───────────────────────────────────
+function buildNodeDescription(tags) {
+  return [
+    tags.description,
+    tags.note,
+    tags.information,
+    tags.fee === 'yes' ? 'Payant' : tags.fee === 'no' ? 'Gratuit' : null,
+    tags.drinking_water === 'yes' ? 'Eau potable disponible' : null,
+    tags.opening_hours ? `Horaires : ${tags.opening_hours}` : null,
+    tags.capacity ? `Capacité : ${tags.capacity} personnes` : null,
+  ].filter(Boolean).join(' — ');
+}
+
 // ── Détection de catégorie depuis les tags OSM ────────────────────────────────
 function detectCategory(tags) {
   if (tags.waterway === 'waterfall') return 'waterfall';
@@ -76,7 +100,7 @@ async function runQuery(selectedCats, bbox) {
 }
 
 // ── Module principal ──────────────────────────────────────────────────────────
-export function initOverpass({ map, toastWrap, showToastFn }) {
+export function initOverpass({ map, toastWrap, showToastFn, onAddToMap }) {
   const resultsLayer = L.layerGroup().addTo(map);
   let isFetching = false;
 
@@ -132,12 +156,20 @@ export function initOverpass({ map, toastWrap, showToastFn }) {
         const name   = tags.name ?? tags['name:fr'] ?? cat.label;
 
         const details = [
-          tags.description,
-          tags.fee === 'yes'            ? '💶 Payant'       : tags.fee === 'no' ? 'Gratuit' : null,
-          tags.drinking_water === 'yes' ? '💧 Eau potable'  : null,
-          tags.opening_hours            ? `🕐 ${tags.opening_hours}` : null,
+          tags.fee === 'yes'            ? '💶 Payant'                    : tags.fee === 'no' ? 'Gratuit' : null,
+          tags.drinking_water === 'yes' ? '💧 Eau potable disponible'    : null,
+          tags.opening_hours            ? `🕐 ${tags.opening_hours}`     : null,
           tags.capacity                 ? `👤 Capacité : ${tags.capacity}` : null,
         ].filter(Boolean);
+
+        // Payload pour "Ajouter à ma carte"
+        const nodePayload = JSON.stringify({
+          name,
+          lat:         el.lat,
+          lng:         el.lon,
+          appCategory: OSM_TO_APP_CAT[catKey] ?? 'hike',
+          description: buildNodeDescription(tags),
+        });
 
         const icon = L.divIcon({
           className:   '',
@@ -152,9 +184,13 @@ export function initOverpass({ map, toastWrap, showToastFn }) {
             <article class="popup" style="--color:${cat.color}">
               <h2>${name}</h2>
               <div class="popup-category"><span>${cat.icon}</span>${cat.label}</div>
+              ${tags.description ? `<p>${tags.description}</p>` : ''}
               ${details.map(d => `<p>${d}</p>`).join('')}
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}"
                  target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
+              <button class="popup-add-to-map" data-overpass='${nodePayload}' type="button">
+                ➕ Ajouter à ma carte
+              </button>
             </article>
           `)
           .addTo(resultsLayer);
@@ -183,4 +219,17 @@ export function initOverpass({ map, toastWrap, showToastFn }) {
 
   searchBtn?.addEventListener('click', doSearch);
   clearBtn?.addEventListener('click',  clearResults);
+
+  // Délégation : bouton "Ajouter à ma carte" dans les popups Overpass
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-overpass]');
+    if (!btn) return;
+    try {
+      const data = JSON.parse(btn.dataset.overpass);
+      map.closePopup();
+      onAddToMap?.(data);
+    } catch (err) {
+      console.error('[overpass] parse error', err);
+    }
+  });
 }
