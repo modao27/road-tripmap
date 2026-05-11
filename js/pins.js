@@ -26,6 +26,7 @@ export function popupHtml(place, categories, placeOverrides) {
       ${place.tip ? `<p><b>Conseil :</b> ${place.tip}</p>` : ''}
       ${place.mood ? `<p><b>Ambiance :</b> ${place.mood}</p>` : ''}
       <a class="osm-link" href="${openInOSM(place.lat, place.lng)}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
+      <button class="popup-add-route" data-add-route-id="${place.id}" type="button">➕ Ajouter à l'itinéraire</button>
       ${actions}
     </article>
   `;

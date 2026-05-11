@@ -36,6 +36,24 @@ export function getMapIdFromUrl() {
   return new URLSearchParams(window.location.search).get('map') || null;
 }
 
+// ── Itinéraire ────────────────────────────────────────────────────────────────
+
+export function loadRouteSteps() {
+  return JSON.parse(localStorage.getItem('routeSteps') || '[]');
+}
+
+export function saveRouteSteps(steps) {
+  localStorage.setItem('routeSteps', JSON.stringify(steps));
+}
+
+export function loadRouteMode() {
+  return localStorage.getItem('routeMode') || 'driving';
+}
+
+export function saveRouteMode(mode) {
+  localStorage.setItem('routeMode', mode);
+}
+
 export function getOrCreateMapId() {
   const fromUrl = getMapIdFromUrl();
   // Mémorise uniquement si c'est bien un UUID personnel (pas un slug partagé)

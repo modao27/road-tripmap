@@ -818,6 +818,217 @@ body.resizing {
   border-left-style: dashed;
 }
 
+/* ── Place item wrapper (card + bouton itinéraire) ───────────────────── */
+.place-item {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.place-item .place-card {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.place-route-add {
+  flex-shrink: 0;
+  width: 32px;
+  border: 1px solid rgba(31, 95, 67, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--forest);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.place-route-add:hover {
+  background: var(--forest);
+  color: white;
+  border-color: transparent;
+}
+
+/* ── Bouton "Ajouter à l'itinéraire" dans les popups ─────────────────── */
+.popup-add-route {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid rgba(31, 95, 67, 0.25);
+  border-radius: 8px;
+  background: rgba(31, 95, 67, 0.06);
+  color: var(--forest-dark);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 130ms ease;
+}
+
+.popup-add-route:hover {
+  background: rgba(31, 95, 67, 0.14);
+}
+
+/* ── Route panel ─────────────────────────────────────────────────────── */
+.route-panel {
+  padding: 0 18px 4px;
+}
+
+.route-mode-select {
+  display: block;
+  width: 100%;
+  margin: 8px 0 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(28, 37, 32, 0.14);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--ink);
+  background: white;
+  cursor: pointer;
+}
+
+.route-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background: rgba(31, 95, 67, 0.07);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--forest-dark);
+}
+
+.route-stats[hidden] { display: none; }
+.route-stat strong   { color: var(--forest); }
+
+.route-steps {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.route-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 1px solid rgba(28, 37, 32, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  cursor: grab;
+  user-select: none;
+  transition: background 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.route-step:active        { cursor: grabbing; }
+.route-step.dragging      { opacity: 0.4; }
+.route-step.drag-over     { box-shadow: 0 0 0 2px var(--forest); background: rgba(31, 95, 67, 0.06); }
+.route-step--deleted      { opacity: 0.5; background: rgba(139, 30, 30, 0.04); border-color: rgba(139, 30, 30, 0.18); }
+
+.route-step-handle { color: var(--muted); font-size: 0.88rem; flex-shrink: 0; }
+
+.route-step-num {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--forest);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.route-step-cat  { font-size: 0.88rem; flex-shrink: 0; }
+
+.route-step-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.route-step-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--forest-dark);
+}
+
+.route-step-dist {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.route-step-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(28, 37, 32, 0.07);
+  color: var(--muted);
+  font-size: 0.68rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.route-step-remove:hover {
+  background: rgba(139, 30, 30, 0.14);
+  color: #8b1e1e;
+}
+
+.route-empty {
+  padding: 12px 4px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.route-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+/* Marqueur numéroté sur la carte */
+.route-step-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1f5f43;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border: 2.5px solid white;
+  box-shadow: 0 3px 10px rgba(20, 36, 28, 0.35);
+}
+
 /* ── Geocoding dans la modale ────────────────────────────────────────── */
 .geocode-wrap {
   position: relative;

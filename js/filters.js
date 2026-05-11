@@ -33,11 +33,12 @@ export function renderPlaces(visibleList, placeListEl, visibleCountEl, categorie
       const category = categories[place.category] || categories.water;
       const cardClass = place.userCreated ? 'place-card user-pin' : 'place-card';
       return `
-        <li>
+        <li class="place-item">
           <button class="${cardClass}" type="button" data-place-id="${place.id}" style="--color:${category.color}">
             <strong>${place.name}</strong>
             <span class="place-meta"><span class="place-icon">${category.icon}</span>${category.label}</span>
           </button>
+          <button class="place-route-add" type="button" data-add-route-id="${place.id}" title="Ajouter à l'itinéraire">＋</button>
         </li>
       `;
     }).join('');

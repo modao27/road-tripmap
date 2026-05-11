@@ -11,6 +11,7 @@ import { fetchUserPins, fetchOverrides,
          upsertOverride, deleteOverrideRemote,
          loadSharedMap } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
+import { initRoutePlanner } from './routePlanner.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 export const CONFIG = {
@@ -138,7 +139,7 @@ async function init() {
   function doRenderMap()     { renderMap(getVisible(), markers, markerLayer); }
   function doRenderPlaces()  { renderPlaces(getVisible(), placeListEl, visibleCountEl, categories); }
   function doRenderFilters() { renderFilters(filtersEl, categories, getAllPlaces, activeCategories); }
-  function onRefresh()       { doRenderFilters(); doRenderPlaces(); doRenderMap(); }
+  function onRefresh()       { doRenderFilters(); doRenderPlaces(); doRenderMap(); routePlanner?.refresh(); }
   function doFocusPlace(p)   {
     focusPlace(p, map, markerLayer, markers, mobileQuery, sidebarEl, sidebarToggleEl, CONFIG);
   }
@@ -242,6 +243,13 @@ async function init() {
         sidebarToggleEl.setAttribute('aria-expanded', 'false');
       }
     },
+  });
+
+  // ── Itinéraire ────────────────────────────────────────────────────────────
+  // Déclaré en let pour que onRefresh() y ait accès via la closure
+  let routePlanner = null;
+  routePlanner = initRoutePlanner({
+    map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
   });
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
