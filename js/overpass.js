@@ -297,7 +297,9 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
   // ── Enrichissement progressif au clic (listener unique sur la carte) ────────
   // map.on('popupopen') est garanti après rendu DOM, contrairement à marker.on()
   map.on('popupopen', e => {
+    console.log('[enrich] popupopen — container:', e.popup.getElement());
     const enrichEl = e.popup.getElement()?.querySelector('.popup-enrich[data-name]');
+    console.log('[enrich] enrichEl:', enrichEl);
     if (!enrichEl || enrichEl.dataset.loaded) return;
     enrichEl.dataset.loaded = 'true';
 
