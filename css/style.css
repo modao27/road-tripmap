@@ -681,16 +681,6 @@ h1 {
 }
 .popup-enrich:empty { display: none; }
 
-.pe-loading {
-  font-size: 0.78rem;
-  color: var(--muted);
-  animation: pe-spin 1s linear infinite;
-  display: inline-block;
-}
-@keyframes pe-spin {
-  to { transform: rotate(360deg); }
-}
-
 .pe-photo {
   width: 100%;
   max-height: 130px;

@@ -218,39 +218,35 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
           popupAnchor: [0, -16],
         });
 
-        const enrichId = `pe-${el.id}`;
-        const marker = L.marker([el.lat, el.lon], { icon, title: name })
-          .bindPopup(`
+        const popup = L.popup({ maxWidth: 300 }).setContent(`
             <article class="popup" style="--color:${cat.color}">
               <h2>${name}</h2>
               <div class="popup-category"><span>${cat.icon}</span>${cat.label}</div>
               ${tags.description ? `<p>${tags.description}</p>` : ''}
               ${details.map(d => `<p>${d}</p>`).join('')}
-              <div class="popup-enrich" id="${enrichId}">
-                <span class="pe-loading">⟳ Chargement…</span>
-              </div>
+              <div class="popup-enrich"></div>
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}"
                  target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
               <button class="popup-add-to-map" data-overpass='${nodePayload}' type="button">
                 ➕ Ajouter à ma carte
               </button>
             </article>
-          `, { maxWidth: 300 })
+          `);
+
+        const marker = L.marker([el.lat, el.lon], { icon, title: name })
+          .bindPopup(popup)
           .addTo(resultsLayer);
 
-        // Enrichissement asynchrone au premier clic
+        // Enrichissement asynchrone au premier clic — lookup dans l'arbre Leaflet
         marker.on('popupopen', async () => {
-          const el2 = document.getElementById(enrichId);
-          if (!el2 || el2.dataset.loaded) return;
-          el2.dataset.loaded = 'true';
+          const enrichEl = popup.getElement()?.querySelector('.popup-enrich');
+          if (!enrichEl || enrichEl.dataset.loaded) return;
+          enrichEl.dataset.loaded = 'true';
           try {
             const data = await enrichPlace(name, el.lat, el.lon, catKey);
             const html = buildEnrichHtml(data);
-            el2.innerHTML = html;
-          } catch {
-            el2.innerHTML = '';
-          }
-          marker.getPopup()?.update();
+            if (html) { enrichEl.innerHTML = html; popup.update(); }
+          } catch { /* données OSM suffisent */ }
         });
       });
 
