@@ -134,13 +134,30 @@ async function init() {
   function effectivePlace(p) {
     return placeOverrides[p.id] ? { ...p, ...placeOverrides[p.id] } : p;
   }
+
+  // ── Migration one-shot : lieux statiques → pins utilisateur ──────────────
+  // Pour les roadtrips créés avant l'architecture multi-roadtrips
+  // (showStaticPlaces absent = undefined), on importe les lieux de places.js
+  // comme de vrais pins, uniquement si le roadtrip est vide.
+  // Après cette migration, showStaticPlaces passe à false définitivement.
+  if (roadtripId) {
+    const trip = svc.getRoadtrip(roadtripId);
+    if (trip?.showStaticPlaces !== false) {
+      if (userPlaces.length === 0) {
+        const imported = staticPlaces.map(p => ({
+          ...effectivePlace(p),
+          user_created: true,
+          userCreated: true,
+          source: 'import',
+        }));
+        userPlaces.push(...imported);
+        svc.savePins(roadtripId, userPlaces);
+      }
+      svc.updateRoadtrip(roadtripId, { showStaticPlaces: false });
+    }
+  }
+
   function getAllPlaces() {
-    // Les lieux statiques (places.js) sont affichés si :
-    // - pas de roadtripId (mode carte partagée/legacy)
-    // - OU le roadtrip a showStaticPlaces !== false (rétro-compatibilité : les roadtrips
-    //   existants sans ce champ affichent les lieux statiques)
-    const showStatic = !roadtripId || svc.getRoadtrip(roadtripId)?.showStaticPlaces !== false;
-    if (showStatic) return [...staticPlaces.map(effectivePlace), ...userPlaces];
     return [...userPlaces];
   }
 
