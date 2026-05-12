@@ -112,6 +112,28 @@ async function runQuery(selectedCats, bbox) {
 export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
                                onDiscoveryStart, onDiscoveryDone, onDiscoveryClear }) {
   const resultsLayer = L.layerGroup().addTo(map);
+
+  // Associe chaque popup Leaflet à son contexte d'enrichissement
+  const enrichCtx = new WeakMap();
+
+  // Reconstruit le HTML complet du popup (utilisé par setContent pour éviter
+  // que popup.update() → _updateContent() ne réinitialise le DOM)
+  function makePopupHtml(ctx, enrichHtml = '') {
+    const cat = OVERPASS_CATEGORIES[ctx.catKey];
+    return `
+      <article class="popup" style="--color:${cat.color}">
+        <h2>${ctx.name}</h2>
+        <div class="popup-category"><span>${cat.icon}</span>${cat.label}</div>
+        ${ctx.description ? `<p>${ctx.description}</p>` : ''}
+        ${ctx.details.map(d => `<p>${d}</p>`).join('')}
+        ${enrichHtml ? `<div class="popup-enrich">${enrichHtml}</div>` : ''}
+        <a class="osm-link" href="https://www.openstreetmap.org/node/${ctx.osmId}"
+           target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
+        <button class="popup-add-to-map" data-overpass='${ctx.nodePayload}' type="button">
+          ➕ Ajouter à ma carte
+        </button>
+      </article>`;
+  }
   let isFetching = false;
 
   // DOM refs (modale POI)
@@ -218,28 +240,17 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
           popupAnchor: [0, -16],
         });
 
-        // Contexte d'enrichissement stocké en attributs — lu par le listener global
+        const ctx = {
+          name, catKey, osmId: el.id, nodePayload,
+          lat: el.lat, lng: el.lon,
+          description: tags.description ?? null,
+          details,
+          loaded: false,
+        };
+        const popup = L.popup({ maxWidth: 300 }).setContent(makePopupHtml(ctx));
+        enrichCtx.set(popup, ctx);
         L.marker([el.lat, el.lon], { icon, title: name })
-          .bindPopup(`
-            <article class="popup" style="--color:${cat.color}">
-              <h2>${name}</h2>
-              <div class="popup-category"><span>${cat.icon}</span>${cat.label}</div>
-              ${tags.description ? `<p>${tags.description}</p>` : ''}
-              ${details.map(d => `<p>${d}</p>`).join('')}
-              <div class="popup-enrich"
-                   data-name="${encodeURIComponent(name)}"
-                   data-lat="${el.lat}"
-                   data-lng="${el.lon}"
-                   data-cat="${catKey}"
-                   data-color="${cat.color}">
-              </div>
-              <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}"
-                 target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
-              <button class="popup-add-to-map" data-overpass='${nodePayload}' type="button">
-                ➕ Ajouter à ma carte
-              </button>
-            </article>
-          `, { maxWidth: 300 })
+          .bindPopup(popup)
           .addTo(resultsLayer);
       });
 
@@ -294,44 +305,41 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
     }
   });
 
-  // ── Enrichissement progressif au clic (listener unique sur la carte) ────────
-  // map.on('popupopen') est garanti après rendu DOM, contrairement à marker.on()
+  // ── Enrichissement via setContent (évite le reset DOM de popup.update()) ────
   map.on('popupopen', e => {
-    const container = e.popup.getElement();
-    console.log('[enrich] container:', container);
-    console.log('[enrich] HTML:', container?.querySelector('.leaflet-popup-content')?.innerHTML?.slice(0, 300));
-    console.log('[enrich] .popup-enrich:', container?.querySelector('.popup-enrich'));
-    console.log('[enrich] .popup-enrich[data-name]:', container?.querySelector('.popup-enrich[data-name]'));
-    const enrichEl = container?.querySelector('.popup-enrich[data-name]');
-    if (!enrichEl || enrichEl.dataset.loaded) return;
-    enrichEl.dataset.loaded = 'true';
+    const ctx = enrichCtx.get(e.popup);
+    if (!ctx || ctx.loaded) return;
+    ctx.loaded = true;
 
-    const name   = decodeURIComponent(enrichEl.dataset.name);
-    const lat    = parseFloat(enrichEl.dataset.lat);
-    const lng    = parseFloat(enrichEl.dataset.lng);
-    const catKey = enrichEl.dataset.cat;
-    const color  = enrichEl.dataset.color;
+    const isRefuge = ['shelter', 'bivouac'].includes(ctx.catKey);
+    const color    = OVERPASS_CATEGORIES[ctx.catKey].color;
 
-    // Skeleton immédiat
-    enrichEl.innerHTML = buildSkeletonHtml(catKey);
-    e.popup.update();
+    // Skeleton immédiat via setContent — this._content est mis à jour,
+    // pas de reset lors du prochain popup.update()
+    e.popup.setContent(makePopupHtml(ctx, buildSkeletonHtml(ctx.catKey)));
 
-    function updateSection(source, html) {
-      const section = enrichEl.querySelector(`[data-pe="${source}"]`);
-      if (!section) return;
-      if (html) { section.innerHTML = html; section.classList.add('pe-appear'); }
-      else section.remove();
-      e.popup.update();
+    // Les deux fetches sont indépendants et progressifs
+    let wikiHtml   = null;
+    let refugeHtml = null;
+    let wikiFetched   = false;
+    let refugeFetched = !isRefuge;
+
+    function refresh() {
+      if (!wikiFetched || !refugeFetched) return;
+      const parts = [wikiHtml, refugeHtml].filter(Boolean);
+      e.popup.setContent(makePopupHtml(ctx, parts.join('')));
     }
 
-    fetchWikipedia(name)
-      .then(data => updateSection('wiki',   buildWikiHtml(data, color)))
-      .catch(()  => updateSection('wiki',   null));
+    fetchWikipedia(ctx.name)
+      .then(d  => { wikiHtml   = buildWikiHtml(d, color); })
+      .catch(() => { wikiHtml   = null; })
+      .finally(() => { wikiFetched   = true; refresh(); });
 
-    if (['shelter', 'bivouac'].includes(catKey)) {
-      fetchRefuge(lat, lng)
-        .then(data => updateSection('refuge', buildRefugeHtml(data)))
-        .catch(()  => updateSection('refuge', null));
+    if (isRefuge) {
+      fetchRefuge(ctx.lat, ctx.lng)
+        .then(d  => { refugeHtml = buildRefugeHtml(d); })
+        .catch(() => { refugeHtml = null; })
+        .finally(() => { refugeFetched = true; refresh(); });
     }
   });
 
