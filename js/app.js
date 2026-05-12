@@ -99,16 +99,26 @@ async function init() {
     userPlaces     = sharedData.pins      || [];
     placeOverrides = sharedData.overrides || {};
   } else {
-    try {
-      [userPlaces, placeOverrides] = await Promise.all([
-        fetchUserPins(mapId),
-        fetchOverrides(mapId),
-      ]);
-      svc.savePins(roadtripId, userPlaces);
-      svc.saveOverrides(roadtripId, placeOverrides);
-    } catch {
-      userPlaces     = svc.loadPins(roadtripId);
-      placeOverrides = svc.loadOverrides(roadtripId);
+    // localStorage est la source de vérité pour le multi-roadtrip.
+    // Supabase ne sert que de fallback si le localStorage est vide (ex: autre appareil).
+    userPlaces     = svc.loadPins(roadtripId);
+    placeOverrides = svc.loadOverrides(roadtripId);
+
+    if (!userPlaces.length && !Object.keys(placeOverrides).length) {
+      try {
+        const [sbPins, sbOverrides] = await Promise.all([
+          fetchUserPins(mapId),
+          fetchOverrides(mapId),
+        ]);
+        if (sbPins.length || Object.keys(sbOverrides).length) {
+          userPlaces     = sbPins;
+          placeOverrides = sbOverrides;
+          svc.savePins(roadtripId, userPlaces);
+          svc.saveOverrides(roadtripId, placeOverrides);
+        }
+      } catch {
+        // données localStorage déjà chargées, on continue
+      }
     }
   }
 
@@ -125,8 +135,10 @@ async function init() {
     return placeOverrides[p.id] ? { ...p, ...placeOverrides[p.id] } : p;
   }
   function getAllPlaces() {
-    // Sur une nouvelle carte en onboarding, on masque les lieux pré-enregistrés
-    if (isOnboarding) return [...userPlaces];
+    // En mode multi-roadtrip (roadtripId présent), chaque carte est isolée :
+    // seuls les pins utilisateur sont affichés, pas les lieux statiques de places.js.
+    // Les lieux statiques restent visibles uniquement en mode carte partagée (legacy).
+    if (roadtripId) return [...userPlaces];
     return [...staticPlaces.map(effectivePlace), ...userPlaces];
   }
 
