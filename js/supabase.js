@@ -22,7 +22,18 @@ export async function fetchUserPins(mapId) {
 export async function upsertUserPin(mapId, pin) {
   const { error } = await db
     .from('user_pins')
-    .upsert({ ...pin, map_id: mapId });
+    .upsert({
+      id:          pin.id,
+      map_id:      mapId,
+      name:        pin.name,
+      category:    pin.category,
+      lat:         pin.lat,
+      lng:         pin.lng,
+      description: pin.description ?? '',
+      tip:         pin.tip         ?? '',
+      interest:    pin.interest    ?? '',
+      mood:        pin.mood        ?? '',
+    });
   if (error) throw error;
 }
 

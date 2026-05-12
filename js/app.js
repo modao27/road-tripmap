@@ -504,7 +504,7 @@ async function init() {
     map, toastWrap, showToastFn: showToast,
     onAddToMap: data => pinsModule?.openForOverpass(data),
     onDiscoveryStart: () => {
-      map.removeLayer(markerLayer);
+      if (map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
       if (placesPanel) placesPanel.hidden = true;
       if (discoveryBanner) discoveryBanner.hidden = false;
       switchTab('places');
@@ -518,7 +518,7 @@ async function init() {
       }
     },
     onDiscoveryClear: () => {
-      markerLayer.addTo(map);
+      if (!map.hasLayer(markerLayer)) markerLayer.addTo(map);
       if (placesPanel) placesPanel.hidden = false;
       if (discoveryBanner) discoveryBanner.hidden = true;
     },
