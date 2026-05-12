@@ -1,5 +1,5 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
-import { enrichPlace, buildEnrichHtml } from './enrichment.js';
+import { fetchWikipedia, fetchRefuge, buildSkeletonHtml, buildWikiHtml, buildRefugeHtml } from './enrichment.js';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
@@ -237,16 +237,40 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
           .bindPopup(popup)
           .addTo(resultsLayer);
 
-        // Enrichissement asynchrone au premier clic — lookup dans l'arbre Leaflet
-        marker.on('popupopen', async () => {
+        // Enrichissement progressif au premier clic
+        marker.on('popupopen', () => {
           const enrichEl = popup.getElement()?.querySelector('.popup-enrich');
           if (!enrichEl || enrichEl.dataset.loaded) return;
           enrichEl.dataset.loaded = 'true';
-          try {
-            const data = await enrichPlace(name, el.lat, el.lon, catKey);
-            const html = buildEnrichHtml(data);
-            if (html) { enrichEl.innerHTML = html; popup.update(); }
-          } catch { /* données OSM suffisent */ }
+
+          // Skeleton immédiat — espace réservé, zéro layout jump ensuite
+          enrichEl.innerHTML = buildSkeletonHtml(catKey);
+          popup.update();
+
+          // Remplace une section skeleton par son contenu (ou la supprime)
+          function updateSection(source, html) {
+            const section = enrichEl.querySelector(`[data-pe="${source}"]`);
+            if (!section) return;
+            if (html) {
+              section.innerHTML = html;
+              section.classList.add('pe-appear');
+            } else {
+              section.remove();
+            }
+            popup.update();
+          }
+
+          // Wikipedia — indépendant
+          fetchWikipedia(name)
+            .then(data => updateSection('wiki', buildWikiHtml(data, cat.color)))
+            .catch(()  => updateSection('wiki', null));
+
+          // Refuges.info — uniquement pour les abris et bivouacs
+          if (['shelter', 'bivouac'].includes(catKey)) {
+            fetchRefuge(el.lat, el.lon)
+              .then(data => updateSection('refuge', buildRefugeHtml(data)))
+              .catch(()  => updateSection('refuge', null));
+          }
         });
       });
 

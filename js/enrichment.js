@@ -1,29 +1,38 @@
 /**
  * enrichment.js
- * Enrichit les popups Overpass avec des données externes :
- *  - Wikipedia FR : description, photo, lien article
- *  - Refuges.info  : détails refuge (altitude, capacité, eau, gardiennage)
+ * Enrichissement progressif des popups Overpass.
+ * Wikipedia et Refuges.info sont chargés de façon indépendante,
+ * chacun avec un timeout de 5 s et son propre cache mémoire.
  */
 
 const WIKIPEDIA_SEARCH  = 'https://fr.wikipedia.org/w/api.php';
 const WIKIPEDIA_SUMMARY = 'https://fr.wikipedia.org/api/rest_v1/page/summary';
 const REFUGES_API       = 'https://www.refuges.info/api/bbox';
+const TIMEOUT_MS        = 5000;
 
-// Cache en mémoire : évite les re-fetches sur réouverture de popup
-const cache = new Map();
+const wikiCache   = new Map();
+const refugeCache = new Map();
+
+// ── Timeout wrapper ───────────────────────────────────────────────────────────
+
+function withTimeout(promise, ms = TIMEOUT_MS) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
 
 // ── Wikipedia ─────────────────────────────────────────────────────────────────
 
-async function fetchWikipedia(name) {
-  // Recherche de l'article le plus pertinent
+async function _fetchWikipedia(name) {
   const searchUrl = new URL(WIKIPEDIA_SEARCH);
-  searchUrl.searchParams.set('action', 'query');
-  searchUrl.searchParams.set('list', 'search');
+  searchUrl.searchParams.set('action',  'query');
+  searchUrl.searchParams.set('list',    'search');
   searchUrl.searchParams.set('srsearch', name);
-  searchUrl.searchParams.set('srlimit', '1');
-  searchUrl.searchParams.set('srprop', 'snippet');
-  searchUrl.searchParams.set('format', 'json');
-  searchUrl.searchParams.set('origin', '*');
+  searchUrl.searchParams.set('srlimit',  '1');
+  searchUrl.searchParams.set('srprop',  'snippet');
+  searchUrl.searchParams.set('format',  'json');
+  searchUrl.searchParams.set('origin',  '*');
 
   const searchRes = await fetch(searchUrl);
   if (!searchRes.ok) return null;
@@ -32,14 +41,10 @@ async function fetchWikipedia(name) {
   const hits = searchData.query?.search;
   if (!hits?.length) return null;
 
-  const title = hits[0].title;
-
-  // Résumé complet avec photo
-  const summaryRes = await fetch(`${WIKIPEDIA_SUMMARY}/${encodeURIComponent(title)}`);
+  const summaryRes = await fetch(`${WIKIPEDIA_SUMMARY}/${encodeURIComponent(hits[0].title)}`);
   if (!summaryRes.ok) return null;
   const d = await summaryRes.json();
 
-  // Extrait limité à 280 caractères
   const raw   = d.extract ?? '';
   const short = raw.length > 280 ? raw.slice(0, raw.lastIndexOf(' ', 280)) + '…' : raw;
 
@@ -51,110 +56,120 @@ async function fetchWikipedia(name) {
   };
 }
 
+export async function fetchWikipedia(name) {
+  if (wikiCache.has(name)) return wikiCache.get(name);
+  const result = await withTimeout(_fetchWikipedia(name));
+  wikiCache.set(name, result);
+  return result;
+}
+
 // ── Refuges.info ──────────────────────────────────────────────────────────────
 
-async function fetchRefuge(lat, lng) {
-  const delta = 0.006; // ~600 m
-  const bbox  = `${(lng - delta).toFixed(4)},${(lat - delta).toFixed(4)},${(lng + delta).toFixed(4)},${(lat + delta).toFixed(4)}`;
-
-  const url = `${REFUGES_API}?bbox=${bbox}&type_points=refuge,cabane,bivouac&format=geojson`;
-  const res = await fetch(url);
+async function _fetchRefuge(lat, lng) {
+  const d    = 0.006; // ≈ 600 m
+  const bbox = `${(lng-d).toFixed(4)},${(lat-d).toFixed(4)},${(lng+d).toFixed(4)},${(lat+d).toFixed(4)}`;
+  const res  = await fetch(`${REFUGES_API}?bbox=${bbox}&type_points=refuge,cabane,bivouac&format=geojson`);
   if (!res.ok) return null;
 
   const data     = await res.json();
   const features = data.features ?? [];
   if (!features.length) return null;
 
-  // Point le plus proche des coordonnées
   const closest = features.reduce((best, f) => {
     const [fLng, fLat] = f.geometry.coordinates;
-    const d = Math.hypot(fLat - lat, fLng - lng);
-    return d < best.d ? { f, d } : best;
-  }, { f: features[0], d: Infinity }).f;
+    const dist = Math.hypot(fLat - lat, fLng - lng);
+    return dist < best.dist ? { f, dist } : best;
+  }, { f: features[0], dist: Infinity }).f;
 
   const p = closest.properties;
-
   return {
-    nom:          p.nom,
-    altitude:     p.coord?.alt ?? null,
-    capacite:     p.carac?.cap_ete ?? null,
-    gardiennage:  p.carac?.gardiennage ?? null,
-    eau:          p.carac?.eau_potable ?? null,
-    url:          p.lien ?? null,
-    acces:        p.acces?.from ?? null,
+    altitude:    p.coord?.alt          ?? null,
+    capacite:    p.carac?.cap_ete      ?? null,
+    gardiennage: p.carac?.gardiennage  ?? null,
+    eau:         p.carac?.eau_potable  ?? null,
+    url:         p.lien                ?? null,
+    acces:       p.acces?.from         ?? null,
   };
 }
 
-// ── Point d'entrée ────────────────────────────────────────────────────────────
-
-/**
- * @param {string} name        Nom du lieu
- * @param {number} lat
- * @param {number} lng
- * @param {string} category    Clé de catégorie Overpass (ex: 'shelter', 'waterfall')
- * @returns {Promise<{wikipedia?, refuge?}>}
- */
-export async function enrichPlace(name, lat, lng, category) {
-  const key = `${name}|${lat.toFixed(4)}|${lng.toFixed(4)}`;
-  if (cache.has(key)) return cache.get(key);
-
-  const isRefuge = ['shelter', 'bivouac'].includes(category);
-
-  const [wikiResult, refugeResult] = await Promise.allSettled([
-    fetchWikipedia(name),
-    isRefuge ? fetchRefuge(lat, lng) : Promise.resolve(null),
-  ]);
-
-  const result = {
-    wikipedia: wikiResult.status === 'fulfilled' ? wikiResult.value : null,
-    refuge:    refugeResult.status === 'fulfilled' ? refugeResult.value : null,
-  };
-
-  cache.set(key, result);
+export async function fetchRefuge(lat, lng) {
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (refugeCache.has(key)) return refugeCache.get(key);
+  const result = await withTimeout(_fetchRefuge(lat, lng));
+  refugeCache.set(key, result);
   return result;
 }
 
-// ── Rendu HTML de l'enrichissement ───────────────────────────────────────────
+// ── Skeleton HTML (espace réservé immédiat) ───────────────────────────────────
 
-export function buildEnrichHtml({ wikipedia, refuge }) {
-  if (!wikipedia && !refuge) return '';
+export function buildSkeletonHtml(category) {
+  const isRefuge = ['shelter', 'bivouac'].includes(category);
+  return `
+    <div class="pe-section" data-pe="wiki">
+      <div class="pe-sk pe-sk--photo"></div>
+      <div class="pe-sk pe-sk--line" style="width:92%"></div>
+      <div class="pe-sk pe-sk--line" style="width:75%"></div>
+      <div class="pe-sk pe-sk--line" style="width:45%"></div>
+    </div>
+    ${isRefuge ? `
+    <div class="pe-section pe-sep" data-pe="refuge">
+      <div class="pe-sk pe-sk--line" style="width:60%"></div>
+      <div class="pe-sk pe-sk--tags"></div>
+    </div>` : ''}`;
+}
 
+// ── HTML Wikipedia ────────────────────────────────────────────────────────────
+
+export function buildWikiHtml(data, catColor) {
+  if (!data) return null;
   const parts = [];
 
-  if (wikipedia?.thumbnail) {
-    parts.push(`<img class="pe-photo" src="${wikipedia.thumbnail}" alt="" loading="lazy">`);
+  if (data.thumbnail) {
+    parts.push(`
+      <div class="pe-photo-wrap" style="--cat:${catColor}">
+        <img class="pe-photo" src="${data.thumbnail}" alt="" loading="lazy"
+             onerror="this.style.opacity=0">
+      </div>`);
   }
-
-  if (wikipedia?.extract) {
-    parts.push(`<p class="pe-extract">${wikipedia.extract}</p>`);
+  if (data.extract) {
+    parts.push(`<p class="pe-extract">${data.extract}</p>`);
   }
-
-  if (refuge) {
-    const tags = [
-      refuge.altitude                   ? `⛰ ${refuge.altitude} m`             : null,
-      refuge.capacite                   ? `👤 ${refuge.capacite} places`         : null,
-      refuge.gardiennage === 'oui'      ? '✅ Gardienné'                         : null,
-      refuge.gardiennage === 'partiel'  ? '🔶 Gardiennage partiel'              : null,
-      refuge.eau === 'oui'              ? '💧 Eau potable'                       : null,
-    ].filter(Boolean);
-
-    if (tags.length) {
-      parts.push(`<div class="pe-tags">${tags.map(t => `<span class="pe-tag">${t}</span>`).join('')}</div>`);
-    }
-
-    if (refuge.acces) {
-      parts.push(`<p class="pe-access"><strong>Accès :</strong> ${refuge.acces}</p>`);
-    }
+  if (data.url) {
+    parts.push(`<div class="pe-links">
+      <a class="pe-link" href="${data.url}" target="_blank" rel="noopener">📖 Wikipedia</a>
+    </div>`);
   }
+  if (!parts.length) return null;
 
-  const links = [
-    wikipedia?.url  ? `<a class="pe-link" href="${wikipedia.url}"  target="_blank" rel="noopener">📖 Wikipedia</a>`   : null,
-    refuge?.url     ? `<a class="pe-link" href="${refuge.url}"     target="_blank" rel="noopener">🏠 Refuges.info</a>` : null,
+  return `<span class="pe-badge">🌐 Wikipedia</span>${parts.join('')}`;
+}
+
+// ── HTML Refuges.info ─────────────────────────────────────────────────────────
+
+export function buildRefugeHtml(data) {
+  if (!data) return null;
+
+  const tags = [
+    data.altitude                  ? `⛰ ${data.altitude} m`     : null,
+    data.capacite                  ? `👤 ${data.capacite} places` : null,
+    data.gardiennage === 'oui'     ? '✅ Gardienné'               : null,
+    data.gardiennage === 'partiel' ? '🔶 Gardiennage partiel'    : null,
+    data.eau === 'oui'             ? '💧 Eau potable'             : null,
   ].filter(Boolean);
 
-  if (links.length) {
-    parts.push(`<div class="pe-links">${links.join('')}</div>`);
+  const parts = [];
+  if (tags.length) {
+    parts.push(`<div class="pe-tags">${tags.map(t => `<span class="pe-tag">${t}</span>`).join('')}</div>`);
   }
+  if (data.acces) {
+    parts.push(`<p class="pe-access"><strong>Accès :</strong> ${data.acces}</p>`);
+  }
+  if (data.url) {
+    parts.push(`<div class="pe-links">
+      <a class="pe-link" href="${data.url}" target="_blank" rel="noopener">🏠 Refuges.info</a>
+    </div>`);
+  }
+  if (!parts.length) return null;
 
-  return parts.join('');
+  return `<span class="pe-badge">🏠 Refuges.info</span>${parts.join('')}`;
 }
