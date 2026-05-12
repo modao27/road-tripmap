@@ -2092,4 +2092,24 @@ mark.search-highlight {
   .discovery-info { color: #8ec9a8; }
   .discovery-dot { background: #4ea876; }
   .discovery-clear { border-color: rgba(78, 168, 118, 0.2); color: #4ea876; }
+
+  /* Enrichissement popup (dark popup background = #1a211d) */
+  .pe-badge      { color: #6a8a7a; }
+  .pe-wiki-title { color: #a8d4bc; }
+  .pe-extract    { color: #b8cec0; }
+  .pe-access     { color: #b8cec0; }
+  .pe-tag {
+    background: rgba(78, 168, 118, 0.12);
+    color: #a8d4bc;
+  }
+  .pe-link {
+    color: #4ea876;
+    border-color: rgba(78, 168, 118, 0.22);
+  }
+  .pe-link:hover { background: rgba(78, 168, 118, 0.1); }
+  .pe-photo-wrap { background: rgba(78, 168, 118, 0.12); }
+  .pe-sk {
+    background: linear-gradient(90deg, #1f2b24 25%, #253129 50%, #1f2b24 75%);
+    background-size: 200% 100%;
+  }
 }
