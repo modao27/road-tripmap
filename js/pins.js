@@ -1,4 +1,4 @@
-import { saveUserPins, saveOverrides } from './storage.js';
+import * as svc from './storageService.js';
 import { addMarker, refreshMarker } from './map.js';
 import { trapFocus } from './ui.js';
 
@@ -53,6 +53,7 @@ export function initPins({
   focusPlaceFn,
   onMapClick,
   onMarkerAdded,
+  roadtripId,
   config,
   // Supabase (optionnel — graceful degradation si non fourni)
   mapId,
@@ -193,7 +194,7 @@ export function initPins({
       userCreated: true,
     };
     userPlacesRef.push(pin);
-    saveUserPins(userPlacesRef);
+    if (roadtripId) svc.savePins(roadtripId, userPlacesRef);
     syncRemote(upsertUserPinFn, pin);
     addMarker(pin, markers, makePopupHtml, makeIconFn);
     if (activeCategories.has(category)) markerLayer.addLayer(markers.get(pin.id));
@@ -208,7 +209,7 @@ export function initPins({
     if (!pin) return;
     pin.name = name; pin.category = category;
     pin.description = note; pin.lat = lat; pin.lng = lng;
-    saveUserPins(userPlacesRef);
+    if (roadtripId) svc.savePins(roadtripId, userPlacesRef);
     syncRemote(upsertUserPinFn, pin);
     doRefreshMarker(pin);
     map.closePopup(); onRefresh(); focusPlaceFn(pin);
@@ -218,7 +219,7 @@ export function initPins({
   function deleteUserPin(id) {
     const idx = userPlacesRef.findIndex(p => p.id === id);
     if (idx !== -1) userPlacesRef.splice(idx, 1);
-    saveUserPins(userPlacesRef);
+    if (roadtripId) svc.savePins(roadtripId, userPlacesRef);
     syncRemote(deleteUserPinFn, id);
     const marker = markers.get(id);
     if (marker) { markerLayer.removeLayer(marker); markers.delete(id); }
@@ -228,7 +229,7 @@ export function initPins({
 
   function saveOverride(id, name, category, note, lat, lng) {
     placeOverridesRef[id] = { name, category, description: note, lat, lng };
-    saveOverrides(placeOverridesRef);
+    if (roadtripId) svc.saveOverrides(roadtripId, placeOverridesRef);
     syncRemote(upsertOverrideFn, id, placeOverridesRef[id]);
     const original = staticPlaces.find(p => p.id === id);
     const ep = original ? { ...original, ...placeOverridesRef[id] } : null;
@@ -238,7 +239,7 @@ export function initPins({
 
   function resetOverride(id) {
     delete placeOverridesRef[id];
-    saveOverrides(placeOverridesRef);
+    if (roadtripId) svc.saveOverrides(roadtripId, placeOverridesRef);
     syncRemote(deleteOverrideFn, id);
     const original = staticPlaces.find(p => p.id === id);
     if (!original) return;

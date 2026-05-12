@@ -1,4 +1,4 @@
-import { loadRouteSteps, saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
+import * as svc from './storageService.js';
 
 // Le serveur public OSRM ne supporte que le profil driving de façon fiable.
 // Pour vélo et marche, on récupère la géométrie (driving) mais on corrige
@@ -42,11 +42,11 @@ function escapeXml(s) {
 
 // ── Module ────────────────────────────────────────────────────────────────────
 
-export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn }) {
+export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn, roadtripId }) {
 
   // ── État ──────────────────────────────────────────────────────────────────
-  let steps         = [];                 // toujours vide au démarrage — restauré uniquement via ?route=
-  let mode          = loadRouteMode();    // 'driving' | 'cycling' | 'walking'
+  let steps         = [];                 // toujours vide au démarrage — restauré via ?route= ou storageService
+  let mode          = roadtripId ? svc.loadRouteMode(roadtripId) : 'driving';
   let routeData     = null;               // {distance, duration, geometry} OSRM
   let fetchDebounce = null;
   let dragSrcIndex  = null;
@@ -121,7 +121,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   function persist() {
-    saveRouteSteps(steps);
+    if (roadtripId) svc.saveRouteSteps(roadtripId, steps);
   }
 
   // ── Optimisation (plus proche voisin) ─────────────────────────────────────
@@ -443,7 +443,7 @@ ${trk}
     if (modeParam && OSRM_PROFILE[modeParam]) {
       mode = modeParam;
       if (modeEl) modeEl.value = mode;
-      saveRouteMode(mode);
+      if (roadtripId) svc.saveRouteMode(roadtripId, mode);
     }
     steps = routeParam.split(',').filter(Boolean);
     persist();

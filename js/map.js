@@ -94,7 +94,7 @@ export function focusPlace(place, map, markerLayer, markers, mobileQuery, sideba
   }
 }
 
-export function initLayerSwitcher(baseLayers, map) {
+export function initLayerSwitcher(baseLayers, map, onLayerChange) {
   let activeBaseLayer = baseLayers.osm;
   let activeKey = 'osm';
 
@@ -108,6 +108,7 @@ export function initLayerSwitcher(baseLayers, map) {
     document.querySelectorAll('.layer-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.base === key)
     );
+    onLayerChange?.(key);
   }
 
   document.getElementById('layerSwitcher').addEventListener('click', (e) => {

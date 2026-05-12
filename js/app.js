@@ -1,8 +1,7 @@
 import { places as staticPlaces } from './data/places.js';
 import { categories } from './data/categories.js';
-import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
-         getOrCreateMapId, getMapIdFromUrl, isUUID,
-         saveMapView, loadMapView } from './storage.js';
+import { isUUID } from './storage.js';
+import * as svc from './storageService.js';
 import { initMap, makeIcon, addMarker, focusPlace, renderMap, initLayerSwitcher } from './map.js';
 import { renderFilters, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
 import { showToast, setSyncStatus, initSidebar, initResizer } from './ui.js';
@@ -36,9 +35,34 @@ if (typeof L === 'undefined') {
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function init() {
-  const mapParam = getMapIdFromUrl();
+  const params   = new URLSearchParams(window.location.search);
+  const mapParam = params.get('map');   // carte partagée (slug)
+  const idParam  = params.get('id');    // roadtrip ID
+  const isNew    = params.get('new') === 'true';
+
   // Un slug (non UUID) dans ?map= indique une carte partagée
   let isSharedMap = !!mapParam && !isUUID(mapParam);
+  let roadtripId  = null;
+
+  // ── Résolution du roadtrip ID ─────────────────────────────────────────────
+  if (!isSharedMap) {
+    if (idParam) {
+      roadtripId = idParam;
+      if (!svc.getRoadtrip(roadtripId)) {
+        svc.createRoadtripWithId(roadtripId, 'Road trip Jura', '');
+      }
+    } else if (isNew) {
+      const trip = svc.createRoadtrip({ title: 'Nouveau road trip' });
+      window.location.replace(`map.html?id=${trip.id}`);
+      return;
+    } else {
+      // Aucun ID → retour à la homepage
+      window.location.replace('/');
+      return;
+    }
+  }
+
+  const mapId = roadtripId; // compatibilité Supabase
 
   // ── 1. Tentative de chargement de la carte partagée ──────────────────────
   let sharedData = null;
@@ -46,30 +70,25 @@ async function init() {
     try {
       sharedData = await loadSharedMap(mapParam);
     } catch {
-      // Slug introuvable ou hors ligne → on retombe sur la carte personnelle
       isSharedMap = false;
       history.replaceState(null, '', window.location.pathname);
     }
   }
 
-  // ── 2. Confirmation si l'utilisateur a déjà des données locales ──────────
+  // ── 2. Confirmation si des données locales existent déjà ─────────────────
   if (isSharedMap && sharedData) {
-    const localPins      = loadUserPins();
-    const localOverrides = loadOverrides();
+    const localPins      = svc.loadPins(roadtripId || '');
+    const localOverrides = svc.loadOverrides(roadtripId || '');
     const hasLocalData   = localPins.length > 0 || Object.keys(localOverrides).length > 0;
-
     if (hasLocalData) {
       const confirmed = await confirmSharedMapLoad(sharedData.title);
       if (!confirmed) {
-        // L'utilisateur refuse → on reste sur sa carte perso, on nettoie l'URL
         isSharedMap = false;
         sharedData  = null;
         history.replaceState(null, '', window.location.pathname);
       }
     }
   }
-
-  const mapId = isSharedMap ? null : getOrCreateMapId();
 
   // ── 3. Chargement effectif des données ───────────────────────────────────
   let userPlaces, placeOverrides;
@@ -83,20 +102,19 @@ async function init() {
         fetchUserPins(mapId),
         fetchOverrides(mapId),
       ]);
-      saveUserPins(userPlaces);
-      saveOverrides(placeOverrides);
+      svc.savePins(roadtripId, userPlaces);
+      svc.saveOverrides(roadtripId, placeOverrides);
     } catch {
-      userPlaces     = loadUserPins();
-      placeOverrides = loadOverrides();
+      userPlaces     = svc.loadPins(roadtripId);
+      placeOverrides = svc.loadOverrides(roadtripId);
     }
   }
 
   // ── État partagé ──────────────────────────────────────────────────────────
-  const activeCategories = new Set(
-    isSharedMap && sharedData?.filters?.length
-      ? sharedData.filters
-      : Object.keys(categories)
-  );
+  const savedFilters = isSharedMap && sharedData?.filters?.length
+    ? sharedData.filters
+    : svc.loadActiveFilters(roadtripId);
+  const activeCategories = new Set(savedFilters || Object.keys(categories));
   let searchQuery = '';
   const markers   = new Map();
   const categoryRank = new Map(Object.keys(categories).map((k, i) => [k, i]));
@@ -120,8 +138,15 @@ async function init() {
 
   // ── Carte ─────────────────────────────────────────────────────────────────
   const { map, markerLayer, baseLayers } = initMap(CONFIG);
-  const layerSwitcher = initLayerSwitcher(baseLayers, map);
-  const mobileQuery   = window.matchMedia('(max-width: 820px)');
+  const layerSwitcher = initLayerSwitcher(baseLayers, map, key => {
+    if (roadtripId) svc.saveBaseLayer(roadtripId, key);
+  });
+  const mobileQuery = window.matchMedia('(max-width: 820px)');
+
+  // Restaure le fond de carte du roadtrip
+  if (!isSharedMap && roadtripId) {
+    layerSwitcher.setLayer(svc.loadBaseLayer(roadtripId));
+  }
 
   // Restaure l'état si carte partagée
   if (isSharedMap && sharedData) {
@@ -200,6 +225,7 @@ async function init() {
     if (event.target.checked) activeCategories.add(event.target.value);
     else activeCategories.delete(event.target.value);
     event.target.closest('.filter-pill')?.classList.toggle('active', event.target.checked);
+    if (roadtripId) svc.saveActiveFilters(roadtripId, activeCategories);
     doRenderMap(); doRenderPlaces();
   });
 
@@ -327,6 +353,7 @@ async function init() {
     onRefresh,
     focusPlaceFn:     doFocusPlace,
     onMarkerAdded:    setupMarkerHover,
+    roadtripId,
     config:           CONFIG,
     mapId,
     upsertUserPinFn:  isSharedMap ? null : upsertUserPin,
@@ -354,6 +381,7 @@ async function init() {
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
     focusPlaceFn: doFocusPlace,
+    roadtripId,
   });
 
   // ── Cross-highlight sidebar ↔ carte ──────────────────────────────────────
@@ -397,7 +425,7 @@ async function init() {
   });
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
-  const savedView = !isSharedMap ? loadMapView() : null;
+  const savedView = (!isSharedMap && roadtripId) ? svc.loadMapView(roadtripId) : null;
   if (savedView) map.setView([savedView.lat, savedView.lng], savedView.zoom, { animate: false });
 
   getAllPlaces().forEach(place => {
@@ -415,7 +443,7 @@ async function init() {
     clearTimeout(viewSaveTimer);
     viewSaveTimer = setTimeout(() => {
       const c = map.getCenter();
-      saveMapView(c.lat, c.lng, map.getZoom());
+      if (roadtripId) svc.saveMapView(roadtripId, c.lat, c.lng, map.getZoom());
     }, 800);
   });
 

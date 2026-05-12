@@ -3,225 +3,63 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Road trip outdoor dans le Jura</title>
-  <!-- ES modules requièrent un serveur HTTP. Lancer avec : npx serve . ou python -m http.server -->
-  <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-  <link rel="stylesheet" href="css/style.css">
+  <title>Mes Road Trips</title>
+  <link rel="stylesheet" href="css/home.css">
 </head>
 <body>
-  <main class="app">
-    <aside class="sidebar" id="sidebar" aria-label="Navigation carte">
 
-      <!-- En-tête collapsible -->
-      <header class="sidebar-header">
-        <div class="sidebar-header-main">
-          <p class="eyebrow">Carte libre</p>
-          <h1>Road trip outdoor dans le Jura</h1>
-          <button class="header-toggle-btn" id="headerToggleBtn" type="button" aria-expanded="true" title="Réduire l'en-tête">▲</button>
-        </div>
-        <p class="intro sidebar-intro" id="sidebarIntro">Une carte sans planning imposé pour repérer cascades, belvédères, villages, spots nature et via ferrata autour de Baume-les-Messieurs.</p>
-      </header>
+  <div class="home-wrap">
 
-      <!-- Barre d'actions icônes -->
-      <div class="action-bar" aria-label="Actions rapides">
-        <button class="action-btn" id="recenterButton" type="button" title="Recentrer sur Baume-les-Messieurs">⌖</button>
-        <button class="action-btn" id="geolocateButton" type="button" title="Ma position">📍</button>
-        <button class="action-btn pin-btn" id="pinModeButton" type="button" title="Ajouter un pin">📌</button>
-        <button class="action-btn" id="shareButton" type="button" title="Partager cette carte">🔗</button>
+    <header class="home-header">
+      <div>
+        <p class="home-eyebrow">Outdoor Jura</p>
+        <h1 class="home-title">Mes Road Trips</h1>
       </div>
+      <button class="btn-primary" id="btnNew" type="button">＋ Nouveau road trip</button>
+    </header>
 
-      <!-- Onglets -->
-      <div class="sidebar-tabs" role="tablist">
-        <button class="sidebar-tab active" id="tabPlaces" role="tab" aria-selected="true" aria-controls="tabPanePlaces" type="button">Lieux</button>
-        <button class="sidebar-tab" id="tabRoute" role="tab" aria-selected="false" aria-controls="tabPaneRoute" type="button">
-          Road Trip <span class="tab-badge" id="tabRouteBadge" hidden>0</span>
-        </button>
-      </div>
+    <main class="trip-grid" id="tripGrid" aria-label="Liste des road trips"></main>
 
-      <div class="sidebar-body">
+    <div class="empty-state" id="emptyState" hidden>
+      <div class="empty-icon">🗺️</div>
+      <h2>Aucun road trip pour l'instant</h2>
+      <p>Crée ton premier road trip pour commencer à explorer le Jura.</p>
+      <button class="btn-primary" id="btnNewEmpty" type="button">Créer mon premier road trip</button>
+    </div>
 
-        <!-- Panneau Lieux -->
-        <div class="tab-pane active" id="tabPanePlaces" role="tabpanel" aria-labelledby="tabPlaces">
-          <section class="controls" aria-label="Filtres et recherche">
-            <!-- Recherche déclenchable -->
-            <button class="search-trigger" id="searchToggle" type="button">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              Rechercher un lieu
-            </button>
-            <input id="searchInput" class="search" type="search" placeholder="Rechercher un lieu…" aria-label="Recherche de lieu" hidden>
-            <!-- Filtres avec show/hide intégré -->
-            <details class="filter-section" open>
-              <summary>Filtres <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
-              <div class="filters" id="filters"></div>
-              <div class="legend" id="legend" aria-label="Légende des catégories"></div>
-              <div class="filter-footer">
-                <button class="filter-footer-btn" id="showAllButton" type="button">tout afficher</button>
-                <button class="filter-footer-btn" id="hideAllButton" type="button">tout masquer</button>
-              </div>
-            </details>
-
-            <!-- Découvrir via OpenStreetMap -->
-            <details class="filter-section" id="overpassSection">
-              <summary>🔍 Découvrir autour <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
-              <div class="overpass-cats">
-                <button class="overpass-cat-btn active" data-overpass-cat="bivouac"    type="button">⛺ Bivouac</button>
-                <button class="overpass-cat-btn active" data-overpass-cat="shelter"    type="button">🏠 Refuges</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="water"      type="button">💧 Sources</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="waterfall"  type="button">🌊 Cascades</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="viewpoint"  type="button">🔭 Panoramas</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="via_ferrata" type="button">🧗 Via ferrata</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="trailhead"  type="button">🥾 Départs</button>
-              </div>
-              <div class="overpass-actions">
-                <button class="button" id="overpassSearch" type="button">Chercher dans la zone visible</button>
-                <button class="secondary" id="overpassClear" type="button" hidden>✕ Effacer les résultats</button>
-              </div>
-              <p class="overpass-status" id="overpassStatus"></p>
-            </details>
-          </section>
-          <section class="places-panel">
-            <p class="places-title"><span>Lieux visibles</span><span id="visibleCount" aria-live="polite" aria-atomic="true"></span></p>
-            <ul class="place-list" id="placeList"></ul>
-          </section>
-        </div>
-
-        <!-- Panneau Road Trip -->
-        <div class="tab-pane" id="tabPaneRoute" role="tabpanel" aria-labelledby="tabRoute">
-          <section class="route-panel" id="routePanel">
-            <select id="routeMode" class="route-mode-select">
-              <option value="driving">🚗 Voiture</option>
-              <option value="cycling">🚴 Vélo</option>
-              <option value="walking">🚶 À pied</option>
-            </select>
-            <div class="route-stats" id="routeStats" hidden>
-              <span class="route-stat">📏 <strong id="routeDistance">—</strong></span>
-              <span class="route-stat">⏱ <strong id="routeDuration">—</strong></span>
-              <span class="route-stat" id="routeStepCount"></span>
-            </div>
-            <ul class="route-steps" id="routeSteps" aria-label="Étapes de l'itinéraire"></ul>
-            <p class="route-empty" id="routeEmpty">Ajoute des lieux depuis leurs popups ou les cartes.</p>
-            <div class="route-actions">
-              <button class="secondary" id="routeOptimize" type="button">⚡ Optimiser</button>
-              <button class="secondary" id="routeShare"    type="button">🔗 Partager</button>
-              <button class="secondary" id="routeGpx"      type="button">📥 GPX</button>
-              <button class="secondary" id="routeClear"    type="button">✕ Effacer</button>
-            </div>
-          </section>
-        </div>
-
-      </div>
-
-      <footer class="footer">
-        Fond de carte © OpenStreetMap contributors
-        <span id="syncStatus" class="sync-status" hidden></span>
-      </footer>
-    </aside>
-
-    <div id="resizer" class="resizer" role="separator" aria-orientation="vertical" aria-label="Redimensionner la sidebar"></div>
-    <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="false"></div>
-
-    <section class="map-wrap" aria-label="Carte interactive du Jura">
-      <button class="mobile-toggle" id="sidebarToggle" type="button" aria-expanded="false" aria-label="Afficher ou masquer la sidebar">☰</button>
-      <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
-      <div class="layer-switcher" id="layerSwitcher" role="group" aria-label="Fond de carte">
-        <button class="layer-btn active" data-base="osm" type="button">🗺 Carte</button>
-        <button class="layer-btn" data-base="ign" type="button">⛰ IGN</button>
-        <button class="layer-btn" data-base="sat" type="button">🛰 Satellite</button>
-      </div>
-      <button class="route-badge" id="routeBadge" hidden type="button" aria-label="Voir l'itinéraire">
-        🗺 <span id="routeBadgeCount">0</span> étape<span id="routeBadgePlural">s</span>
-      </button>
-      <div id="map"></div>
-    </section>
-  </main>
-
-  <!-- Bannière carte partagée chargée -->
-  <div class="shared-map-banner" id="sharedMapBanner" hidden>
-    <span>✅ Carte partagée chargée : <strong id="sharedMapTitle"></strong></span>
-    <button type="button" id="sharedMapClose" aria-label="Fermer la bannière">✕</button>
   </div>
 
-  <!-- Modale de confirmation avant chargement -->
-  <div class="pin-modal-backdrop" id="sharedMapConfirmBackdrop" hidden>
-    <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="sharedConfirmHeading">
-      <h3 id="sharedConfirmHeading">Carte partagée</h3>
-      <p>Afficher la carte <strong id="sharedMapConfirmName"></strong>&nbsp;?</p>
-      <p class="shared-confirm-note">Tes pins personnels et ta carte restent intacts — ce chargement n'écrase rien.</p>
-      <div class="pin-modal-actions">
-        <button class="secondary" id="sharedMapCancelConfirm" type="button">Annuler</button>
-        <button class="button"    id="sharedMapLoadConfirm"   type="button">Charger la carte</button>
+  <!-- Modale nouveau road trip -->
+  <div class="modal-backdrop" id="newTripBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newTripHeading">
+      <h2 id="newTripHeading">Nouveau road trip</h2>
+      <label class="modal-field">
+        Titre
+        <input type="text" id="newTripName" placeholder="Ex : Road trip Jura juin 2025" maxlength="80">
+      </label>
+      <label class="modal-field">
+        Description <span class="optional">(facultatif)</span>
+        <textarea id="newTripDesc" placeholder="Région, saison, thème…" rows="3"></textarea>
+      </label>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btnCancelNew" type="button">Annuler</button>
+        <button class="btn-primary"   id="btnConfirmNew" type="button">Créer</button>
       </div>
     </div>
   </div>
 
-  <!-- Modale de partage -->
-  <div class="pin-modal-backdrop" id="shareModalBackdrop" hidden>
-    <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
-      <h3 id="shareModalTitle">Partager cette carte</h3>
-      <label class="pin-field">
-        Titre de la carte
-        <input type="text" id="shareTitle" placeholder="Ex : Road trip Jura juin 2025" maxlength="80">
-      </label>
-      <label class="pin-field">
-        Description (facultatif)
-        <textarea id="shareDesc" placeholder="Notes, contexte, conseils…"></textarea>
-      </label>
-      <div class="share-includes">
-        <p>Ce lien inclura :</p>
-        <ul>
-          <li>Tes pins personnalisés</li>
-          <li>Le centre et le zoom de la carte</li>
-          <li>Le fond de carte actif</li>
-          <li>Les filtres actifs</li>
-        </ul>
-      </div>
-      <div class="pin-modal-actions">
-        <button class="secondary" id="shareCancelBtn" type="button">Annuler</button>
-        <button class="button" id="shareConfirmBtn" type="button">Créer le lien</button>
+  <!-- Modale confirmation suppression -->
+  <div class="modal-backdrop" id="deleteTripBackdrop" hidden>
+    <div class="modal modal--sm" role="dialog" aria-modal="true">
+      <h2>Supprimer ce road trip ?</h2>
+      <p class="modal-warning">Tous les pins et l'itinéraire associés seront définitivement supprimés.</p>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btnCancelDelete" type="button">Annuler</button>
+        <button class="btn-danger"    id="btnConfirmDelete" type="button">Supprimer</button>
       </div>
     </div>
   </div>
 
-  <div class="pin-modal-backdrop" id="pinModalBackdrop" hidden>
-    <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pinModalTitle">
-      <h3 id="pinModalTitle">Nouveau pin</h3>
-      <div class="pin-field">
-        Localisation
-        <div class="geocode-wrap">
-          <input type="search" id="pinGeocode" class="pin-geocode-input" placeholder="Rechercher une ville, un lieu, une adresse…" autocomplete="off">
-          <ul id="geocodeResults" class="geocode-results" hidden></ul>
-        </div>
-        <div id="pinLocationTag" class="pin-location-tag" hidden>
-          <span id="pinLocationLabel"></span>
-          <button type="button" id="pinLocationClear" aria-label="Effacer la position">✕</button>
-        </div>
-        <button type="button" id="pinMapClickBtn" class="pin-map-click-btn">Ou cliquer sur la carte</button>
-      </div>
-      <label class="pin-field">
-        Nom du lieu
-        <input type="text" id="pinName" placeholder="Ex : Vue sur la reculée" maxlength="80">
-      </label>
-      <label class="pin-field">
-        Catégorie
-        <select id="pinCategory"></select>
-      </label>
-      <label class="pin-field">
-        Note (facultatif)
-        <textarea id="pinNote" placeholder="Description, conseil…"></textarea>
-      </label>
-      <div class="pin-modal-actions">
-        <button class="secondary" id="pinCancelBtn" type="button">Annuler</button>
-        <button class="button" id="pinConfirmBtn" type="button">Créer le pin</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts classiques (globaux) chargés avant les modules ES -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/home.js"></script>
 </body>
 </html>
