@@ -1,5 +1,7 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
-import { fetchWikipedia, fetchRefuge, buildSkeletonHtml, buildWikiHtml, buildRefugeHtml } from './enrichment.js';
+import { fetchCamptocamp, fetchRefuge,
+         buildSkeletonHtml, buildCamptocampHtml,
+         buildRefugeHtml, buildOsmTagsHtml } from './enrichment.js';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
@@ -244,10 +246,11 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
         });
 
         const ctx = {
-          name, catKey, osmId: el.id, nodePayload, isGenericName,
+          name, catKey, osmId: el.id, nodePayload,
           lat: el.lat, lng: el.lon,
           description: tags.description ?? null,
           details,
+          tags,       // tags OSM bruts pour buildOsmTagsHtml
           loaded: false,
         };
         const popup = L.popup({ maxWidth: 300 }).setContent(makePopupHtml(ctx));
@@ -314,36 +317,28 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
     if (!ctx || ctx.loaded) return;
     ctx.loaded = true;
 
-    const isRefuge = ['shelter', 'bivouac'].includes(ctx.catKey);
-    const color    = OVERPASS_CATEGORIES[ctx.catKey].color;
+    const { catKey, lat, lng, tags } = ctx;
 
-    // Skeleton immédiat via setContent — this._content est mis à jour,
-    // pas de reset lors du prochain popup.update()
-    e.popup.setContent(makePopupHtml(ctx, buildSkeletonHtml(ctx.catKey)));
-
-    // Les deux fetches sont indépendants et progressifs
-    let wikiHtml   = null;
-    let refugeHtml = null;
-    let wikiFetched   = false;
-    let refugeFetched = !isRefuge;
-
-    function refresh() {
-      if (!wikiFetched || !refugeFetched) return;
-      const parts = [wikiHtml, refugeHtml].filter(Boolean);
-      e.popup.setContent(makePopupHtml(ctx, parts.join('')));
+    // Catégories avec appel API externe → skeleton + fetch async
+    if (catKey === 'via_ferrata') {
+      e.popup.setContent(makePopupHtml(ctx, buildSkeletonHtml()));
+      fetchCamptocamp(lat, lng)
+        .then(d  => e.popup.setContent(makePopupHtml(ctx, buildCamptocampHtml(d) ?? '')))
+        .catch(() => e.popup.setContent(makePopupHtml(ctx, '')));
+      return;
     }
 
-    fetchWikipedia(ctx.name, ctx.lat, ctx.lng, ctx.isGenericName)
-      .then(d  => { wikiHtml   = buildWikiHtml(d, color, ctx.isGenericName); })
-      .catch(() => { wikiHtml   = null; })
-      .finally(() => { wikiFetched   = true; refresh(); });
-
-    if (isRefuge) {
-      fetchRefuge(ctx.lat, ctx.lng)
-        .then(d  => { refugeHtml = buildRefugeHtml(d); })
-        .catch(() => { refugeHtml = null; })
-        .finally(() => { refugeFetched = true; refresh(); });
+    if (['shelter', 'bivouac'].includes(catKey)) {
+      e.popup.setContent(makePopupHtml(ctx, buildSkeletonHtml()));
+      fetchRefuge(lat, lng)
+        .then(d  => e.popup.setContent(makePopupHtml(ctx, buildRefugeHtml(d) ?? '')))
+        .catch(() => e.popup.setContent(makePopupHtml(ctx, '')));
+      return;
     }
+
+    // Autres catégories → tags OSM valorisés, affichage immédiat, pas de skeleton
+    const osmHtml = buildOsmTagsHtml(tags, catKey);
+    if (osmHtml) e.popup.setContent(makePopupHtml(ctx, osmHtml));
   });
 
   // ── Recherche autour d'un point (utilisée par l'onboarding) ──────────────

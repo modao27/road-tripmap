@@ -1,20 +1,19 @@
 /**
  * enrichment.js
- * Enrichissement progressif des popups Overpass.
- * Wikipedia et Refuges.info sont chargés de façon indépendante,
- * chacun avec un timeout de 5 s et son propre cache mémoire.
+ * Enrichissement contextuel des popups Overpass par catégorie :
+ *   via_ferrata  → CamptoCamp API (cotation, dénivelé, équipement)
+ *   shelter/bivouac → Refuges.info (altitude, capacité, accès)
+ *   autres       → tags OSM valorisés, pas d'appel externe
  */
 
-const WIKIPEDIA_SEARCH  = 'https://fr.wikipedia.org/w/api.php';
-const WIKIPEDIA_SUMMARY = 'https://fr.wikipedia.org/api/rest_v1/page/summary';
-const REFUGES_API       = 'https://www.refuges.info/api/bbox';
-const TIMEOUT_MS        = 5000;
+const REFUGES_API    = 'https://www.refuges.info/api/bbox';
+const CAMPTOCAMP_API = 'https://api.camptocamp.org/waypoints';
+const TIMEOUT_MS     = 6000;
 
-const wikiCache   = new Map();
 const refugeCache = new Map();
+const c2cCache    = new Map();
 
-// ── Timeout wrapper ───────────────────────────────────────────────────────────
-
+// ── Timeout ───────────────────────────────────────────────────────────────────
 function withTimeout(promise, ms = TIMEOUT_MS) {
   return Promise.race([
     promise,
@@ -22,71 +21,66 @@ function withTimeout(promise, ms = TIMEOUT_MS) {
   ]);
 }
 
-// ── Wikipedia ─────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getDocCoords(doc) {
+  try {
+    const geom = JSON.parse(doc.geometry?.geom ?? 'null');
+    if (!geom) return null;
+    return { lat: geom.coordinates[1], lng: geom.coordinates[0] };
+  } catch { return null; }
+}
 
-async function summaryByTitle(title) {
-  const res = await fetch(`${WIKIPEDIA_SUMMARY}/${encodeURIComponent(title)}`);
+function stripMarkup(text = '') {
+  return text.replace(/\[.*?\]/g, '').replace(/<[^>]+>/g, '').trim();
+}
+
+// ── CamptoCamp (via ferratas) ─────────────────────────────────────────────────
+async function _fetchCamptocamp(lat, lng) {
+  const d    = 0.02; // ~2 km
+  const bbox = `${(lng-d).toFixed(4)},${(lat-d).toFixed(4)},${(lng+d).toFixed(4)},${(lat+d).toFixed(4)}`;
+  const res  = await fetch(`${CAMPTOCAMP_API}?wtyp=via_ferrata&bbox=${bbox}&limit=10`);
   if (!res.ok) return null;
-  const d = await res.json();
-  const raw   = d.extract ?? '';
-  const short = raw.length > 280 ? raw.slice(0, raw.lastIndexOf(' ', 280)) + '…' : raw;
+
+  const data = await res.json();
+  const docs = data.documents ?? [];
+  if (!docs.length) return null;
+
+  // Point le plus proche
+  const closest = docs.reduce((best, doc) => {
+    const coords = getDocCoords(doc);
+    if (!coords) return best;
+    const dist = Math.hypot(coords.lat - lat, coords.lng - lng);
+    return dist < best.dist ? { doc, dist } : best;
+  }, { doc: docs[0], dist: Infinity }).doc;
+
+  const locale = closest.locales?.find(l => l.lang === 'fr') ?? closest.locales?.[0] ?? {};
+  const raw    = stripMarkup(locale.summary ?? locale.description ?? '');
+  const desc   = raw.length > 280 ? raw.slice(0, raw.lastIndexOf(' ', 280)) + '…' : raw;
+
   return {
-    title:     d.title,
-    extract:   short,
-    thumbnail: d.thumbnail?.source ?? null,
-    url:       d.content_urls?.desktop?.page ?? null,
+    title:      locale.title ?? null,
+    rating:     closest.via_ferrata_rating ?? null,
+    elevation:  closest.elevation ?? null,
+    heightDiff: closest.height_diff_up ?? null,
+    equipment:  closest.equipment_rating ?? null,
+    description: desc || null,
+    url: closest.document_id
+      ? `https://www.camptocamp.org/waypoints/${closest.document_id}`
+      : null,
   };
 }
 
-// Recherche par nom (lieu nommé dans OSM)
-async function _fetchWikipediaByName(name) {
-  const url = new URL(WIKIPEDIA_SEARCH);
-  url.searchParams.set('action',   'query');
-  url.searchParams.set('list',     'search');
-  url.searchParams.set('srsearch', name);
-  url.searchParams.set('srlimit',  '1');
-  url.searchParams.set('srprop',   'snippet');
-  url.searchParams.set('format',   'json');
-  url.searchParams.set('origin',   '*');
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data  = await res.json();
-  const hits  = data.query?.search;
-  if (!hits?.length) return null;
-  return summaryByTitle(hits[0].title);
-}
-
-// Géosearch : articles proches des coordonnées (lieu sans nom dans OSM)
-async function _fetchWikipediaByCoords(lat, lng) {
-  const url = new URL(WIKIPEDIA_SEARCH);
-  url.searchParams.set('action',   'query');
-  url.searchParams.set('list',     'geosearch');
-  url.searchParams.set('gscoord',  `${lat}|${lng}`);
-  url.searchParams.set('gsradius', '3000');
-  url.searchParams.set('gslimit',  '1');
-  url.searchParams.set('format',   'json');
-  url.searchParams.set('origin',   '*');
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data    = await res.json();
-  const results = data.query?.geosearch;
-  if (!results?.length) return null;
-  return summaryByTitle(results[0].title);
-}
-
-export async function fetchWikipedia(name, lat, lng, useGeo = false) {
-  const key = useGeo ? `geo:${lat?.toFixed(3)},${lng?.toFixed(3)}` : name;
-  if (wikiCache.has(key)) return wikiCache.get(key);
-  const fetcher = useGeo ? _fetchWikipediaByCoords(lat, lng) : _fetchWikipediaByName(name);
-  const result  = await withTimeout(fetcher);
-  wikiCache.set(key, result);
+export async function fetchCamptocamp(lat, lng) {
+  const key = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+  if (c2cCache.has(key)) return c2cCache.get(key);
+  const result = await withTimeout(_fetchCamptocamp(lat, lng));
+  c2cCache.set(key, result);
   return result;
 }
 
-// ── Refuges.info ──────────────────────────────────────────────────────────────
-
+// ── Refuges.info (refuges et bivouacs) ───────────────────────────────────────
 async function _fetchRefuge(lat, lng) {
-  const d    = 0.006; // ≈ 600 m
+  const d    = 0.006;
   const bbox = `${(lng-d).toFixed(4)},${(lat-d).toFixed(4)},${(lng+d).toFixed(4)},${(lat+d).toFixed(4)}`;
   const res  = await fetch(`${REFUGES_API}?bbox=${bbox}&type_points=refuge,cabane,bivouac&format=geojson`);
   if (!res.ok) return null;
@@ -120,65 +114,63 @@ export async function fetchRefuge(lat, lng) {
   return result;
 }
 
-// ── Skeleton HTML (espace réservé immédiat) ───────────────────────────────────
-
-export function buildSkeletonHtml(category) {
-  const isRefuge = ['shelter', 'bivouac'].includes(category);
+// ── Skeleton générique (affiché pendant les appels async) ─────────────────────
+export function buildSkeletonHtml() {
   return `
-    <div class="pe-section" data-pe="wiki">
-      <div class="pe-sk pe-sk--photo"></div>
-      <div class="pe-sk pe-sk--line" style="width:92%"></div>
-      <div class="pe-sk pe-sk--line" style="width:75%"></div>
-      <div class="pe-sk pe-sk--line" style="width:45%"></div>
-    </div>
-    ${isRefuge ? `
-    <div class="pe-section pe-sep" data-pe="refuge">
-      <div class="pe-sk pe-sk--line" style="width:60%"></div>
+    <div class="pe-section">
+      <div class="pe-sk pe-sk--line" style="width:65%"></div>
       <div class="pe-sk pe-sk--tags"></div>
-    </div>` : ''}`;
+      <div class="pe-sk pe-sk--line" style="width:92%"></div>
+      <div class="pe-sk pe-sk--line" style="width:78%"></div>
+      <div class="pe-sk pe-sk--line pe-sk--short"></div>
+    </div>`;
 }
 
-// ── HTML Wikipedia ────────────────────────────────────────────────────────────
-
-export function buildWikiHtml(data, catColor, showTitle = false) {
+// ── Build HTML CamptoCamp ─────────────────────────────────────────────────────
+export function buildCamptocampHtml(data) {
   if (!data) return null;
+
   const parts = [];
 
-  // Titre affiché quand le lieu n'a pas de nom dans OSM (résultat géosearch)
-  if (showTitle && data.title) {
+  if (data.title) {
     parts.push(`<strong class="pe-wiki-title">${data.title}</strong>`);
   }
-  if (data.thumbnail) {
-    parts.push(`
-      <div class="pe-photo-wrap" style="--cat:${catColor}">
-        <img class="pe-photo" src="${data.thumbnail}" alt="" loading="lazy"
-             onerror="this.style.opacity=0">
-      </div>`);
+
+  const tags = [
+    data.rating     ? `🎯 ${data.rating}`                      : null,
+    data.elevation  ? `⛰ ${data.elevation} m`                  : null,
+    data.heightDiff ? `↑ ${data.heightDiff} m`                  : null,
+    data.equipment  ? `🔧 Équipement ${data.equipment}`         : null,
+  ].filter(Boolean);
+
+  if (tags.length) {
+    parts.push(`<div class="pe-tags">${tags.map(t => `<span class="pe-tag">${t}</span>`).join('')}</div>`);
   }
-  if (data.extract) {
-    parts.push(`<p class="pe-extract">${data.extract}</p>`);
+
+  if (data.description) {
+    parts.push(`<p class="pe-extract">${data.description}</p>`);
   }
+
   if (data.url) {
     parts.push(`<div class="pe-links">
-      <a class="pe-link" href="${data.url}" target="_blank" rel="noopener">📖 Wikipedia</a>
+      <a class="pe-link" href="${data.url}" target="_blank" rel="noopener">🧗 CamptoCamp</a>
     </div>`);
   }
-  if (!parts.length) return null;
 
-  return `<span class="pe-badge">🌐 Wikipedia</span>${parts.join('')}`;
+  if (!parts.length) return null;
+  return `<span class="pe-badge">🧗 CamptoCamp</span>${parts.join('')}`;
 }
 
-// ── HTML Refuges.info ─────────────────────────────────────────────────────────
-
+// ── Build HTML Refuges.info ───────────────────────────────────────────────────
 export function buildRefugeHtml(data) {
   if (!data) return null;
 
   const tags = [
-    data.altitude                  ? `⛰ ${data.altitude} m`     : null,
-    data.capacite                  ? `👤 ${data.capacite} places` : null,
-    data.gardiennage === 'oui'     ? '✅ Gardienné'               : null,
-    data.gardiennage === 'partiel' ? '🔶 Gardiennage partiel'    : null,
-    data.eau === 'oui'             ? '💧 Eau potable'             : null,
+    data.altitude                  ? `⛰ ${data.altitude} m`      : null,
+    data.capacite                  ? `👤 ${data.capacite} places`  : null,
+    data.gardiennage === 'oui'     ? '✅ Gardienné'                : null,
+    data.gardiennage === 'partiel' ? '🔶 Gardiennage partiel'     : null,
+    data.eau === 'oui'             ? '💧 Eau potable'              : null,
   ].filter(Boolean);
 
   const parts = [];
@@ -193,7 +185,49 @@ export function buildRefugeHtml(data) {
       <a class="pe-link" href="${data.url}" target="_blank" rel="noopener">🏠 Refuges.info</a>
     </div>`);
   }
-  if (!parts.length) return null;
 
+  if (!parts.length) return null;
   return `<span class="pe-badge">🏠 Refuges.info</span>${parts.join('')}`;
+}
+
+// ── Build HTML tags OSM valorisés (catégories sans API externe) ───────────────
+export function buildOsmTagsHtml(tags, catKey) {
+  const items = [];
+
+  if (catKey === 'waterfall') {
+    if (tags.height)            items.push(`📏 Hauteur : ${tags.height} m`);
+    if (tags.seasonal === 'yes') items.push('📅 Saisonnier');
+    if (tags.access)            items.push(`🚗 ${tags.access}`);
+    if (tags.ele)               items.push(`⛰ ${tags.ele} m`);
+  }
+
+  if (catKey === 'viewpoint') {
+    if (tags.ele)               items.push(`⛰ ${tags.ele} m`);
+    if (tags.direction)         items.push(`🧭 Vue ${tags.direction}`);
+    if (tags.access)            items.push(`🚗 ${tags.access}`);
+    if (tags['panorama:view'])  items.push(`👁 ${tags['panorama:view']}`);
+  }
+
+  if (catKey === 'water') {
+    if (tags.seasonal === 'yes') items.push('📅 Saisonnière');
+    if (tags.flow_rate)          items.push(`🌊 Débit : ${tags.flow_rate}`);
+    if (tags.access)             items.push(`🚗 ${tags.access}`);
+    if (tags.ele)                items.push(`⛰ ${tags.ele} m`);
+  }
+
+  if (catKey === 'trailhead') {
+    if (tags.parking === 'yes')  items.push('🅿️ Parking');
+    if (tags.access)             items.push(`🚗 ${tags.access}`);
+    if (tags.surface)            items.push(`🛤 ${tags.surface}`);
+    if (tags.trail_visibility)   items.push(`👁 Balisage : ${tags.trail_visibility}`);
+  }
+
+  if (!items.length) return null;
+
+  const tagsHtml = `<div class="pe-tags">${items.map(t => `<span class="pe-tag">${t}</span>`).join('')}</div>`;
+  const website  = tags.website
+    ? `<div class="pe-links"><a class="pe-link" href="${tags.website}" target="_blank" rel="noopener">🔗 Site officiel</a></div>`
+    : '';
+
+  return tagsHtml + website;
 }
