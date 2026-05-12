@@ -672,6 +672,79 @@ h1 {
   text-decoration: underline;
 }
 
+/* ── Enrichissement popup Overpass (Wikipedia + Refuges.info) ────────────── */
+.popup-enrich {
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.popup-enrich:empty { display: none; }
+
+.pe-loading {
+  font-size: 0.78rem;
+  color: var(--muted);
+  animation: pe-spin 1s linear infinite;
+  display: inline-block;
+}
+@keyframes pe-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pe-photo {
+  width: 100%;
+  max-height: 130px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.pe-extract {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #3a4a40;
+  line-height: 1.5;
+}
+
+.pe-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pe-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(31, 95, 67, 0.09);
+  color: var(--forest-dark);
+}
+
+.pe-access {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #3a4a40;
+}
+
+.pe-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pe-link {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--forest);
+  text-decoration: none;
+  padding: 3px 8px;
+  border: 1px solid rgba(31, 95, 67, 0.2);
+  border-radius: 6px;
+  transition: background 120ms;
+}
+.pe-link:hover { background: rgba(31, 95, 67, 0.08); }
+
 .mobile-toggle {
   position: absolute;
   top: 14px;
