@@ -218,60 +218,29 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
           popupAnchor: [0, -16],
         });
 
-        const popup = L.popup({ maxWidth: 300 }).setContent(`
+        // Contexte d'enrichissement stocké en attributs — lu par le listener global
+        L.marker([el.lat, el.lon], { icon, title: name })
+          .bindPopup(`
             <article class="popup" style="--color:${cat.color}">
               <h2>${name}</h2>
               <div class="popup-category"><span>${cat.icon}</span>${cat.label}</div>
               ${tags.description ? `<p>${tags.description}</p>` : ''}
               ${details.map(d => `<p>${d}</p>`).join('')}
-              <div class="popup-enrich"></div>
+              <div class="popup-enrich"
+                   data-name="${encodeURIComponent(name)}"
+                   data-lat="${el.lat}"
+                   data-lng="${el.lon}"
+                   data-cat="${catKey}"
+                   data-color="${cat.color}">
+              </div>
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}"
                  target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
               <button class="popup-add-to-map" data-overpass='${nodePayload}' type="button">
                 ➕ Ajouter à ma carte
               </button>
             </article>
-          `);
-
-        const marker = L.marker([el.lat, el.lon], { icon, title: name })
-          .bindPopup(popup)
+          `, { maxWidth: 300 })
           .addTo(resultsLayer);
-
-        // Enrichissement progressif au premier clic
-        marker.on('popupopen', () => {
-          const enrichEl = popup.getElement()?.querySelector('.popup-enrich');
-          if (!enrichEl || enrichEl.dataset.loaded) return;
-          enrichEl.dataset.loaded = 'true';
-
-          // Skeleton immédiat — espace réservé, zéro layout jump ensuite
-          enrichEl.innerHTML = buildSkeletonHtml(catKey);
-          popup.update();
-
-          // Remplace une section skeleton par son contenu (ou la supprime)
-          function updateSection(source, html) {
-            const section = enrichEl.querySelector(`[data-pe="${source}"]`);
-            if (!section) return;
-            if (html) {
-              section.innerHTML = html;
-              section.classList.add('pe-appear');
-            } else {
-              section.remove();
-            }
-            popup.update();
-          }
-
-          // Wikipedia — indépendant
-          fetchWikipedia(name)
-            .then(data => updateSection('wiki', buildWikiHtml(data, cat.color)))
-            .catch(()  => updateSection('wiki', null));
-
-          // Refuges.info — uniquement pour les abris et bivouacs
-          if (['shelter', 'bivouac'].includes(catKey)) {
-            fetchRefuge(el.lat, el.lon)
-              .then(data => updateSection('refuge', buildRefugeHtml(data)))
-              .catch(()  => updateSection('refuge', null));
-          }
-        });
       });
 
       const n = nodes.length;
@@ -322,6 +291,42 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
       onAddToMap?.(data);
     } catch (err) {
       console.error('[overpass] parse error', err);
+    }
+  });
+
+  // ── Enrichissement progressif au clic (listener unique sur la carte) ────────
+  // map.on('popupopen') est garanti après rendu DOM, contrairement à marker.on()
+  map.on('popupopen', e => {
+    const enrichEl = e.popup.getElement()?.querySelector('.popup-enrich[data-name]');
+    if (!enrichEl || enrichEl.dataset.loaded) return;
+    enrichEl.dataset.loaded = 'true';
+
+    const name   = decodeURIComponent(enrichEl.dataset.name);
+    const lat    = parseFloat(enrichEl.dataset.lat);
+    const lng    = parseFloat(enrichEl.dataset.lng);
+    const catKey = enrichEl.dataset.cat;
+    const color  = enrichEl.dataset.color;
+
+    // Skeleton immédiat
+    enrichEl.innerHTML = buildSkeletonHtml(catKey);
+    e.popup.update();
+
+    function updateSection(source, html) {
+      const section = enrichEl.querySelector(`[data-pe="${source}"]`);
+      if (!section) return;
+      if (html) { section.innerHTML = html; section.classList.add('pe-appear'); }
+      else section.remove();
+      e.popup.update();
+    }
+
+    fetchWikipedia(name)
+      .then(data => updateSection('wiki',   buildWikiHtml(data, color)))
+      .catch(()  => updateSection('wiki',   null));
+
+    if (['shelter', 'bivouac'].includes(catKey)) {
+      fetchRefuge(lat, lng)
+        .then(data => updateSection('refuge', buildRefugeHtml(data)))
+        .catch(()  => updateSection('refuge', null));
     }
   });
 
