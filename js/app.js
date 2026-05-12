@@ -232,8 +232,24 @@ async function init() {
   });
 
   // ── Recentrer ─────────────────────────────────────────────────────────────
-  const basePlace = staticPlaces.find(p => p.id === 'baume-les-messieurs');
-  document.querySelector('#recenterButton').addEventListener('click', () => doFocusPlace(basePlace));
+  // Point d'ancrage : pin 'base' du roadtrip, sinon lieu statique Jura en mode legacy
+  const staticBasePlace = staticPlaces.find(p => p.id === 'baume-les-messieurs');
+  function getAnchorPlace() {
+    if (roadtripId) return userPlaces.find(p => p.category === 'base') ?? null;
+    return staticBasePlace;
+  }
+
+  document.querySelector('#recenterButton').addEventListener('click', () => {
+    const anchor = getAnchorPlace();
+    if (anchor) {
+      doFocusPlace(anchor);
+    } else {
+      // Pas de pin de base : retour à la vue sauvegardée ou vue par défaut
+      const saved = roadtripId ? svc.loadMapView(roadtripId) : null;
+      if (saved) map.flyTo([saved.lat, saved.lng], saved.zoom, { animate: true, duration: 1.2 });
+      else        map.flyTo(CONFIG.defaultCenter, CONFIG.defaultZoom, { animate: true, duration: 1.2 });
+    }
+  });
 
   // ── Filtres (pills) ───────────────────────────────────────────────────────
   filtersEl.addEventListener('change', (event) => {
@@ -454,7 +470,10 @@ async function init() {
   requestAnimationFrame(() => {
     map.invalidateSize();
     // Ne pas zoomer sur un lieu si la carte est vierge (onboarding)
-    if (!isSharedMap && !savedView && !isOnboarding) doFocusPlace(basePlace);
+    if (!isSharedMap && !savedView && !isOnboarding) {
+      const anchor = getAnchorPlace();
+      if (anchor) doFocusPlace(anchor);
+    }
   });
 
   // ── Découvrir (Overpass OSM) — modale POI ────────────────────────────────
