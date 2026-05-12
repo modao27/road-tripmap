@@ -24,30 +24,12 @@ function withTimeout(promise, ms = TIMEOUT_MS) {
 
 // ── Wikipedia ─────────────────────────────────────────────────────────────────
 
-async function _fetchWikipedia(name) {
-  const searchUrl = new URL(WIKIPEDIA_SEARCH);
-  searchUrl.searchParams.set('action',  'query');
-  searchUrl.searchParams.set('list',    'search');
-  searchUrl.searchParams.set('srsearch', name);
-  searchUrl.searchParams.set('srlimit',  '1');
-  searchUrl.searchParams.set('srprop',  'snippet');
-  searchUrl.searchParams.set('format',  'json');
-  searchUrl.searchParams.set('origin',  '*');
-
-  const searchRes = await fetch(searchUrl);
-  if (!searchRes.ok) return null;
-  const searchData = await searchRes.json();
-
-  const hits = searchData.query?.search;
-  if (!hits?.length) return null;
-
-  const summaryRes = await fetch(`${WIKIPEDIA_SUMMARY}/${encodeURIComponent(hits[0].title)}`);
-  if (!summaryRes.ok) return null;
-  const d = await summaryRes.json();
-
+async function summaryByTitle(title) {
+  const res = await fetch(`${WIKIPEDIA_SUMMARY}/${encodeURIComponent(title)}`);
+  if (!res.ok) return null;
+  const d = await res.json();
   const raw   = d.extract ?? '';
   const short = raw.length > 280 ? raw.slice(0, raw.lastIndexOf(' ', 280)) + '…' : raw;
-
   return {
     title:     d.title,
     extract:   short,
@@ -56,10 +38,48 @@ async function _fetchWikipedia(name) {
   };
 }
 
-export async function fetchWikipedia(name) {
-  if (wikiCache.has(name)) return wikiCache.get(name);
-  const result = await withTimeout(_fetchWikipedia(name));
-  wikiCache.set(name, result);
+// Recherche par nom (lieu nommé dans OSM)
+async function _fetchWikipediaByName(name) {
+  const url = new URL(WIKIPEDIA_SEARCH);
+  url.searchParams.set('action',   'query');
+  url.searchParams.set('list',     'search');
+  url.searchParams.set('srsearch', name);
+  url.searchParams.set('srlimit',  '1');
+  url.searchParams.set('srprop',   'snippet');
+  url.searchParams.set('format',   'json');
+  url.searchParams.set('origin',   '*');
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data  = await res.json();
+  const hits  = data.query?.search;
+  if (!hits?.length) return null;
+  return summaryByTitle(hits[0].title);
+}
+
+// Géosearch : articles proches des coordonnées (lieu sans nom dans OSM)
+async function _fetchWikipediaByCoords(lat, lng) {
+  const url = new URL(WIKIPEDIA_SEARCH);
+  url.searchParams.set('action',   'query');
+  url.searchParams.set('list',     'geosearch');
+  url.searchParams.set('gscoord',  `${lat}|${lng}`);
+  url.searchParams.set('gsradius', '3000');
+  url.searchParams.set('gslimit',  '1');
+  url.searchParams.set('format',   'json');
+  url.searchParams.set('origin',   '*');
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data    = await res.json();
+  const results = data.query?.geosearch;
+  if (!results?.length) return null;
+  return summaryByTitle(results[0].title);
+}
+
+export async function fetchWikipedia(name, lat, lng, useGeo = false) {
+  const key = useGeo ? `geo:${lat?.toFixed(3)},${lng?.toFixed(3)}` : name;
+  if (wikiCache.has(key)) return wikiCache.get(key);
+  const fetcher = useGeo ? _fetchWikipediaByCoords(lat, lng) : _fetchWikipediaByName(name);
+  const result  = await withTimeout(fetcher);
+  wikiCache.set(key, result);
   return result;
 }
 
@@ -120,10 +140,14 @@ export function buildSkeletonHtml(category) {
 
 // ── HTML Wikipedia ────────────────────────────────────────────────────────────
 
-export function buildWikiHtml(data, catColor) {
+export function buildWikiHtml(data, catColor, showTitle = false) {
   if (!data) return null;
   const parts = [];
 
+  // Titre affiché quand le lieu n'a pas de nom dans OSM (résultat géosearch)
+  if (showTitle && data.title) {
+    parts.push(`<strong class="pe-wiki-title">${data.title}</strong>`);
+  }
   if (data.thumbnail) {
     parts.push(`
       <div class="pe-photo-wrap" style="--cat:${catColor}">

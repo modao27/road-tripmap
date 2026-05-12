@@ -215,7 +215,10 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
         const tags   = el.tags ?? {};
         const catKey = detectCategory(tags);
         const cat    = OVERPASS_CATEGORIES[catKey];
-        const name   = tags.name ?? tags['name:fr'] ?? cat.label;
+        const name   = tags.name ?? tags['name:fr'] ?? tags.official_name
+                     ?? tags.alt_name ?? tags.loc_name ?? cat.label;
+        const isGenericName = !tags.name && !tags['name:fr']
+                           && !tags.official_name && !tags.alt_name && !tags.loc_name;
 
         const details = [
           tags.fee === 'yes'            ? '💶 Payant'                      : tags.fee === 'no' ? 'Gratuit' : null,
@@ -241,7 +244,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
         });
 
         const ctx = {
-          name, catKey, osmId: el.id, nodePayload,
+          name, catKey, osmId: el.id, nodePayload, isGenericName,
           lat: el.lat, lng: el.lon,
           description: tags.description ?? null,
           details,
@@ -330,8 +333,8 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
       e.popup.setContent(makePopupHtml(ctx, parts.join('')));
     }
 
-    fetchWikipedia(ctx.name)
-      .then(d  => { wikiHtml   = buildWikiHtml(d, color); })
+    fetchWikipedia(ctx.name, ctx.lat, ctx.lng, ctx.isGenericName)
+      .then(d  => { wikiHtml   = buildWikiHtml(d, color, ctx.isGenericName); })
       .catch(() => { wikiHtml   = null; })
       .finally(() => { wikiFetched   = true; refresh(); });
 
