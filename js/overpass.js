@@ -73,7 +73,7 @@ const OSM_TO_APP_CAT = {
 function buildNodeDescription(tags) {
   return [
     tags.description,
-    tags.note,
+    // tags.note exclu : utilisé comme nom de fallback dans la chaîne de détection
     tags.information,
     tags.fee === 'yes' ? 'Payant' : tags.fee === 'no' ? 'Gratuit' : null,
     tags.drinking_water === 'yes' ? 'Eau potable disponible' : null,
