@@ -23,15 +23,16 @@ function persistList(list) {
   localStorage.setItem(ROADTRIPS_KEY, JSON.stringify(list));
 }
 
-export function createRoadtrip({ title = 'Nouveau road trip', description = '' } = {}) {
-  return createRoadtripWithId(generateId(), title, description);
+export function createRoadtrip({ title = 'Nouveau road trip', description = '', showStaticPlaces = false } = {}) {
+  const id = generateId();
+  return createRoadtripWithId(id, title, description, showStaticPlaces);
 }
 
-export function createRoadtripWithId(id, title = 'Road trip', description = '') {
+export function createRoadtripWithId(id, title = 'Road trip', description = '', showStaticPlaces = true) {
   const list = listRoadtrips();
   if (list.find(r => r.id === id)) return list.find(r => r.id === id);
   const now = new Date().toISOString();
-  const trip = { id, title, description, createdAt: now, updatedAt: now };
+  const trip = { id, title, description, showStaticPlaces, createdAt: now, updatedAt: now };
   list.unshift(trip);
   persistList(list);
   return trip;

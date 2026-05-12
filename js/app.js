@@ -135,11 +135,13 @@ async function init() {
     return placeOverrides[p.id] ? { ...p, ...placeOverrides[p.id] } : p;
   }
   function getAllPlaces() {
-    // En mode multi-roadtrip (roadtripId présent), chaque carte est isolée :
-    // seuls les pins utilisateur sont affichés, pas les lieux statiques de places.js.
-    // Les lieux statiques restent visibles uniquement en mode carte partagée (legacy).
-    if (roadtripId) return [...userPlaces];
-    return [...staticPlaces.map(effectivePlace), ...userPlaces];
+    // Les lieux statiques (places.js) sont affichés si :
+    // - pas de roadtripId (mode carte partagée/legacy)
+    // - OU le roadtrip a showStaticPlaces !== false (rétro-compatibilité : les roadtrips
+    //   existants sans ce champ affichent les lieux statiques)
+    const showStatic = !roadtripId || svc.getRoadtrip(roadtripId)?.showStaticPlaces !== false;
+    if (showStatic) return [...staticPlaces.map(effectivePlace), ...userPlaces];
+    return [...userPlaces];
   }
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
