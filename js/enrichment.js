@@ -38,10 +38,14 @@ function stripMarkup(text = '') {
 async function _fetchCamptocamp(lat, lng) {
   const d    = 0.02; // ~2 km
   const bbox = `${(lng-d).toFixed(4)},${(lat-d).toFixed(4)},${(lng+d).toFixed(4)},${(lat+d).toFixed(4)}`;
-  const res  = await fetch(`${CAMPTOCAMP_API}?wtyp=via_ferrata&bbox=${bbox}&limit=10`);
+  const url  = `${CAMPTOCAMP_API}?wtyp=via_ferrata&bbox=${bbox}&limit=10`;
+  console.log('[c2c] fetch:', url);
+  const res  = await fetch(url);
+  console.log('[c2c] status:', res.status);
   if (!res.ok) return null;
 
   const data = await res.json();
+  console.log('[c2c] docs:', data.documents?.length ?? 0, data.documents?.[0]);
   const docs = data.documents ?? [];
   if (!docs.length) return null;
 
@@ -74,6 +78,7 @@ export async function fetchCamptocamp(lat, lng) {
   const key = `${lat.toFixed(3)},${lng.toFixed(3)}`;
   if (c2cCache.has(key)) return c2cCache.get(key);
   const result = await withTimeout(_fetchCamptocamp(lat, lng));
+  console.log('[c2c] résultat final:', result);
   c2cCache.set(key, result);
   return result;
 }
