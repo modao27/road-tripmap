@@ -218,9 +218,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
         const catKey = detectCategory(tags);
         const cat    = OVERPASS_CATEGORIES[catKey];
         const name   = tags.name ?? tags['name:fr'] ?? tags.official_name
-                     ?? tags.alt_name ?? tags.loc_name ?? cat.label;
-        const isGenericName = !tags.name && !tags['name:fr']
-                           && !tags.official_name && !tags.alt_name && !tags.loc_name;
+                     ?? tags.alt_name ?? tags.loc_name ?? tags.note ?? cat.label;
 
         const details = [
           tags.fee === 'yes'            ? '💶 Payant'                      : tags.fee === 'no' ? 'Gratuit' : null,
