@@ -6,8 +6,8 @@
  *   autres       → tags OSM valorisés, pas d'appel externe
  */
 
-const REFUGES_API    = 'https://www.refuges.info/api/bbox';
-const CAMPTOCAMP_API = 'https://api.camptocamp.org/routes';
+const REFUGES_API       = 'https://www.refuges.info/api/bbox';
+const CAMPTOCAMP_SEARCH = 'https://api.camptocamp.org/search';
 const TIMEOUT_MS     = 6000;
 
 const refugeCache = new Map();
@@ -35,55 +35,40 @@ function stripMarkup(text = '') {
 }
 
 // ── CamptoCamp (via ferratas) ─────────────────────────────────────────────────
-async function _fetchCamptocamp(lat, lng) {
-  const d    = 0.02; // ~2 km
-  const bbox = `${(lng-d).toFixed(4)},${(lat-d).toFixed(4)},${(lng+d).toFixed(4)},${(lat+d).toFixed(4)}`;
-  // Les vias sont des routes dans C2C, pas des waypoints
-  const url  = `${CAMPTOCAMP_API}?act=via_ferrata&bbox=${bbox}&limit=10`;
-  console.log('[c2c] fetch:', url);
-  const res  = await fetch(url);
-  console.log('[c2c] status:', res.status);
+// Recherche par nom via le search endpoint (bbox non supporté sur /routes)
+async function _fetchCamptocamp(searchTerm) {
+  const url = `${CAMPTOCAMP_SEARCH}?q=${encodeURIComponent(searchTerm)}&t=r&limit=5`;
+  const res = await fetch(url);
   if (!res.ok) return null;
 
   const data = await res.json();
-  console.log('[c2c] docs:', data.documents?.length ?? 0, data.documents?.[0]);
-  const docs = data.documents ?? [];
+  const docs = data.routes?.documents ?? [];
   if (!docs.length) return null;
 
-  // Route la plus proche (geometry = LineString → premier point)
-  const closest = docs.reduce((best, doc) => {
-    try {
-      const geom   = JSON.parse(doc.geometry?.geom ?? 'null');
-      if (!geom) return best;
-      const coord  = geom.type === 'LineString' ? geom.coordinates[0] : geom.coordinates;
-      const dist   = Math.hypot(coord[1] - lat, coord[0] - lng);
-      return dist < best.dist ? { doc, dist } : best;
-    } catch { return best; }
-  }, { doc: docs[0], dist: Infinity }).doc;
-
-  const locale = closest.locales?.find(l => l.lang === 'fr') ?? closest.locales?.[0] ?? {};
+  // Premier résultat — le search C2C est déjà trié par pertinence
+  const doc    = docs[0];
+  const locale = doc.locales?.find(l => l.lang === 'fr') ?? doc.locales?.[0] ?? {};
   const raw    = stripMarkup(locale.summary ?? locale.description ?? '');
   const desc   = raw.length > 280 ? raw.slice(0, raw.lastIndexOf(' ', 280)) + '…' : raw;
 
   return {
-    title:      locale.title ?? null,
-    rating:     closest.difficulties?.via_ferrata_rating ?? null,
-    elevation:  closest.elevation_max ?? null,
-    heightDiff: closest.height_diff_up ?? null,
-    equipment:  closest.equipment_rating ?? null,
+    title:       locale.title ?? null,
+    rating:      doc.difficulties?.via_ferrata_rating ?? null,
+    elevation:   doc.elevation_max    ?? null,
+    heightDiff:  doc.height_diff_up   ?? null,
     description: desc || null,
-    url: closest.document_id
-      ? `https://www.camptocamp.org/routes/${closest.document_id}`
+    url: doc.document_id
+      ? `https://www.camptocamp.org/routes/${doc.document_id}`
       : null,
   };
 }
 
-export async function fetchCamptocamp(lat, lng) {
-  const key = `${lat.toFixed(3)},${lng.toFixed(3)}`;
-  if (c2cCache.has(key)) return c2cCache.get(key);
-  const result = await withTimeout(_fetchCamptocamp(lat, lng));
-  console.log('[c2c] résultat final:', result);
-  c2cCache.set(key, result);
+// searchTerm : nom ou description OSM du lieu (null = pas de recherche)
+export async function fetchCamptocamp(searchTerm) {
+  if (!searchTerm) return null;
+  if (c2cCache.has(searchTerm)) return c2cCache.get(searchTerm);
+  const result = await withTimeout(_fetchCamptocamp(searchTerm));
+  c2cCache.set(searchTerm, result);
   return result;
 }
 

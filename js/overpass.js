@@ -319,10 +319,19 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
 
     const { catKey, lat, lng, tags } = ctx;
 
-    // Catégories avec appel API externe → skeleton + fetch async
+    // Via ferrata → CamptoCamp search par nom
     if (catKey === 'via_ferrata') {
+      // Terme de recherche : nom OSM s'il est spécifique, sinon description OSM
+      const catLabel   = OVERPASS_CATEGORIES.via_ferrata.label;
+      const searchTerm = (ctx.name !== catLabel ? ctx.name : null)
+                      ?? (ctx.description && ctx.description !== catLabel ? ctx.description : null);
+
+      if (!searchTerm) {
+        // Pas de nom spécifique → pas d'enrichissement utile
+        return;
+      }
       e.popup.setContent(makePopupHtml(ctx, buildSkeletonHtml()));
-      fetchCamptocamp(lat, lng)
+      fetchCamptocamp(searchTerm)
         .then(d  => e.popup.setContent(makePopupHtml(ctx, buildCamptocampHtml(d) ?? '')))
         .catch(() => e.popup.setContent(makePopupHtml(ctx, '')));
       return;
