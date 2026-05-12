@@ -7,7 +7,7 @@
  */
 
 const REFUGES_API    = 'https://www.refuges.info/api/bbox';
-const CAMPTOCAMP_API = 'https://api.camptocamp.org/waypoints';
+const CAMPTOCAMP_API = 'https://api.camptocamp.org/routes';
 const TIMEOUT_MS     = 6000;
 
 const refugeCache = new Map();
@@ -38,7 +38,8 @@ function stripMarkup(text = '') {
 async function _fetchCamptocamp(lat, lng) {
   const d    = 0.02; // ~2 km
   const bbox = `${(lng-d).toFixed(4)},${(lat-d).toFixed(4)},${(lng+d).toFixed(4)},${(lat+d).toFixed(4)}`;
-  const url  = `${CAMPTOCAMP_API}?wtyp=via_ferrata&bbox=${bbox}&limit=10`;
+  // Les vias sont des routes dans C2C, pas des waypoints
+  const url  = `${CAMPTOCAMP_API}?act=via_ferrata&bbox=${bbox}&limit=10`;
   console.log('[c2c] fetch:', url);
   const res  = await fetch(url);
   console.log('[c2c] status:', res.status);
@@ -49,12 +50,15 @@ async function _fetchCamptocamp(lat, lng) {
   const docs = data.documents ?? [];
   if (!docs.length) return null;
 
-  // Point le plus proche
+  // Route la plus proche (geometry = LineString → premier point)
   const closest = docs.reduce((best, doc) => {
-    const coords = getDocCoords(doc);
-    if (!coords) return best;
-    const dist = Math.hypot(coords.lat - lat, coords.lng - lng);
-    return dist < best.dist ? { doc, dist } : best;
+    try {
+      const geom   = JSON.parse(doc.geometry?.geom ?? 'null');
+      if (!geom) return best;
+      const coord  = geom.type === 'LineString' ? geom.coordinates[0] : geom.coordinates;
+      const dist   = Math.hypot(coord[1] - lat, coord[0] - lng);
+      return dist < best.dist ? { doc, dist } : best;
+    } catch { return best; }
   }, { doc: docs[0], dist: Infinity }).doc;
 
   const locale = closest.locales?.find(l => l.lang === 'fr') ?? closest.locales?.[0] ?? {};
@@ -63,13 +67,13 @@ async function _fetchCamptocamp(lat, lng) {
 
   return {
     title:      locale.title ?? null,
-    rating:     closest.via_ferrata_rating ?? null,
-    elevation:  closest.elevation ?? null,
+    rating:     closest.difficulties?.via_ferrata_rating ?? null,
+    elevation:  closest.elevation_max ?? null,
     heightDiff: closest.height_diff_up ?? null,
     equipment:  closest.equipment_rating ?? null,
     description: desc || null,
     url: closest.document_id
-      ? `https://www.camptocamp.org/waypoints/${closest.document_id}`
+      ? `https://www.camptocamp.org/routes/${closest.document_id}`
       : null,
   };
 }
