@@ -14,24 +14,6 @@
   <main class="app">
     <aside class="sidebar" id="sidebar" aria-label="Navigation carte">
 
-      <!-- En-tête collapsible -->
-      <header class="sidebar-header">
-        <div class="sidebar-header-main">
-          <p class="eyebrow">Carte libre</p>
-          <h1>Road trip outdoor dans le Jura</h1>
-          <button class="header-toggle-btn" id="headerToggleBtn" type="button" aria-expanded="true" title="Réduire l'en-tête">▲</button>
-        </div>
-        <p class="intro sidebar-intro" id="sidebarIntro">Une carte sans planning imposé pour repérer cascades, belvédères, villages, spots nature et via ferrata autour de Baume-les-Messieurs.</p>
-      </header>
-
-      <!-- Barre d'actions icônes -->
-      <div class="action-bar" aria-label="Actions rapides">
-        <button class="action-btn" id="recenterButton" type="button" title="Recentrer sur Baume-les-Messieurs">⌖</button>
-        <button class="action-btn" id="geolocateButton" type="button" title="Ma position">📍</button>
-        <button class="action-btn pin-btn" id="pinModeButton" type="button" title="Ajouter un pin">📌</button>
-        <button class="action-btn" id="shareButton" type="button" title="Partager cette carte">🔗</button>
-      </div>
-
       <!-- Onglets -->
       <div class="sidebar-tabs" role="tablist">
         <button class="sidebar-tab active" id="tabPlaces" role="tab" aria-selected="true" aria-controls="tabPanePlaces" type="button">Lieux</button>
@@ -44,6 +26,16 @@
 
         <!-- Panneau Lieux -->
         <div class="tab-pane active" id="tabPanePlaces" role="tabpanel" aria-labelledby="tabPlaces">
+
+          <!-- Bannière mode découverte -->
+          <div class="discovery-banner" id="discoveryBanner" hidden>
+            <span class="discovery-info">
+              <span class="discovery-dot"></span>
+              <span id="discoveryCount">Découverte active</span>
+            </span>
+            <button class="discovery-clear" id="discoveryClose" type="button">✕ Quitter</button>
+          </div>
+
           <section class="controls" aria-label="Filtres et recherche">
             <!-- Recherche déclenchable -->
             <button class="search-trigger" id="searchToggle" type="button">
@@ -61,27 +53,9 @@
                 <button class="filter-footer-btn" id="hideAllButton" type="button">tout masquer</button>
               </div>
             </details>
-
-            <!-- Découvrir via OpenStreetMap -->
-            <details class="filter-section" id="overpassSection">
-              <summary>🔍 Découvrir autour <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
-              <div class="overpass-cats">
-                <button class="overpass-cat-btn active" data-overpass-cat="bivouac"    type="button">⛺ Bivouac</button>
-                <button class="overpass-cat-btn active" data-overpass-cat="shelter"    type="button">🏠 Refuges</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="water"      type="button">💧 Sources</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="waterfall"  type="button">🌊 Cascades</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="viewpoint"  type="button">🔭 Panoramas</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="via_ferrata" type="button">🧗 Via ferrata</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="trailhead"  type="button">🥾 Départs</button>
-              </div>
-              <div class="overpass-actions">
-                <button class="button" id="overpassSearch" type="button">Chercher dans la zone visible</button>
-                <button class="secondary" id="overpassClear" type="button" hidden>✕ Effacer les résultats</button>
-              </div>
-              <p class="overpass-status" id="overpassStatus"></p>
-            </details>
           </section>
-          <section class="places-panel">
+
+          <section class="places-panel" id="placesPanel">
             <p class="places-title"><span>Lieux visibles</span><span id="visibleCount" aria-live="polite" aria-atomic="true"></span></p>
             <ul class="place-list" id="placeList"></ul>
           </section>
@@ -122,18 +96,44 @@
     <div id="resizer" class="resizer" role="separator" aria-orientation="vertical" aria-label="Redimensionner la sidebar"></div>
     <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="false"></div>
 
-    <section class="map-wrap" aria-label="Carte interactive du Jura">
-      <button class="mobile-toggle" id="sidebarToggle" type="button" aria-expanded="false" aria-label="Afficher ou masquer la sidebar">☰</button>
-      <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
-      <div class="layer-switcher" id="layerSwitcher" role="group" aria-label="Fond de carte">
-        <button class="layer-btn active" data-base="osm" type="button">🗺 Carte</button>
-        <button class="layer-btn" data-base="ign" type="button">⛰ IGN</button>
-        <button class="layer-btn" data-base="sat" type="button">🛰 Satellite</button>
+    <section class="map-wrap" aria-label="Carte interactive">
+
+      <!-- Topbar au-dessus de la carte -->
+      <div class="map-topbar" id="mapTopbar">
+        <div class="topbar-left">
+          <a class="topbar-back" href="/" id="backToHome" title="Mes road trips">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15,18 9,12 15,6"/></svg>
+          </a>
+          <span class="topbar-title" id="roadtripTitle">Road trip outdoor dans le Jura</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="topbar-btn topbar-btn--icon" id="recenterButton" type="button" title="Recentrer">⌖</button>
+          <button class="topbar-btn topbar-btn--icon" id="geolocateButton" type="button" title="Ma position">📍</button>
+          <button class="topbar-btn topbar-btn--icon pin-btn" id="pinModeButton" type="button" title="Ajouter un pin">📌</button>
+          <button class="topbar-btn" id="shareButton" type="button" title="Partager cette carte">
+            🔗 <span class="topbar-label">Partager</span>
+          </button>
+          <button class="topbar-btn topbar-btn--discover" id="overpassOpenBtn" type="button" title="Découvrir les points d'intérêt">
+            🔍 <span class="topbar-label">Découvrir</span>
+          </button>
+        </div>
       </div>
-      <button class="route-badge" id="routeBadge" hidden type="button" aria-label="Voir l'itinéraire">
-        🗺 <span id="routeBadgeCount">0</span> étape<span id="routeBadgePlural">s</span>
-      </button>
-      <div id="map"></div>
+
+      <!-- Canvas de la carte (éléments flottants + carte Leaflet) -->
+      <div class="map-canvas">
+        <button class="mobile-toggle" id="sidebarToggle" type="button" aria-expanded="false" aria-label="Afficher ou masquer la sidebar">☰</button>
+        <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
+        <div class="layer-switcher" id="layerSwitcher" role="group" aria-label="Fond de carte">
+          <button class="layer-btn active" data-base="osm" type="button">🗺 Carte</button>
+          <button class="layer-btn" data-base="ign" type="button">⛰ IGN</button>
+          <button class="layer-btn" data-base="sat" type="button">🛰 Satellite</button>
+        </div>
+        <button class="route-badge" id="routeBadge" hidden type="button" aria-label="Voir l'itinéraire">
+          🗺 <span id="routeBadgeCount">0</span> étape<span id="routeBadgePlural">s</span>
+        </button>
+        <div id="map"></div>
+      </div>
+
     </section>
   </main>
 
@@ -184,6 +184,7 @@
     </div>
   </div>
 
+  <!-- Modale ajout de pin -->
   <div class="pin-modal-backdrop" id="pinModalBackdrop" hidden>
     <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pinModalTitle">
       <h3 id="pinModalTitle">Nouveau pin</h3>
@@ -215,6 +216,49 @@
         <button class="secondary" id="pinCancelBtn" type="button">Annuler</button>
         <button class="button" id="pinConfirmBtn" type="button">Créer le pin</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modale de découverte POI (Overpass OSM) -->
+  <div class="poi-backdrop" id="overpassBackdrop" hidden>
+    <div class="poi-modal" role="dialog" aria-modal="true" aria-labelledby="overpassModalTitle">
+      <div class="poi-modal-head">
+        <h3 id="overpassModalTitle">Découvrir autour</h3>
+        <button class="poi-modal-close" id="overpassClose" type="button" aria-label="Fermer">✕</button>
+      </div>
+      <div class="overpass-radius-wrap">
+        <div class="overpass-radius-label">Rayon : <strong id="overpassRadiusValue">20</strong> km</div>
+        <input type="range" id="overpassRadius" class="onboard-range" min="5" max="100" value="20" step="5">
+      </div>
+      <div class="overpass-cats">
+        <button class="overpass-cat-btn active" data-overpass-cat="bivouac"     type="button">⛺ Bivouac</button>
+        <button class="overpass-cat-btn active" data-overpass-cat="shelter"     type="button">🏠 Refuges</button>
+        <button class="overpass-cat-btn"        data-overpass-cat="water"       type="button">💧 Sources</button>
+        <button class="overpass-cat-btn"        data-overpass-cat="waterfall"   type="button">🌊 Cascades</button>
+        <button class="overpass-cat-btn"        data-overpass-cat="viewpoint"   type="button">🔭 Panoramas</button>
+        <button class="overpass-cat-btn"        data-overpass-cat="via_ferrata" type="button">🧗 Via ferrata</button>
+        <button class="overpass-cat-btn"        data-overpass-cat="trailhead"   type="button">🥾 Départs</button>
+      </div>
+      <div class="overpass-actions">
+        <button class="button"    id="overpassSearch" type="button">Chercher</button>
+        <button class="secondary" id="overpassClear"  type="button" hidden>✕ Effacer les résultats</button>
+      </div>
+      <p class="overpass-status" id="overpassStatus"></p>
+    </div>
+  </div>
+
+  <!-- Onboarding : démarrage d'un nouveau road trip -->
+  <div class="pin-modal-backdrop" id="onboardBackdrop" hidden>
+    <div class="onboard-modal" id="onboardStep1" role="dialog" aria-modal="true" aria-labelledby="ob1Title">
+      <div class="onboard-hero" aria-hidden="true">🗺️</div>
+      <h3 id="ob1Title">Par où commences-tu ?</h3>
+      <p class="onboard-desc">Recherche ton lieu de départ pour créer ton premier repère sur la carte.</p>
+      <div class="geocode-wrap">
+        <input type="search" id="onboardGeocode" class="pin-geocode-input"
+               placeholder="Ville, lieu, région…" autocomplete="off">
+        <ul id="onboardResults" class="geocode-results" hidden></ul>
+      </div>
+      <button class="onboard-skip" id="onboardSkip1" type="button">Ignorer pour l'instant</button>
     </div>
   </div>
 

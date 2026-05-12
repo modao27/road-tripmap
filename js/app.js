@@ -13,6 +13,7 @@ import { fetchUserPins, fetchOverrides,
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
+import { initOnboarding } from './onboarding.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 export const CONFIG = {
@@ -35,10 +36,11 @@ if (typeof L === 'undefined') {
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function init() {
-  const params   = new URLSearchParams(window.location.search);
-  const mapParam = params.get('map');   // carte partagée (slug)
-  const idParam  = params.get('id');    // roadtrip ID
-  const isNew    = params.get('new') === 'true';
+  const params      = new URLSearchParams(window.location.search);
+  const mapParam    = params.get('map');        // carte partagée (slug)
+  const idParam     = params.get('id');         // roadtrip ID
+  const isNew       = params.get('new') === 'true';
+  const isOnboarding = params.get('onboard') === 'true';
 
   // Un slug (non UUID) dans ?map= indique une carte partagée
   let isSharedMap = !!mapParam && !isUUID(mapParam);
@@ -53,7 +55,7 @@ async function init() {
       }
     } else if (isNew) {
       const trip = svc.createRoadtrip({ title: 'Nouveau road trip' });
-      window.location.replace(`map.html?id=${trip.id}`);
+      window.location.replace(`map.html?id=${trip.id}&onboard=true`);
       return;
     } else {
       // Aucun ID → retour à la homepage
@@ -123,6 +125,8 @@ async function init() {
     return placeOverrides[p.id] ? { ...p, ...placeOverrides[p.id] } : p;
   }
   function getAllPlaces() {
+    // Sur une nouvelle carte en onboarding, on masque les lieux pré-enregistrés
+    if (isOnboarding) return [...userPlaces];
     return [...staticPlaces.map(effectivePlace), ...userPlaces];
   }
 
@@ -309,24 +313,6 @@ async function init() {
   tabRouteBtn?.addEventListener('click',  () => switchTab('route'));
   switchTab(localStorage.getItem('activeTab') || 'places');
 
-  // ── En-tête collapsible ───────────────────────────────────────────────────
-  const headerToggleBtn = document.getElementById('headerToggleBtn');
-  const sidebarIntro    = document.getElementById('sidebarIntro');
-
-  function setHeaderCollapsed(collapsed) {
-    sidebarIntro?.classList.toggle('collapsed', collapsed);
-    headerToggleBtn?.setAttribute('aria-expanded', String(!collapsed));
-    if (headerToggleBtn) headerToggleBtn.textContent = collapsed ? '▼' : '▲';
-    localStorage.setItem('headerCollapsed', collapsed ? '1' : '0');
-  }
-
-  headerToggleBtn?.addEventListener('click', () => {
-    setHeaderCollapsed(!sidebarIntro?.classList.contains('collapsed'));
-  });
-
-  // Collapsé par défaut après la première visite
-  setHeaderCollapsed(localStorage.getItem('headerCollapsed') === '1');
-
   // ── Modale de partage (désactivée en mode lecture d'une carte partagée) ───
   if (!isSharedMap) {
     initShareModal({
@@ -367,12 +353,6 @@ async function init() {
         updateRouteBadge();
       }
     },
-  });
-
-  // ── Découvrir (Overpass OSM) ──────────────────────────────────────────────
-  initOverpass({
-    map, toastWrap, showToastFn: showToast,
-    onAddToMap: data => pinsModule?.openForOverpass(data),
   });
 
   // ── Itinéraire ────────────────────────────────────────────────────────────
@@ -425,6 +405,16 @@ async function init() {
   });
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
+  // Titre de page depuis le nom du roadtrip
+  if (roadtripId && !isSharedMap) {
+    const trip = svc.getRoadtrip(roadtripId);
+    if (trip?.title) {
+      const titleEl = document.getElementById('roadtripTitle');
+      if (titleEl) titleEl.textContent = trip.title;
+      document.title = `${trip.title} — Road Trip`;
+    }
+  }
+
   const savedView = (!isSharedMap && roadtripId) ? svc.loadMapView(roadtripId) : null;
   if (savedView) map.setView([savedView.lat, savedView.lng], savedView.zoom, { animate: false });
 
@@ -451,8 +441,50 @@ async function init() {
 
   requestAnimationFrame(() => {
     map.invalidateSize();
-    if (!isSharedMap && !savedView) doFocusPlace(basePlace);
+    // Ne pas zoomer sur un lieu si la carte est vierge (onboarding)
+    if (!isSharedMap && !savedView && !isOnboarding) doFocusPlace(basePlace);
   });
+
+  // ── Découvrir (Overpass OSM) — modale POI ────────────────────────────────
+  const placesPanel = document.getElementById('placesPanel');
+  const discoveryBanner = document.getElementById('discoveryBanner');
+  const discoveryCountEl = document.getElementById('discoveryCount');
+
+  const overpassModule = initOverpass({
+    map, toastWrap, showToastFn: showToast,
+    onAddToMap: data => pinsModule?.openForOverpass(data),
+    onDiscoveryStart: () => {
+      map.removeLayer(markerLayer);
+      if (placesPanel) placesPanel.hidden = true;
+      if (discoveryBanner) discoveryBanner.hidden = false;
+      switchTab('places');
+    },
+    onDiscoveryDone: (count) => {
+      if (discoveryCountEl) {
+        discoveryCountEl.textContent =
+          count > 0
+            ? `${count} lieu${count > 1 ? 'x' : ''} découvert${count > 1 ? 's' : ''}`
+            : 'Aucun résultat dans cette zone';
+      }
+    },
+    onDiscoveryClear: () => {
+      markerLayer.addTo(map);
+      if (placesPanel) placesPanel.hidden = false;
+      if (discoveryBanner) discoveryBanner.hidden = true;
+    },
+  });
+
+  document.getElementById('overpassOpenBtn')?.addEventListener('click', () => {
+    document.getElementById('overpassBackdrop').hidden = false;
+  });
+  document.getElementById('discoveryClose')?.addEventListener('click', () => {
+    overpassModule?.clearResults();
+  });
+
+  // ── Onboarding nouveau road trip ──────────────────────────────────────────
+  if (isOnboarding && !isSharedMap) {
+    initOnboarding({ map, pinsModule, config: CONFIG });
+  }
 
   window.addEventListener('load',   () => map.invalidateSize());
   window.addEventListener('resize', () => map.invalidateSize());

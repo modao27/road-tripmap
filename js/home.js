@@ -86,7 +86,7 @@ function confirmNew() {
   const desc  = document.getElementById('newTripDesc').value.trim();
   const trip  = createRoadtrip({ title, description: desc });
   closeNewModal();
-  window.location.href = `map.html?id=${trip.id}`;
+  window.location.href = `map.html?id=${trip.id}&onboard=true`;
 }
 
 // ── Modale suppression ────────────────────────────────────────────────────────

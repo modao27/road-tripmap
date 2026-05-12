@@ -50,78 +50,7 @@ body {
   box-shadow: var(--shadow);
 }
 
-.sidebar-header {
-  padding: 20px 20px 14px;
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
-}
-
-.sidebar-header-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.sidebar-header-main h1 { flex: 1; }
-
-.header-toggle-btn {
-  flex-shrink: 0;
-  margin-top: 4px;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 0.62rem;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  line-height: 1;
-  transition: color 120ms ease, background 120ms ease;
-}
-
-.header-toggle-btn:hover { color: var(--forest); background: rgba(31, 95, 67, 0.08); }
-
-.sidebar-intro {
-  overflow: hidden;
-  max-height: 120px;
-  opacity: 1;
-  margin-top: 10px;
-  transition: max-height 280ms ease, opacity 200ms ease, margin 280ms ease;
-}
-
-.sidebar-intro.collapsed { max-height: 0; opacity: 0; margin-top: 0; }
-
-/* ── Barre d'actions ─────────────────────────────────────────────────────── */
-.action-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
-}
-
-.action-btn {
-  display: grid;
-  place-items: center;
-  height: 40px;
-  border: 1px solid rgba(28, 37, 32, 0.1);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
-  font-size: 1.15rem;
-  cursor: pointer;
-  transition: background 120ms ease, box-shadow 120ms ease, transform 100ms ease;
-}
-
-.action-btn:hover {
-  background: white;
-  box-shadow: 0 4px 12px rgba(20, 36, 28, 0.12);
-  transform: translateY(-1px);
-}
-
-.action-btn.active {
-  background: var(--forest);
-  border-color: transparent;
-}
+/* sidebar-header supprimé (contenu déplacé dans la topbar) */
 
 /* ── Onglets ─────────────────────────────────────────────────────────────── */
 .sidebar-tabs {
@@ -539,11 +468,115 @@ h1 {
 }
 
 .map-wrap {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Topbar au-dessus de la carte ───────────────────────────────────────── */
+.map-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  height: 48px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  z-index: 600;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(31, 95, 67, 0.08);
+  color: var(--forest);
+  text-decoration: none;
+  transition: background 140ms;
+}
+.topbar-back:hover { background: rgba(31, 95, 67, 0.16); }
+
+.topbar-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(28, 37, 32, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms, box-shadow 120ms, transform 80ms;
+}
+.topbar-btn:hover {
+  background: white;
+  box-shadow: 0 2px 8px rgba(20, 36, 28, 0.12);
+  transform: translateY(-1px);
+}
+.topbar-btn.active {
+  background: var(--forest);
+  color: white;
+  border-color: transparent;
+}
+.topbar-btn--icon {
+  padding: 0;
+  width: 32px;
+  justify-content: center;
+  font-size: 1rem;
+}
+.topbar-btn--discover {
+  background: rgba(31, 95, 67, 0.07);
+  border-color: rgba(31, 95, 67, 0.22);
+  color: var(--forest);
+}
+.topbar-btn--discover:hover { background: rgba(31, 95, 67, 0.14); }
+.topbar-btn--discover.active { background: var(--forest); color: white; border-color: transparent; }
+.topbar-label { font-size: 0.78rem; }
+
+/* ── Canvas de carte (éléments flottants + Leaflet) ─────────────────────── */
+.map-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -552,7 +585,6 @@ h1 {
   inset: 0;
   width: 100%;
   height: 100%;
-  min-height: 100%;
   background: #cad9cc;
 }
 
@@ -1570,9 +1602,7 @@ mark.search-highlight {
     display: inline-flex;
   }
 
-  .sidebar-header {
-    padding-top: 68px;
-  }
+  .topbar-label { display: none; }
 
   .resizer {
     display: none;
@@ -1643,14 +1673,23 @@ mark.search-highlight {
     border-right-color: rgba(255, 255, 255, 0.08);
   }
 
-  .sidebar-header { border-bottom-color: rgba(255, 255, 255, 0.08); }
-
-  .action-btn {
+  .map-topbar {
+    background: #0d1410;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+  .topbar-btn {
     background: rgba(255, 255, 255, 0.07);
     border-color: rgba(255, 255, 255, 0.1);
+    color: var(--ink);
   }
-  .action-btn:hover { background: rgba(255, 255, 255, 0.13); }
-  .action-btn.active { background: var(--forest); border-color: transparent; }
+  .topbar-btn:hover  { background: rgba(255, 255, 255, 0.13); box-shadow: none; }
+  .topbar-btn.active { background: var(--forest); border-color: transparent; }
+  .topbar-btn--discover {
+    background: rgba(78, 168, 118, 0.1);
+    border-color: rgba(78, 168, 118, 0.22);
+    color: #4ea876;
+  }
+  .topbar-back { background: rgba(78, 168, 118, 0.1); color: #4ea876; }
 
   .sidebar-tabs { border-bottom-color: rgba(255, 255, 255, 0.1); }
   .sidebar-tab  { color: #5a7a68; }
@@ -1750,4 +1789,187 @@ mark.search-highlight {
   .leaflet-popup-tip             { background: #1a211d; }
   .popup h2, .popup b            { color: var(--forest-dark); }
   .popup p                       { color: #b8cec0; }
+
+}
+
+/* ── Onboarding modal (step 1 : choix du lieu de départ) ────────────────── */
+.onboard-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 36px 28px 28px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+  max-width: 440px;
+  width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  text-align: center;
+}
+
+.onboard-hero {
+  font-size: 3.2rem;
+  line-height: 1;
+}
+
+.onboard-modal h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--forest-dark);
+}
+
+.onboard-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.onboard-skip {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 0.8rem;
+  color: #9aada5;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.onboard-skip:hover { color: var(--muted); }
+
+/* ── POI backdrop (modale de découverte Overpass) ────────────────────────── */
+.poi-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.poi-backdrop[hidden] { display: none; }
+
+.poi-modal {
+  background: white;
+  border-radius: 18px;
+  padding: 24px 22px 20px;
+  width: min(480px, 100%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.poi-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.poi-modal-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--forest-dark);
+}
+
+.poi-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.poi-modal-close:hover { background: rgba(0, 0, 0, 0.07); }
+
+/* Slider rayon dans POI modal */
+.overpass-radius-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.overpass-radius-label {
+  font-size: 0.88rem;
+  color: var(--forest-dark);
+  font-weight: 600;
+}
+.onboard-range {
+  width: 100%;
+  accent-color: var(--forest);
+  cursor: pointer;
+}
+
+/* ── Bannière mode découverte (dans la sidebar) ──────────────────────────── */
+.discovery-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(31, 95, 67, 0.06);
+  border-bottom: 1px solid rgba(31, 95, 67, 0.14);
+  flex-shrink: 0;
+}
+.discovery-banner[hidden] { display: none; }
+
+.discovery-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--forest-dark);
+}
+
+.discovery-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--forest);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: disc-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes disc-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.4); opacity: 0.6; }
+}
+
+.discovery-clear {
+  background: none;
+  border: 1px solid rgba(31, 95, 67, 0.2);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.76rem;
+  color: var(--forest);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms;
+}
+.discovery-clear:hover { background: rgba(31, 95, 67, 0.08); }
+
+/* ── Dark mode – nouveaux composants ────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  .onboard-modal { background: #1a221e; }
+  .onboard-modal h3 { color: #a8d4bc; }
+  .onboard-desc { color: #7a9a8a; }
+  .poi-modal { background: #1a221e; }
+  .poi-modal-head h3 { color: #a8d4bc; }
+  .poi-modal-close { color: #7a9a8a; }
+  .poi-modal-close:hover { background: rgba(255, 255, 255, 0.08); }
+  .overpass-radius-label { color: #a8d4bc; }
+  .discovery-banner { background: rgba(78, 168, 118, 0.07); border-color: rgba(78, 168, 118, 0.15); }
+  .discovery-info { color: #8ec9a8; }
+  .discovery-dot { background: #4ea876; }
+  .discovery-clear { border-color: rgba(78, 168, 118, 0.2); color: #4ea876; }
 }

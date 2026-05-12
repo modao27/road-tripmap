@@ -395,5 +395,10 @@ export function initPins({
     releaseFocusTrap = trapFocus(pinModalBackdrop);
   }
 
-  return { isPinMode: () => pinMode, openForOverpass };
+  // Crée un pin directement sans ouvrir de modale (utilisé par l'onboarding)
+  function createPin({ name, category = 'base', lat, lng, description = '' }) {
+    saveUserPin(name, category, description, lat, lng);
+  }
+
+  return { isPinMode: () => pinMode, openForOverpass, createPin };
 }

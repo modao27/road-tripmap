@@ -47,6 +47,13 @@ export const OVERPASS_CATEGORIES = {
   },
 };
 
+// ── Boîte englobante depuis un centre + rayon (km) ───────────────────────────
+export function bboxFromRadius(lat, lng, radiusKm) {
+  const dLat = radiusKm / 111.32;
+  const dLng = radiusKm / (111.32 * Math.cos(lat * Math.PI / 180));
+  return [lat - dLat, lng - dLng, lat + dLat, lng + dLng].map(n => n.toFixed(4)).join(',');
+}
+
 // ── Mapping catégorie OSM → catégorie de l'app ───────────────────────────────
 const OSM_TO_APP_CAT = {
   bivouac:    'bivouac',
@@ -100,15 +107,19 @@ async function runQuery(selectedCats, bbox) {
 }
 
 // ── Module principal ──────────────────────────────────────────────────────────
-export function initOverpass({ map, toastWrap, showToastFn, onAddToMap }) {
+export function initOverpass({ map, toastWrap, showToastFn, onAddToMap,
+                               onDiscoveryStart, onDiscoveryDone, onDiscoveryClear }) {
   const resultsLayer = L.layerGroup().addTo(map);
   let isFetching = false;
 
-  // DOM refs
-  const searchBtn = document.getElementById('overpassSearch');
-  const clearBtn  = document.getElementById('overpassClear');
-  const statusEl  = document.getElementById('overpassStatus');
-  const catBtns   = document.querySelectorAll('[data-overpass-cat]');
+  // DOM refs (modale POI)
+  const backdrop    = document.getElementById('overpassBackdrop');
+  const searchBtn   = document.getElementById('overpassSearch');
+  const clearBtn    = document.getElementById('overpassClear');
+  const statusEl    = document.getElementById('overpassStatus');
+  const radiusEl    = document.getElementById('overpassRadius');
+  const radiusValEl = document.getElementById('overpassRadiusValue');
+  const catBtns     = document.querySelectorAll('[data-overpass-cat]');
 
   // Catégories actives par défaut : bivouac + refuges
   const selected = new Set(['bivouac', 'shelter']);
@@ -118,35 +129,62 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap }) {
     btn.classList.toggle('active', selected.has(cat));
     btn.addEventListener('click', () => {
       const active = btn.classList.toggle('active');
-      if (active) selected.add(cat);
-      else selected.delete(cat);
+      if (active) selected.add(cat); else selected.delete(cat);
     });
   });
 
-  // ── Effacer les résultats ─────────────────────────────────────────────────
-  function clearResults() {
+  // Mise à jour de l'affichage du rayon
+  radiusEl?.addEventListener('input', () => {
+    if (radiusValEl) radiusValEl.textContent = radiusEl.value;
+  });
+
+  // ── Vider les résultats (public + interne) ────────────────────────────────
+  function clearResultsLayer() {
     resultsLayer.clearLayers();
     if (statusEl) statusEl.textContent = '';
     if (clearBtn) clearBtn.hidden = true;
   }
 
-  // ── Lancer la recherche ───────────────────────────────────────────────────
-  async function doSearch() {
-    if (isFetching) return;
-    if (!selected.size) { showToastFn(toastWrap, 'Sélectionne au moins une catégorie', ''); return; }
-    if (map.getZoom() < 9) { showToastFn(toastWrap, 'Zoome sur une zone plus précise pour chercher', ''); return; }
+  function clearResults() {
+    clearResultsLayer();
+    onDiscoveryClear?.();
+  }
 
-    clearResults();
+  // ── Lancer la recherche ───────────────────────────────────────────────────
+  async function doSearch(customBbox = null, customCats = null) {
+    if (isFetching) return;
+    const catsToUse = customCats ?? selected;
+    if (!catsToUse.size) {
+      showToastFn(toastWrap, 'Sélectionne au moins une catégorie', '');
+      return;
+    }
+
+    // Calcul de la bbox : rayon centré sur la carte ou zone visible
+    const radius = customBbox ? 0 : parseInt(radiusEl?.value ?? '0');
+    const center = map.getCenter();
+    const b      = map.getBounds();
+    const bbox   = customBbox
+      ?? (radius > 0
+        ? bboxFromRadius(center.lat, center.lng, radius)
+        : [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].map(n => n.toFixed(4)).join(','));
+
+    if (!customBbox && radius === 0 && map.getZoom() < 9) {
+      showToastFn(toastWrap, 'Zoome davantage ou active un rayon de recherche', '');
+      return;
+    }
+
+    // Vide l'ancienne couche sans déclencher le callback de sortie de mode découverte
+    clearResultsLayer();
+    // Ferme la modale et entre en mode découverte
+    if (backdrop) backdrop.hidden = true;
+    onDiscoveryStart?.();
+
     isFetching = true;
     if (searchBtn) searchBtn.disabled = true;
     if (statusEl) statusEl.textContent = '⟳ Recherche en cours…';
 
-    const b    = map.getBounds();
-    const bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]
-      .map(n => n.toFixed(4)).join(',');
-
     try {
-      const data  = await runQuery([...selected], bbox);
+      const data  = await runQuery([...catsToUse], bbox);
       const nodes = (data.elements ?? []).filter(e => e.lat && e.lon);
 
       nodes.forEach(el => {
@@ -156,13 +194,12 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap }) {
         const name   = tags.name ?? tags['name:fr'] ?? cat.label;
 
         const details = [
-          tags.fee === 'yes'            ? '💶 Payant'                    : tags.fee === 'no' ? 'Gratuit' : null,
-          tags.drinking_water === 'yes' ? '💧 Eau potable disponible'    : null,
-          tags.opening_hours            ? `🕐 ${tags.opening_hours}`     : null,
+          tags.fee === 'yes'            ? '💶 Payant'                      : tags.fee === 'no' ? 'Gratuit' : null,
+          tags.drinking_water === 'yes' ? '💧 Eau potable disponible'      : null,
+          tags.opening_hours            ? `🕐 ${tags.opening_hours}`       : null,
           tags.capacity                 ? `👤 Capacité : ${tags.capacity}` : null,
         ].filter(Boolean);
 
-        // Payload pour "Ajouter à ma carte"
         const nodePayload = JSON.stringify({
           name,
           lat:         el.lat,
@@ -204,12 +241,15 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap }) {
       }
       if (clearBtn) clearBtn.hidden = n === 0;
 
+      onDiscoveryDone?.(n);
+
       if (n === 0) showToastFn(toastWrap, 'Aucun résultat dans cette zone', '');
       else showToastFn(toastWrap, `${n} lieu${n > 1 ? 'x' : ''} trouvé${n > 1 ? 's' : ''}`, 'success');
 
     } catch (err) {
       console.error('[overpass]', err);
       if (statusEl) statusEl.textContent = '';
+      onDiscoveryClear?.();
       showToastFn(toastWrap, 'Serveur Overpass indisponible, réessaie dans quelques secondes.', 'error');
     } finally {
       isFetching = false;
@@ -217,8 +257,19 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap }) {
     }
   }
 
-  searchBtn?.addEventListener('click', doSearch);
+  searchBtn?.addEventListener('click', () => doSearch());
   clearBtn?.addEventListener('click',  clearResults);
+
+  // Fermeture de la modale
+  document.getElementById('overpassClose')?.addEventListener('click', () => {
+    if (backdrop) backdrop.hidden = true;
+  });
+  backdrop?.addEventListener('click', e => {
+    if (e.target === backdrop) backdrop.hidden = true;
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && backdrop && !backdrop.hidden) backdrop.hidden = true;
+  });
 
   // Délégation : bouton "Ajouter à ma carte" dans les popups Overpass
   document.addEventListener('click', e => {
@@ -232,4 +283,12 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap }) {
       console.error('[overpass] parse error', err);
     }
   });
+
+  // ── Recherche autour d'un point (utilisée par l'onboarding) ──────────────
+  async function searchAroundPoint(lat, lng, radiusKm, cats) {
+    const bbox = bboxFromRadius(lat, lng, radiusKm);
+    await doSearch(bbox, new Set(cats));
+  }
+
+  return { clearResults, searchAroundPoint };
 }
