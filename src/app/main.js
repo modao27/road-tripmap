@@ -7,21 +7,24 @@
  *  3. À chaque route, vérification auth → rendu page
  */
 
-import { authStore }          from '../features/auth/AuthStore.js';
-import { router }             from './router.js';
-import { renderHomePage }     from './pages/HomePage.js';
-import { renderLoginPage }    from './pages/LoginPage.js';
-import { renderRegisterPage } from './pages/RegisterPage.js';
-import { renderDashboardPage } from './pages/DashboardPage.js';
+import { authStore }              from '../features/auth/AuthStore.js';
+import { router }                 from './router.js';
+import { renderHomePage }         from './pages/HomePage.js';
+import { renderLoginPage }        from './pages/LoginPage.js';
+import { renderRegisterPage }     from './pages/RegisterPage.js';
+import { renderDashboardPage }    from './pages/DashboardPage.js';
+import { renderCreateRoadtripPage } from './pages/CreateRoadtripPage.js';
 
 const app = document.getElementById('app');
 
-/** @type {Record<string, (container: HTMLElement) => void>} */
+/** @type {Record<string, (container: HTMLElement, params?: Record<string,string>) => void>} */
 const PAGES = {
-  '':          renderHomePage,
-  'login':     renderLoginPage,
-  'register':  renderRegisterPage,
-  'dashboard': renderDashboardPage,
+  'home':         renderHomePage,
+  'login':        renderLoginPage,
+  'register':     renderRegisterPage,
+  'dashboard':    renderDashboardPage,
+  'roadtrip-new': renderCreateRoadtripPage,
+  // 'roadtrip' → redirection vers map.html (géré dans le bloc routing)
 };
 
 function renderLoadingScreen() {
@@ -33,22 +36,28 @@ function renderLoadingScreen() {
 
 // ── Routing avec garde auth ───────────────────────────────────────────────────
 
-router.onNavigate(({ path, needsAuth }) => {
+router.onNavigate(({ path, component, params, needsAuth }) => {
   const { user, loading } = authStore.getState();
 
   if (loading) { renderLoadingScreen(); return; }
 
-  // ProtectedRoute : redirige vers login si non connecté
+  // ProtectedRoute
   if (needsAuth && !user) { router.navigate('login'); return; }
 
-  // Redirige vers dashboard si déjà connecté sur pages publiques
-  if (!needsAuth && user && (path === '' || path === 'login' || path === 'register')) {
+  // Redirige vers dashboard si connecté sur pages publiques
+  if (!needsAuth && user && ['home', 'login', 'register'].includes(component)) {
     router.navigate('dashboard');
     return;
   }
 
-  const renderFn = PAGES[path] ?? PAGES[''];
-  renderFn(app);
+  // Route dynamique roadtrip/:id → map.html
+  if (component === 'roadtrip' && params?.id) {
+    window.location.href = `map.html?id=${params.id}`;
+    return;
+  }
+
+  const renderFn = PAGES[component] ?? PAGES['home'];
+  renderFn(app, params);
 });
 
 // ── Re-route quand l'état auth change ────────────────────────────────────────
@@ -70,7 +79,7 @@ authStore.subscribe(({ user, loading }) => {
   previousLoading = false;
   const path = router.currentPath();
 
-  if (user && (path === '' || path === 'login' || path === 'register')) {
+  if (user && ['', 'login', 'register'].includes(path)) {
     router.navigate('dashboard');
   }
   if (!user && path === 'dashboard') {
