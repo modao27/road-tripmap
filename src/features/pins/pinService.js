@@ -1,7 +1,11 @@
 /**
- * @fileoverview Service métier pour les pins utilisateur.
- * Responsabilités : CRUD pins, sync Supabase, persistance locale.
- * Ne touche pas au DOM ni à Leaflet.
+ * @fileoverview Service pins — nouveau schéma (table `pins`) + legacy (table `user_pins`).
+ *
+ * Nouveau schéma (table `pins`) :
+ *   utilisé par le flow CreateRoadtrip / dashboard nouvelle architecture.
+ *
+ * Legacy (table `user_pins`) :
+ *   maintenu pour compatibilité avec la carte Leaflet existante (js/app.js).
  *
  * @typedef {import('../../shared/types/index.js').Pin}            Pin
  * @typedef {import('../../shared/types/index.js').PinOverride}    PinOverride
@@ -10,6 +14,89 @@
 
 import { supabase }                   from '../../shared/lib/supabaseClient.js';
 import { storageGet, storageSet, generateUUID } from '../../shared/utils/storage.js';
+
+// ── Nouveau schéma — table `pins` ─────────────────────────────────────────────
+
+/**
+ * @typedef {Object} RoadtripPin
+ * @property {string}  id
+ * @property {string}  roadtrip_id
+ * @property {string}  [created_by]
+ * @property {'start'|'stop'|'custom'|'poi'} type
+ * @property {'active'|'archived'}           status
+ * @property {string}  title
+ * @property {string}  description
+ * @property {number}  lat
+ * @property {number}  lng
+ * @property {string}  created_at
+ * @property {string}  updated_at
+ */
+
+/**
+ * Crée un pin dans la table `pins` (nouveau schéma).
+ * @param {{
+ *   roadtripId:  string,
+ *   type:        'start'|'stop'|'custom'|'poi',
+ *   title:       string,
+ *   description: string,
+ *   lat:         number,
+ *   lng:         number,
+ *   createdBy:   string
+ * }} params
+ * @returns {Promise<RoadtripPin>}
+ */
+export async function createPin({ roadtripId, type = 'custom', title, description = '', lat, lng, createdBy }) {
+  const { data, error } = await supabase
+    .from('pins')
+    .insert({
+      roadtrip_id: roadtripId,
+      created_by:  createdBy,
+      type,
+      status:      'active',
+      title:       title.trim(),
+      description: description.trim(),
+      lat,
+      lng,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * @param {string} roadtripId
+ * @returns {Promise<RoadtripPin[]>}
+ */
+export async function listPinsForRoadtrip(roadtripId) {
+  const { data, error } = await supabase
+    .from('pins')
+    .select('*')
+    .eq('roadtrip_id', roadtripId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * @param {string}           id
+ * @param {Partial<RoadtripPin>} fields
+ * @returns {Promise<RoadtripPin>}
+ */
+export async function updatePin(id, fields) {
+  const { data, error } = await supabase
+    .from('pins').update(fields).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * @param {string} id
+ */
+export async function deletePin(id) {
+  const { error } = await supabase.from('pins').delete().eq('id', id);
+  if (error) throw error;
+}
 
 const PINS_KEY      = 'userPins';
 const OVERRIDES_KEY = 'placeOverrides';
