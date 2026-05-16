@@ -7,13 +7,14 @@
  *  3. À chaque route, vérification auth → rendu page
  */
 
-import { authStore }              from '../features/auth/AuthStore.js';
-import { router }                 from './router.js';
-import { renderHomePage }         from './pages/HomePage.js';
-import { renderLoginPage }        from './pages/LoginPage.js';
-import { renderRegisterPage }     from './pages/RegisterPage.js';
-import { renderDashboardPage }    from './pages/DashboardPage.js';
+import { authStore }                from '../features/auth/AuthStore.js';
+import { router }                   from './router.js';
+import { renderHomePage }           from './pages/HomePage.js';
+import { renderLoginPage }          from './pages/LoginPage.js';
+import { renderRegisterPage }       from './pages/RegisterPage.js';
+import { renderDashboardPage }      from './pages/DashboardPage.js';
 import { renderCreateRoadtripPage } from './pages/CreateRoadtripPage.js';
+import { renderRoadtripEditorPage } from './pages/RoadtripEditorPage.js';
 
 const app = document.getElementById('app');
 
@@ -24,7 +25,7 @@ const PAGES = {
   'register':     renderRegisterPage,
   'dashboard':    renderDashboardPage,
   'roadtrip-new': renderCreateRoadtripPage,
-  // 'roadtrip' → redirection vers map.html (géré dans le bloc routing)
+  'roadtrip':     renderRoadtripEditorPage,
 };
 
 function renderLoadingScreen() {
@@ -50,11 +51,7 @@ router.onNavigate(({ path, component, params, needsAuth }) => {
     return;
   }
 
-  // Route dynamique roadtrip/:id → map.html
-  if (component === 'roadtrip' && params?.id) {
-    window.location.href = `map.html?id=${params.id}`;
-    return;
-  }
+  // (route 'roadtrip' maintenant gérée par renderRoadtripEditorPage)
 
   const renderFn = PAGES[component] ?? PAGES['home'];
   renderFn(app, params);
