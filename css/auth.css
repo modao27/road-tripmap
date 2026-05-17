@@ -324,8 +324,11 @@ html, body {
 .sk-line--60 { width: 60%; }
 .sk-line--80 { width: 80%; }
 
-.sk-line { @extend .sk-shimmer; }
-.sk-line { background: linear-gradient(90deg, #e8ede8 25%, #d8e0d8 50%, #e8ede8 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; }
+.sk-line {
+  background: linear-gradient(90deg, #e8ede8 25%, #d8e0d8 50%, #e8ede8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
 
 /* ── Dark mode ───────────────────────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {

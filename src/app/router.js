@@ -68,7 +68,16 @@ function dispatch() {
 }
 
 window.addEventListener('hashchange', dispatch);
-window.addEventListener('DOMContentLoaded', dispatch);
+
+// Les modules ES sont différés et s'exécutent après le parsing du DOM.
+// DOMContentLoaded peut avoir déjà été émis : on vérifie readyState
+// et on dispatch directement si le DOM est prêt, sinon on attend l'événement.
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', dispatch);
+} else {
+  // DOM déjà prêt (probable avec ES modules différés)
+  setTimeout(dispatch, 0);
+}
 
 // ── API publique ──────────────────────────────────────────────────────────────
 
