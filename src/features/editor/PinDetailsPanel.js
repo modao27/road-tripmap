@@ -8,7 +8,7 @@ const TYPE_OPTIONS = [
   { value: 'custom', label: '📍 Pin' },
   { value: 'start',  label: '🏁 Départ' },
   { value: 'stop',   label: '🛑 Étape' },
-  { value: 'poi',    label: '⭐ Point d'intérêt' },
+  { value: 'poi',    label: "⭐ Point d'intérêt" },
 ];
 
 /**
