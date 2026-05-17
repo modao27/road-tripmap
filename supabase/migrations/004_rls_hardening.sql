@@ -98,7 +98,7 @@ comment on function public.get_user_roadtrip_role(uuid) is
 -- ║  2. RLS — TABLE roadtrips                                ║
 -- ╚══════════════════════════════════════════════════════════╝
 
--- Nettoyage des anciennes policies (reset propre)
+-- Nettoyage complet (anciens ET nouveaux noms — idempotent)
 drop policy if exists "roadtrips_owner_all"       on public.roadtrips;
 drop policy if exists "roadtrips_owner_crud"      on public.roadtrips;
 drop policy if exists "roadtrips_visibility_read" on public.roadtrips;
@@ -106,6 +106,10 @@ drop policy if exists "roadtrips_members_read"    on public.roadtrips;
 drop policy if exists "roadtrips_member_read"     on public.roadtrips;
 drop policy if exists "roadtrips_public_read"     on public.roadtrips;
 drop policy if exists "roadtrips_editor_update"   on public.roadtrips;
+drop policy if exists "rt_owner_all"              on public.roadtrips;
+drop policy if exists "rt_public_read"            on public.roadtrips;
+drop policy if exists "rt_member_read"            on public.roadtrips;
+drop policy if exists "rt_editor_update"          on public.roadtrips;
 
 alter table public.roadtrips enable row level security;
 
@@ -150,6 +154,7 @@ drop policy if exists "pins_read"            on public.pins;
 drop policy if exists "pins_write"           on public.pins;
 drop policy if exists "pins_update"          on public.pins;
 drop policy if exists "pins_delete"          on public.pins;
+drop policy if exists "pins_insert"          on public.pins;
 
 alter table public.pins enable row level security;
 
@@ -179,6 +184,16 @@ drop policy if exists "members_owner_manage"  on public.roadtrip_members;
 drop policy if exists "members_owner_crud"    on public.roadtrip_members;
 drop policy if exists "members_self_read"     on public.roadtrip_members;
 drop policy if exists "members_self_select"   on public.roadtrip_members;
+-- pin_sources / pin_media (si déjà créées)
+drop policy if exists "pin_sources_read"      on public.pin_sources;
+drop policy if exists "pin_sources_write"     on public.pin_sources;
+drop policy if exists "pin_media_read"        on public.pin_media;
+drop policy if exists "pin_media_insert"      on public.pin_media;
+drop policy if exists "pin_media_update"      on public.pin_media;
+drop policy if exists "pin_media_delete"      on public.pin_media;
+-- profiles (si déjà créées)
+drop policy if exists "profiles_authenticated_read" on public.profiles;
+drop policy if exists "profiles_own_all"            on public.profiles;
 
 alter table public.roadtrip_members enable row level security;
 
