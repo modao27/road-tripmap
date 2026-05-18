@@ -1,20 +1,17 @@
 /**
  * @fileoverview Store auth — état singleton de la session utilisateur.
  *
- * sessionStorage comme backup de session :
- * Le build UMD de Supabase ne persiste pas la session en localStorage
- * de façon fiable quand plusieurs clients coexistent (map.html + index.html).
- * On sauvegarde manuellement les tokens dans sessionStorage après chaque
- * SIGNED_IN — sessionStorage persiste dans le même onglet à travers les
- * navigations de page, et n'est jamais touché par le client de map.html.
+ * Supabase est configuré avec storage: sessionStorage (supabaseClient.js).
+ * sessionStorage persiste dans le même onglet à travers les navigations
+ * (index.html ↔ map.html) → INITIAL_SESSION reçoit l'utilisateur directement,
+ * sans mécanisme de backup/restore manuel.
  *
  * @typedef {import('@supabase/supabase-js').User}        User
  * @typedef {import('./profileService.js').UserProfile}   UserProfile
  */
 
-import { supabase, SESSION_BACKUP_KEY } from '../../shared/lib/supabaseClient.js';
-import { onAuthChange }                from './authService.js';
-import { getProfile }                  from './profileService.js';
+import { onAuthChange } from './authService.js';
+import { getProfile }   from './profileService.js';
 
 /**
  * @typedef {Object} AuthState
@@ -45,83 +42,28 @@ async function loadProfile(user) {
   }
 }
 
-// ── Gestion du backup de session ──────────────────────────────────────────────
-
-function saveSessionBackup(session) {
-  if (!session) { sessionStorage.removeItem(SESSION_BACKUP_KEY); return; }
-  try {
-    sessionStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify({
-      access_token:  session.access_token,
-      refresh_token: session.refresh_token,
-      expires_at:    session.expires_at,
-    }));
-  } catch { /* sessionStorage plein ou désactivé */ }
-}
-
-function clearSessionBackup() {
-  sessionStorage.removeItem(SESSION_BACKUP_KEY);
-}
-
-async function tryRestoreFromBackup() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_BACKUP_KEY);
-    if (!raw) return false;
-    const { refresh_token } = JSON.parse(raw);
-    if (!refresh_token) return false;
-    // refreshSession() force un appel serveur → token frais garanti valide.
-    // setSession() réutilisait le token stocké sans le revalider côté serveur
-    // → 401 si le token était expiré (bug de détection dans le build UMD).
-    const { data, error } = await supabase.auth.refreshSession({ refresh_token });
-    if (error || !data.session) { clearSessionBackup(); return false; }
-    return true; // onAuthStateChange va émettre SIGNED_IN avec le nouveau token
-  } catch {
-    clearSessionBackup();
-    return false;
-  }
-}
-
 // ── Listener principal ────────────────────────────────────────────────────────
 
-onAuthChange(async (user, event, session) => {
-  console.log('[AuthStore]', event, user?.email ?? null); // TODO: retirer après debug
+onAuthChange(async (user, event) => {
+  console.log('[AuthStore]', event, user?.email ?? null);
 
-  if (event === 'SIGNED_IN' && user) {
-    // session vient directement de l'event — pas d'appel getSession() qui deadlockerait
-    saveSessionBackup(session);
-    setState({ user, loading: false, error: null });
-    await loadProfile(user);
+  if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+    setState({ user: user ?? null, loading: false, error: null });
+    if (user) await loadProfile(user);
     return;
   }
 
   if (event === 'SIGNED_OUT') {
-    clearSessionBackup();
     setState({ user: null, profile: null, loading: false, error: null });
     return;
   }
 
-  if (event === 'INITIAL_SESSION' && !user) {
-    // setSession() ne peut pas être appelé depuis ce callback : Supabase tient
-    // un verrou interne pendant _notifyAllSubscribers. L'appeler ici deadlocke
-    // le listener interne qui met à jour les headers auth → 401 sur toutes les
-    // requêtes DB. On diffère avec setTimeout pour sortir du contexte du verrou.
-    setTimeout(async () => {
-      try {
-        const restored = await tryRestoreFromBackup();
-        if (!restored) setState({ user: null, loading: false, error: null });
-        // Si restored : setSession() a émis SIGNED_IN → setState géré là-bas
-      } catch {
-        setState({ user: null, loading: false, error: null });
-      }
-    }, 0);
-    return; // loading reste true jusqu'à la restauration async
-  }
-
   if (event === 'TOKEN_REFRESHED' && user) {
-    saveSessionBackup(session);
+    setState({ user, loading: false, error: null });
+    return;
   }
 
   setState({ user, loading: false, error: null });
-  await loadProfile(user);
 });
 
 // ── API publique ──────────────────────────────────────────────────────────────

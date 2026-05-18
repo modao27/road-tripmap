@@ -1,20 +1,15 @@
 /**
  * @fileoverview Client Supabase singleton du SPA.
  *
- * Problème UMD : le build CDN de Supabase v2 ne met pas à jour les headers
- * Authorization du client PostgREST quand la session est restaurée via
- * setSession() (deadlock interne sur le verrou navigator.locks).
- *
- * Fix : custom fetch qui injecte le token depuis sessionStorage pour toutes
- * les requêtes /rest/v1/ — contourne complètement le mécanisme défaillant.
- * Le token est maintenu à jour par AuthStore (saveSessionBackup après chaque
- * SIGNED_IN / TOKEN_REFRESHED).
+ * Utilise sessionStorage (via l'option storage) plutôt que localStorage
+ * pour persister la session. Avantages :
+ * - Le build UMD ne persiste pas en localStorage de façon fiable
+ * - sessionStorage survit aux navigations dans le même onglet (index ↔ map)
+ * - Isolation totale du client map.html (persistSession: false)
  */
 
 const SUPABASE_URL      = 'https://cmgrszuyzdrmnddyetfq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_mzbeClgXgZ2qF2BZNHNyvg_wJaNPnND';
-
-export const SESSION_BACKUP_KEY = '__rta_session_backup';
 
 if (!window.supabase) {
   throw new Error(
@@ -26,49 +21,11 @@ if (!window.supabase) {
 
 const { createClient } = window.supabase;
 
-// Injecte le JWT utilisateur + apikey sur toutes les requêtes PostgREST (/rest/v1/).
-// Les requêtes auth (/auth/v1/) passent sans modification.
-//
-// Problème : certaines versions du SDK Supabase passent options.headers comme
-// instance de Headers (pas un objet plain) — { ...headers_instance } donne {}
-// et efface apikey → "No API key found in request".
-// Fix : normaliser les headers existants + toujours inclure apikey explicitement.
-function restFetch(url, options = {}) {
-  const urlStr = typeof url === 'string' ? url : url.toString();
-  if (urlStr.includes('/rest/v1/')) {
-    try {
-      const raw = sessionStorage.getItem(SESSION_BACKUP_KEY);
-      const { access_token } = raw ? JSON.parse(raw) : {};
-      if (access_token) {
-        // Normalise les headers existants (gère Headers instance ET plain object)
-        const existing = options.headers instanceof Headers
-          ? Object.fromEntries(options.headers.entries())
-          : { ...(options.headers ?? {}) };
-        options = {
-          ...options,
-          headers: {
-            ...existing,
-            apikey:        SUPABASE_ANON_KEY,   // toujours requis par PostgREST
-            Authorization: `Bearer ${access_token}`,
-          },
-        };
-      }
-    } catch { /* sessionStorage indisponible ou token corrompu */ }
-  }
-  return fetch(url, options).then(async res => {
-    if (!res.ok && res.status === 401 && urlStr.includes('/rest/v1/')) {
-      const body = await res.clone().json().catch(() => null);
-      console.error('[restFetch] 401 —', body?.message ?? body?.code ?? JSON.stringify(body));
-    }
-    return res;
-  });
-}
-
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storageKey: 'rta-session',
-  },
-  global: {
-    fetch: restFetch,
+    storage:          window.sessionStorage, // persiste dans le même onglet, survit aux navigations
+    storageKey:       'rta-session',         // clé isolée, jamais touchée par map.html
+    persistSession:   true,
+    autoRefreshToken: true,
   },
 });
