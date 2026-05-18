@@ -98,11 +98,20 @@ onAuthChange(async (user, event, session) => {
   }
 
   if (event === 'INITIAL_SESSION' && !user) {
-    // Supabase n'a pas trouvé de session → tente la restauration depuis sessionStorage
-    const restored = await tryRestoreFromBackup();
-    if (restored) return; // onAuthChange va refirer avec SIGNED_IN
-    setState({ user: null, loading: false, error: null });
-    return;
+    // setSession() ne peut pas être appelé depuis ce callback : Supabase tient
+    // un verrou interne pendant _notifyAllSubscribers. L'appeler ici deadlocke
+    // le listener interne qui met à jour les headers auth → 401 sur toutes les
+    // requêtes DB. On diffère avec setTimeout pour sortir du contexte du verrou.
+    setTimeout(async () => {
+      try {
+        const restored = await tryRestoreFromBackup();
+        if (!restored) setState({ user: null, loading: false, error: null });
+        // Si restored : setSession() a émis SIGNED_IN → setState géré là-bas
+      } catch {
+        setState({ user: null, loading: false, error: null });
+      }
+    }, 0);
+    return; // loading reste true jusqu'à la restauration async
   }
 
   if (event === 'TOKEN_REFRESHED' && user) {
