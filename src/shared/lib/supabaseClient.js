@@ -54,7 +54,13 @@ function restFetch(url, options = {}) {
       }
     } catch (e) { console.error('[restFetch] erreur:', e); }
   }
-  return fetch(url, options);
+  return fetch(url, options).then(async res => {
+    if (!res.ok && urlStr.includes('/rest/v1/')) {
+      const body = await res.clone().json().catch(() => null);
+      console.error('[restFetch] HTTP', res.status, '—', body?.message ?? body?.error ?? JSON.stringify(body));
+    }
+    return res;
+  });
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
