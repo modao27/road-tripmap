@@ -10,8 +10,8 @@
  * @typedef {import('./profileService.js').UserProfile}   UserProfile
  */
 
-import { onAuthChange } from './authService.js';
-import { getProfile }   from './profileService.js';
+import { onAuthChange, getSession } from './authService.js';
+import { getProfile }               from './profileService.js';
 
 /**
  * @typedef {Object} AuthState
@@ -47,6 +47,21 @@ async function loadProfile(user) {
 // Appels suivants = SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED…
 onAuthChange(async (user, event) => {
   console.log('[AuthStore] onAuthChange', event, user?.email ?? null);
+
+  // Fallback : INITIAL_SESSION null peut arriver quand un autre client Supabase
+  // (map.html) a effacé/rafraîchi la session. On tente getSession() explicitement.
+  if (event === 'INITIAL_SESSION' && !user) {
+    try {
+      const session = await getSession();
+      if (session?.user) {
+        console.log('[AuthStore] fallback getSession() →', session.user.email);
+        setState({ user: session.user, loading: false, error: null });
+        await loadProfile(session.user);
+        return;
+      }
+    } catch { /* session réellement absente */ }
+  }
+
   setState({ user, loading: false, error: null });
   await loadProfile(user);
 });
