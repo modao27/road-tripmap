@@ -4,9 +4,19 @@
 const SUPABASE_URL      = 'https://cmgrszuyzdrmnddyetfq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtZ3JzenV5emRybW5kZHlldGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0Nzg5NDEsImV4cCI6MjA5NDA1NDk0MX0.v3a6qvhcMyCPCb1uF1ykabXtoPHBh2HYVPjGS369OH8';
 
-// Le CDN Supabase expose window.supabase (chargé avant ce module dans index.html)
+// Le CDN Supabase expose window.supabase (chargé avant ce module dans map.html)
 const { createClient } = window.supabase;
-export const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// persistSession:false et autoRefreshToken:false empêchent ce client
+// (utilisé uniquement pour les données de la carte) d'interférer avec
+// la session auth gérée par le SPA (index.html / src/shared/lib/supabaseClient.js)
+export const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession:   false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
 
 // ── User pins ─────────────────────────────────────────────────────────────────
 
