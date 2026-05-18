@@ -45,7 +45,8 @@ async function loadProfile(user) {
 // ── Unique source de vérité : onAuthStateChange ───────────────────────────────
 // Premier appel = INITIAL_SESSION (session localStorage ou null)
 // Appels suivants = SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED…
-onAuthChange(async user => {
+onAuthChange(async (user, event) => {
+  console.log('[AuthStore] onAuthChange', event, user?.email ?? null);
   setState({ user, loading: false, error: null });
   await loadProfile(user);
 });

@@ -84,8 +84,8 @@ export async function getSession() {
  * @returns {() => void} Fonction de désabonnement
  */
 export function onAuthChange(callback) {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session?.user ?? null);
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user ?? null, event);
   });
   return () => subscription.unsubscribe();
 }
