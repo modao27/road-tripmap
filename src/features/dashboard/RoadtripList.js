@@ -5,7 +5,6 @@
  */
 
 import { renderRoadtripCard, renderRoadtripCardSkeleton } from './RoadtripCard.js';
-import { getRoadtripStats }                               from '../roadtrips/roadtripService.js';
 
 /**
  * Rend l'état de chargement (3 squelettes).
@@ -55,7 +54,7 @@ export function renderList(container, trips, handlers) {
 
   container.innerHTML = `
     <div class="rt-grid">
-      ${trips.map((trip, i) => renderRoadtripCard(trip, getRoadtripStats(trip.id), i)).join('')}
+      ${trips.map((trip, i) => renderRoadtripCard(trip, i)).join('')}
     </div>`;
 
   container.querySelector('.rt-grid').addEventListener('click', e => {

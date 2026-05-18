@@ -51,11 +51,16 @@ export async function listRoadtrips() {
   try {
     const { data, error } = await supabase
       .from('roadtrips')
-      .select('*')
+      .select('*, pins(count)')
       .order('updated_at', { ascending: false });
     if (error) throw error;
-    localSave(data);
-    return data;
+    // Normalise : extrait le compte de pins et le met à plat sur l'objet
+    const trips = (data ?? []).map(({ pins, ...t }) => ({
+      ...t,
+      pin_count: pins?.[0]?.count ?? 0,
+    }));
+    localSave(trips);
+    return trips;
   } catch {
     return localList();
   }
@@ -189,19 +194,6 @@ export async function deleteRoadtrip(id) {
   const { error } = await supabase.from('roadtrips').delete().eq('id', id);
   if (error) throw error;
   localRemove(id);
-}
-
-// ── Stats légères (localStorage) ──────────────────────────────────────────────
-
-/**
- * @param {string} id
- * @returns {{ pinCount: number, stepCount: number }}
- */
-export function getRoadtripStats(id) {
-  return {
-    pinCount:  storageGet(`rt:${id}:pins`,       []).length,
-    stepCount: storageGet(`rt:${id}:routeSteps`, []).length,
-  };
 }
 
 // ── Helpers slug ──────────────────────────────────────────────────────────────

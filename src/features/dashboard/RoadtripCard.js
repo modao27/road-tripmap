@@ -25,16 +25,15 @@ function relativeDate(iso) {
 
 /**
  * Retourne le HTML d'une card de roadtrip.
- * @param {Roadtrip}                      trip
- * @param {{ pinCount: number, stepCount: number }} stats
- * @param {number}                        index - Pour la couleur de couverture
+ * @param {Roadtrip} trip
+ * @param {number}   index - Pour la couleur de couverture
  * @returns {string}
  */
-export function renderRoadtripCard(trip, stats, index) {
+export function renderRoadtripCard(trip, index) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
+  const n = trip.pin_count ?? 0;
   const meta = [
-    stats.pinCount  ? `📍 ${stats.pinCount} pin${stats.pinCount  > 1 ? 's' : ''}` : null,
-    stats.stepCount ? `🗺 ${stats.stepCount} étape${stats.stepCount > 1 ? 's' : ''}` : null,
+    n > 0 ? `📍 ${n} pin${n > 1 ? 's' : ''}` : null,
     `modifié ${relativeDate(trip.updated_at)}`,
   ].filter(Boolean).join(' · ');
 
