@@ -12,7 +12,7 @@
  */
 
 import { supabase }                             from '../../shared/lib/supabaseClient.js';
-import { storageGet, storageSet, generateUUID } from '../../shared/utils/storage.js';
+import { storageGet, storageSet } from '../../shared/utils/storage.js';
 
 const LOCAL_KEY = 'roadtrips';
 

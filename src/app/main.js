@@ -24,19 +24,17 @@ import { renderHomePage }           from './pages/HomePage.js';
 import { renderLoginPage }          from './pages/LoginPage.js';
 import { renderRegisterPage }       from './pages/RegisterPage.js';
 import { renderDashboardPage }      from './pages/DashboardPage.js';
-import { renderCreateRoadtripPage } from './pages/CreateRoadtripPage.js';
 import { renderRoadtripEditorPage } from './pages/RoadtripEditorPage.js';
 
 const app = document.getElementById('app');
 
 /** @type {Record<string, (container: HTMLElement, params?: Record<string,string>) => void>} */
 const PAGES = {
-  'home':         renderHomePage,
-  'login':        renderLoginPage,
-  'register':     renderRegisterPage,
-  'dashboard':    renderDashboardPage,
-  'roadtrip-new': renderCreateRoadtripPage,
-  'roadtrip':     renderRoadtripEditorPage,
+  'home':      renderHomePage,
+  'login':     renderLoginPage,
+  'register':  renderRegisterPage,
+  'dashboard': renderDashboardPage,
+  'roadtrip':  renderRoadtripEditorPage,
 };
 
 function renderLoadingScreen() {
@@ -61,8 +59,6 @@ router.onNavigate(({ path, component, params, needsAuth }) => {
     router.navigate('dashboard');
     return;
   }
-
-  // (route 'roadtrip' maintenant gérée par renderRoadtripEditorPage)
 
   const renderFn = PAGES[component] ?? PAGES['home'];
   renderFn(app, params);

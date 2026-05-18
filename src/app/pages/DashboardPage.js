@@ -166,11 +166,12 @@ export function renderDashboardPage(container) {
     }
   });
 
-  container.querySelector('#deleteTripConfirm').addEventListener('click', () => {
+  container.querySelector('#deleteTripConfirm').addEventListener('click', async () => {
     if (!pendingDeleteId) return;
-    deleteRoadtrip(pendingDeleteId);
+    const id = pendingDeleteId;
     pendingDeleteId = null;
     deleteTripBackdrop.hidden = true;
+    await deleteRoadtrip(id);
     loadTrips();
   });
 
