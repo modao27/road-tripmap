@@ -33,16 +33,17 @@ function restFetch(url, options = {}) {
   if (urlStr.includes('/rest/v1/')) {
     try {
       const raw = sessionStorage.getItem(SESSION_BACKUP_KEY);
-      if (raw) {
-        const { access_token } = JSON.parse(raw);
-        if (access_token) {
-          options = {
-            ...options,
-            headers: { ...(options.headers ?? {}), Authorization: `Bearer ${access_token}` },
-          };
-        }
+      const { access_token } = raw ? JSON.parse(raw) : {};
+      console.log('[restFetch]', urlStr.split('?')[0].split('/rest/v1/')[1],
+        '| backup:', raw ? 'oui' : 'null',
+        '| token:', access_token ? access_token.slice(-10) : 'absent');
+      if (access_token) {
+        options = {
+          ...options,
+          headers: { ...(options.headers ?? {}), Authorization: `Bearer ${access_token}` },
+        };
       }
-    } catch { /* sessionStorage indisponible ou token corrompu */ }
+    } catch (e) { console.error('[restFetch] erreur:', e); }
   }
   return fetch(url, options);
 }

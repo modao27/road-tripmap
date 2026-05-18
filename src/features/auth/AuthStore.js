@@ -49,6 +49,7 @@ async function loadProfile(user) {
 
 function saveSessionBackup(session) {
   if (!session) { sessionStorage.removeItem(SESSION_BACKUP_KEY); return; }
+  console.log('[saveSessionBackup] access_token:', session.access_token ? session.access_token.slice(-10) : 'ABSENT');
   try {
     sessionStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify({
       access_token:  session.access_token,
