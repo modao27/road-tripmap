@@ -34,14 +34,25 @@ function restFetch(url, options = {}) {
     try {
       const raw = sessionStorage.getItem(SESSION_BACKUP_KEY);
       const { access_token } = raw ? JSON.parse(raw) : {};
-      console.log('[restFetch]', urlStr.split('?')[0].split('/rest/v1/')[1],
-        '| backup:', raw ? 'oui' : 'null',
-        '| token:', access_token ? access_token.slice(-10) : 'absent');
+      // Décoder le JWT pour voir s'il est expiré et quelle est son audience
       if (access_token) {
+        try {
+          const payload = JSON.parse(atob(access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          const now = Math.floor(Date.now() / 1000);
+          console.log('[restFetch] JWT payload:', {
+            role:    payload.role,
+            aud:     payload.aud,
+            exp:     new Date(payload.exp * 1000).toISOString(),
+            expired: payload.exp < now,
+            iss:     payload.iss,
+          });
+        } catch { console.log('[restFetch] JWT decode failed'); }
         options = {
           ...options,
           headers: { ...(options.headers ?? {}), Authorization: `Bearer ${access_token}` },
         };
+      } else {
+        console.log('[restFetch]', urlStr.split('?')[0].split('/rest/v1/')[1], '— token absent, requête avec clé anon');
       }
     } catch (e) { console.error('[restFetch] erreur:', e); }
   }
