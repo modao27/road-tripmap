@@ -67,10 +67,14 @@ async function tryRestoreFromBackup() {
   try {
     const raw = sessionStorage.getItem(SESSION_BACKUP_KEY);
     if (!raw) return false;
-    const { access_token, refresh_token } = JSON.parse(raw);
-    const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+    const { refresh_token } = JSON.parse(raw);
+    if (!refresh_token) return false;
+    // refreshSession() force un appel serveur → token frais garanti valide.
+    // setSession() réutilisait le token stocké sans le revalider côté serveur
+    // → 401 si le token était expiré (bug de détection dans le build UMD).
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token });
     if (error || !data.session) { clearSessionBackup(); return false; }
-    return true; // onAuthStateChange va émettre SIGNED_IN
+    return true; // onAuthStateChange va émettre SIGNED_IN avec le nouveau token
   } catch {
     clearSessionBackup();
     return false;
