@@ -80,13 +80,12 @@ async function tryRestoreFromBackup() {
 
 // ── Listener principal ────────────────────────────────────────────────────────
 
-onAuthChange(async (user, event) => {
+onAuthChange(async (user, event, session) => {
   console.log('[AuthStore]', event, user?.email ?? null);
 
   if (event === 'SIGNED_IN' && user) {
-    // Sauvegarde les tokens après chaque connexion réussie
-    const { data } = await supabase.auth.getSession();
-    saveSessionBackup(data.session);
+    // session vient directement de l'event — pas d'appel getSession() qui deadlockerait
+    saveSessionBackup(session);
     setState({ user, loading: false, error: null });
     await loadProfile(user);
     return;
@@ -107,8 +106,7 @@ onAuthChange(async (user, event) => {
   }
 
   if (event === 'TOKEN_REFRESHED' && user) {
-    const { data } = await supabase.auth.getSession();
-    saveSessionBackup(data.session);
+    saveSessionBackup(session);
   }
 
   setState({ user, loading: false, error: null });

@@ -125,18 +125,27 @@ export function renderDashboardPage(container) {
     if (e.target === newTripBackdrop) newTripBackdrop.hidden = true;
   });
 
-  container.querySelector('#newTripForm').addEventListener('submit', e => {
+  container.querySelector('#newTripForm').addEventListener('submit', async e => {
     e.preventDefault();
     const title = container.querySelector('#newTripName').value.trim();
     if (!title) {
       container.querySelector('#newTripNameErr').textContent = 'Le nom est requis.';
       return;
     }
+    const submitBtn = container.querySelector('#newTripSubmit');
+    submitBtn.disabled = true;
     const desc  = container.querySelector('#newTripDesc').value.trim();
     const { user: u } = authStore.getState();
-    const trip  = createRoadtrip({ title, description: desc, userId: u?.id ?? null });
-    newTripBackdrop.hidden = true;
-    window.location.href = `map.html?id=${trip.id}&onboard=true`;
+    try {
+      const trip = await createRoadtrip({ title, description: desc, userId: u?.id ?? null });
+      newTripBackdrop.hidden = true;
+      window.location.href = `map.html?map=${trip.id}&onboard=true`;
+    } catch {
+      submitBtn.disabled = false;
+      const alert = container.querySelector('#newTripAlert');
+      alert.textContent = 'Erreur lors de la création. Réessaie.';
+      alert.hidden = false;
+    }
   });
 
   // ── Suppression ───────────────────────────────────────────────────────────
