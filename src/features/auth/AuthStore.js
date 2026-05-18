@@ -12,11 +12,9 @@
  * @typedef {import('./profileService.js').UserProfile}   UserProfile
  */
 
-import { supabase }             from '../../shared/lib/supabaseClient.js';
-import { onAuthChange }         from './authService.js';
-import { getProfile }           from './profileService.js';
-
-const SESSION_BACKUP_KEY = '__rta_session_backup';
+import { supabase, SESSION_BACKUP_KEY } from '../../shared/lib/supabaseClient.js';
+import { onAuthChange }                from './authService.js';
+import { getProfile }                  from './profileService.js';
 
 /**
  * @typedef {Object} AuthState
