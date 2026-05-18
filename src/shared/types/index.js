@@ -9,11 +9,14 @@
 /**
  * @typedef {Object} Roadtrip
  * @property {string}  id          - UUID du roadtrip
+ * @property {string}  owner_id    - UUID du propriétaire
  * @property {string}  title       - Nom affiché
  * @property {string}  description - Description courte
- * @property {boolean} showStaticPlaces - Afficher les lieux pré-définis
- * @property {string}  createdAt   - ISO 8601
- * @property {string}  updatedAt   - ISO 8601
+ * @property {'private'|'shared'|'public'} visibility
+ * @property {string}  [slug]      - Slug de partage (quand visibility ≠ private)
+ * @property {string}  cover_color - Couleur de couverture hex
+ * @property {string}  created_at  - ISO 8601
+ * @property {string}  updated_at  - ISO 8601
  */
 
 /**

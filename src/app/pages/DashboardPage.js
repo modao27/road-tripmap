@@ -6,6 +6,7 @@ import { authStore }                                  from '../../features/auth/
 import { signOut }                                    from '../../features/auth/authService.js';
 import { listRoadtrips, createRoadtrip, deleteRoadtrip } from '../../features/roadtrips/roadtripService.js';
 import { renderList, renderListLoading, renderListError } from '../../features/dashboard/RoadtripList.js';
+import { toast }                                      from '../../shared/ui/toast.js';
 import { router }                                     from '../router.js';
 
 export function renderDashboardPage(container) {
@@ -92,7 +93,7 @@ export function renderDashboardPage(container) {
     renderListLoading(listWrap);
     try {
       const trips = await listRoadtrips();
-      renderList(listWrap, trips, { onDelete: openDeleteModal });
+      renderList(listWrap, trips, { onDelete: openDeleteModal, onShare: shareTrip });
     } catch (err) {
       renderListError(listWrap, 'Impossible de charger les road trips.');
       listWrap.querySelector('#listRetry')?.addEventListener('click', loadTrips);
@@ -147,6 +148,16 @@ export function renderDashboardPage(container) {
       alert.hidden = false;
     }
   });
+
+  // ── Partage ───────────────────────────────────────────────────────────────
+  function shareTrip(id) {
+    const url = `${window.location.origin}/map.html?map=${id}`;
+    navigator.clipboard.writeText(url)
+      .then(() => toast.success('Lien copié dans le presse-papiers !'))
+      .catch(() => {
+        prompt('Copie ce lien :', url);
+      });
+  }
 
   // ── Suppression ───────────────────────────────────────────────────────────
   function openDeleteModal(id) {

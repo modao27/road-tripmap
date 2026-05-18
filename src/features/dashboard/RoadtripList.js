@@ -48,7 +48,7 @@ export function renderListError(container, message) {
  * Rend la liste des roadtrips.
  * @param {HTMLElement} container
  * @param {Roadtrip[]}  trips
- * @param {{ onDelete: (id: string) => void }} handlers
+ * @param {{ onDelete: (id: string) => void, onShare: (id: string) => void }} handlers
  */
 export function renderList(container, trips, handlers) {
   if (!trips.length) { renderListEmpty(container); return; }
@@ -58,9 +58,10 @@ export function renderList(container, trips, handlers) {
       ${trips.map((trip, i) => renderRoadtripCard(trip, getRoadtripStats(trip.id), i)).join('')}
     </div>`;
 
-  // Délégation pour "Supprimer"
   container.querySelector('.rt-grid').addEventListener('click', e => {
-    const btn = e.target.closest('[data-action="delete"]');
-    if (btn) handlers.onDelete(btn.dataset.id);
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'delete') handlers.onDelete(btn.dataset.id);
+    if (btn.dataset.action === 'share')  handlers.onShare?.(btn.dataset.id);
   });
 }

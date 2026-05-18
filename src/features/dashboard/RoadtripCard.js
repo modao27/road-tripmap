@@ -35,7 +35,7 @@ export function renderRoadtripCard(trip, stats, index) {
   const meta = [
     stats.pinCount  ? `📍 ${stats.pinCount} pin${stats.pinCount  > 1 ? 's' : ''}` : null,
     stats.stepCount ? `🗺 ${stats.stepCount} étape${stats.stepCount > 1 ? 's' : ''}` : null,
-    `modifié ${relativeDate(trip.updatedAt)}`,
+    `modifié ${relativeDate(trip.updated_at)}`,
   ].filter(Boolean).join(' · ');
 
   return `
@@ -49,9 +49,11 @@ export function renderRoadtripCard(trip, stats, index) {
         <p class="rt-card__meta">${meta}</p>
       </div>
       <div class="rt-card__actions">
-        <a class="btn btn--primary btn--sm" href="map.html?id=${trip.id}">
+        <a class="btn btn--primary btn--sm" href="map.html?map=${trip.id}">
           Ouvrir →
         </a>
+        <button class="btn btn--icon" data-action="share" data-id="${trip.id}"
+                title="Copier le lien" aria-label="Partager ${trip.title}">🔗</button>
         <button class="btn btn--icon" data-action="delete" data-id="${trip.id}"
                 title="Supprimer" aria-label="Supprimer ${trip.title}">✕</button>
       </div>
