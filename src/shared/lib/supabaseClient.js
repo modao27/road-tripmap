@@ -1,11 +1,8 @@
 /**
- * @fileoverview Client Supabase singleton.
- * Seul point d'accès à la base de données distante.
- * Les features ne doivent jamais importer window.supabase directement.
- *
- * @typedef {import('../../types/index.js').Pin}         Pin
- * @typedef {import('../../types/index.js').PlaceOverrides} PlaceOverrides
- * @typedef {import('../../types/index.js').SharedMap}   SharedMap
+ * @fileoverview Client Supabase singleton du SPA.
+ * Utilise storageKey:'rta-session' pour isoler complètement la session
+ * auth du client map.html (js/supabase.js) qui partage la même URL/clé
+ * mais peut interférer avec la clé par défaut Supabase.
  */
 
 const SUPABASE_URL      = 'https://cmgrszuyzdrmnddyetfq.supabase.co';
@@ -21,5 +18,8 @@ if (!window.supabase) {
 
 const { createClient } = window.supabase;
 
-/** Client Supabase — n'utiliser que via les services, jamais directement dans les composants */
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storageKey: 'rta-session',  // clé isolée, jamais touchée par map.html
+  },
+});
