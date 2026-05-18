@@ -136,13 +136,15 @@ export async function updateRoadtripCenter(roadtripId, { lat, lng, zoom = 12, la
   });
 }
 
-// Crée un pin et retourne l'objet créé avec son UUID Postgres
+// Crée un pin avec un UUID généré côté client (évite Prefer:return=representation).
 export async function createRoadtripPin(roadtripId, pin) {
+  const id  = crypto.randomUUID();
   const url = `${SUPABASE_URL}/rest/v1/pins`;
   const res = await fetch(url, {
     method:  'POST',
-    headers: { ..._authHeaders(true), 'Prefer': 'return=representation' },
+    headers: _authHeaders(true),
     body: JSON.stringify({
+      id,
       roadtrip_id:  roadtripId,
       created_by:   _getCurrentUserId(),
       title:        pin.name,
@@ -155,9 +157,12 @@ export async function createRoadtripPin(roadtripId, pin) {
       order_index:  pin.order_index ?? 0,
     }),
   });
-  if (!res.ok) throw new Error(`createRoadtripPin ${res.status}`);
-  const data = await res.json();
-  return Array.isArray(data) ? data[0] : data;
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.status);
+    throw new Error(`createRoadtripPin ${res.status}: ${msg}`);
+  }
+  return { id, title: pin.name, category: pin.category || 'nature',
+           lat: pin.lat, lng: pin.lng };
 }
 
 // pin.name → title, pin.id UUID → PATCH, sinon → POST (nouveau pin)
