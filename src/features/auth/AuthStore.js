@@ -1,23 +1,28 @@
 /**
  * @fileoverview Store auth — état singleton de la session utilisateur.
  *
- * Pattern Supabase v2 : onAuthStateChange émet INITIAL_SESSION une fois
- * au démarrage avec la session persistée (localStorage), puis émet
- * SIGNED_IN / SIGNED_OUT sur les changements suivants.
- * → Plus de IIFE séparé, zéro race condition.
+ * sessionStorage comme backup de session :
+ * Le build UMD de Supabase ne persiste pas la session en localStorage
+ * de façon fiable quand plusieurs clients coexistent (map.html + index.html).
+ * On sauvegarde manuellement les tokens dans sessionStorage après chaque
+ * SIGNED_IN — sessionStorage persiste dans le même onglet à travers les
+ * navigations de page, et n'est jamais touché par le client de map.html.
  *
  * @typedef {import('@supabase/supabase-js').User}        User
  * @typedef {import('./profileService.js').UserProfile}   UserProfile
  */
 
-import { onAuthChange, getSession } from './authService.js';
-import { getProfile }               from './profileService.js';
+import { supabase }             from '../../shared/lib/supabaseClient.js';
+import { onAuthChange }         from './authService.js';
+import { getProfile }           from './profileService.js';
+
+const SESSION_BACKUP_KEY = '__rta_session_backup';
 
 /**
  * @typedef {Object} AuthState
  * @property {User|null}        user
  * @property {UserProfile|null} profile
- * @property {boolean}          loading  - true uniquement avant INITIAL_SESSION
+ * @property {boolean}          loading
  * @property {string|null}      error
  */
 
@@ -42,24 +47,68 @@ async function loadProfile(user) {
   }
 }
 
-// ── Unique source de vérité : onAuthStateChange ───────────────────────────────
-// Premier appel = INITIAL_SESSION (session localStorage ou null)
-// Appels suivants = SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED…
-onAuthChange(async (user, event) => {
-  console.log('[AuthStore] onAuthChange', event, user?.email ?? null);
+// ── Gestion du backup de session ──────────────────────────────────────────────
 
-  // Fallback : INITIAL_SESSION null peut arriver quand un autre client Supabase
-  // (map.html) a effacé/rafraîchi la session. On tente getSession() explicitement.
+function saveSessionBackup(session) {
+  if (!session) { sessionStorage.removeItem(SESSION_BACKUP_KEY); return; }
+  try {
+    sessionStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify({
+      access_token:  session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at:    session.expires_at,
+    }));
+  } catch { /* sessionStorage plein ou désactivé */ }
+}
+
+function clearSessionBackup() {
+  sessionStorage.removeItem(SESSION_BACKUP_KEY);
+}
+
+async function tryRestoreFromBackup() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_BACKUP_KEY);
+    if (!raw) return false;
+    const { access_token, refresh_token } = JSON.parse(raw);
+    const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+    if (error || !data.session) { clearSessionBackup(); return false; }
+    return true; // onAuthStateChange va émettre SIGNED_IN
+  } catch {
+    clearSessionBackup();
+    return false;
+  }
+}
+
+// ── Listener principal ────────────────────────────────────────────────────────
+
+onAuthChange(async (user, event) => {
+  console.log('[AuthStore]', event, user?.email ?? null);
+
+  if (event === 'SIGNED_IN' && user) {
+    // Sauvegarde les tokens après chaque connexion réussie
+    const { data } = await supabase.auth.getSession();
+    saveSessionBackup(data.session);
+    setState({ user, loading: false, error: null });
+    await loadProfile(user);
+    return;
+  }
+
+  if (event === 'SIGNED_OUT') {
+    clearSessionBackup();
+    setState({ user: null, profile: null, loading: false, error: null });
+    return;
+  }
+
   if (event === 'INITIAL_SESSION' && !user) {
-    try {
-      const session = await getSession();
-      if (session?.user) {
-        console.log('[AuthStore] fallback getSession() →', session.user.email);
-        setState({ user: session.user, loading: false, error: null });
-        await loadProfile(session.user);
-        return;
-      }
-    } catch { /* session réellement absente */ }
+    // Supabase n'a pas trouvé de session → tente la restauration depuis sessionStorage
+    const restored = await tryRestoreFromBackup();
+    if (restored) return; // onAuthChange va refirer avec SIGNED_IN
+    setState({ user: null, loading: false, error: null });
+    return;
+  }
+
+  if (event === 'TOKEN_REFRESHED' && user) {
+    const { data } = await supabase.auth.getSession();
+    saveSessionBackup(data.session);
   }
 
   setState({ user, loading: false, error: null });
@@ -69,13 +118,8 @@ onAuthChange(async (user, event) => {
 // ── API publique ──────────────────────────────────────────────────────────────
 
 export const authStore = {
-  /** @returns {AuthState} */
   getState: () => ({ ...state }),
 
-  /**
-   * @param {(state: AuthState) => void} fn
-   * @returns {() => void}
-   */
   subscribe(fn) {
     subscribers.add(fn);
     fn(state);
