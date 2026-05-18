@@ -551,25 +551,22 @@ async function init() {
           const res = await fetch(url, { signal: obCtrl.signal });
           obCandidates = await res.json();
           if (!obCandidates.length) { onboardRes.hidden = true; return; }
-          onboardRes.innerHTML = obCandidates.map((r, i) => {
-            const parts = r.display_name.split(', ');
-            return `<li class="geocode-result-item" data-idx="${i}">
+          onboardRes.innerHTML = obCandidates.map((_, i) => {
+            const parts = obCandidates[i].display_name.split(', ');
+            return `<li class="geocode-result-item">
               <span class="geocode-result-name">${parts[0]}</span>
               <span class="geocode-result-detail">${parts.slice(1, 4).join(', ')}</span>
             </li>`;
           }).join('');
+          // Handlers directs sur chaque <li> (mousedown = avant blur)
+          onboardRes.querySelectorAll('.geocode-result-item').forEach((li, i) => {
+            li.addEventListener('mousedown', () => confirmOnboardPlace(obCandidates[i]));
+          });
           onboardRes.hidden = false;
         } catch (e) {
           if (e.name !== 'AbortError') onboardRes.hidden = true;
         }
       }, 350);
-    });
-
-    onboardRes.addEventListener('click', e => {
-      const item = e.target.closest('.geocode-result-item');
-      if (!item) return;
-      const r = obCandidates[parseInt(item.dataset.idx)];
-      if (r) confirmOnboardPlace(r);
     });
 
     skipBtn.addEventListener('click', () => {
