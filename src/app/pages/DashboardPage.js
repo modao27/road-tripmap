@@ -88,10 +88,10 @@ export function renderDashboardPage(container) {
   let   pendingDeleteId   = null;
 
   // ── Chargement ────────────────────────────────────────────────────────────
-  function loadTrips() {
+  async function loadTrips() {
     renderListLoading(listWrap);
     try {
-      const trips = listRoadtrips();
+      const trips = await listRoadtrips();
       renderList(listWrap, trips, { onDelete: openDeleteModal });
     } catch (err) {
       renderListError(listWrap, 'Impossible de charger les road trips.');
