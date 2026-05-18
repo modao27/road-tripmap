@@ -11,7 +11,8 @@ import { fetchUserPins, fetchOverrides,
          upsertUserPin, deleteUserPinRemote,
          upsertOverride, deleteOverrideRemote,
          loadSharedMap,
-         fetchRoadtripPins, fetchRoadtripTitle } from './supabase.js';
+         fetchRoadtripPins, fetchRoadtripTitle,
+         upsertRoadtripPin, deleteRoadtripPin } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -352,6 +353,9 @@ async function init() {
     });
   }
 
+  // En mode roadtrip (UUID + pins chargés), les écritures vont dans la table 'pins'
+  const isRoadtripMode = !isSharedMap && roadtripPinIds.length > 0;
+
   // ── Pins (sync Supabase désactivée pour les cartes partagées) ────────────
   let pinsModule = null;
   pinsModule = initPins({
@@ -366,8 +370,8 @@ async function init() {
     onMarkerAdded:    setupMarkerHover,
     config:           CONFIG,
     mapId,
-    upsertUserPinFn:  isSharedMap ? null : upsertUserPin,
-    deleteUserPinFn:  isSharedMap ? null : deleteUserPinRemote,
+    upsertUserPinFn:  isSharedMap ? null : (isRoadtripMode ? upsertRoadtripPin : upsertUserPin),
+    deleteUserPinFn:  isSharedMap ? null : (isRoadtripMode ? deleteRoadtripPin : deleteUserPinRemote),
     upsertOverrideFn: isSharedMap ? null : upsertOverride,
     deleteOverrideFn: isSharedMap ? null : deleteOverrideRemote,
     onMapClick: () => {

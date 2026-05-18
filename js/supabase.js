@@ -80,14 +80,27 @@ export async function deleteOverrideRemote(mapId, placeId) {
 // Lit le JWT depuis sessionStorage['rta-session'] (persisté par le SPA).
 // Fetch REST direct — évite les problèmes de session asynchrone du SDK.
 
-function _authHeaders() {
+function _authHeaders(json = false) {
   let token = SUPABASE_ANON_KEY;
   try {
     const raw = window.sessionStorage.getItem('rta-session');
     const s   = raw ? JSON.parse(raw) : null;
     if (s?.access_token) token = s.access_token;
   } catch { /* fallback anon */ }
-  return { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` };
+  const h = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` };
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
+
+function _getCurrentUserId() {
+  try {
+    const raw = window.sessionStorage.getItem('rta-session');
+    return raw ? (JSON.parse(raw)?.user?.id ?? null) : null;
+  } catch { return null; }
+}
+
+function _isUUID(str) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
 export async function fetchRoadtripPins(roadtripId) {
@@ -104,6 +117,56 @@ export async function fetchRoadtripTitle(roadtripId) {
   if (!res.ok) return null;
   const data = await res.json();
   return data?.[0]?.title ?? null;
+}
+
+// pin.name → title, pin.id UUID → PATCH, sinon → POST (nouveau pin)
+export async function upsertRoadtripPin(roadtripId, pin) {
+  const headers = _authHeaders(true);
+  if (_isUUID(pin.id)) {
+    // Mise à jour d'un pin existant
+    const url = `${SUPABASE_URL}/rest/v1/pins?id=eq.${pin.id}`;
+    const res = await fetch(url, {
+      method:  'PATCH',
+      headers,
+      body: JSON.stringify({
+        title:       pin.name,
+        category:    pin.category,
+        lat:         pin.lat,
+        lng:         pin.lng,
+        description: pin.description || '',
+        updated_at:  new Date().toISOString(),
+      }),
+    });
+    if (!res.ok) throw new Error(`upsertRoadtripPin PATCH ${res.status}`);
+  } else {
+    // Nouveau pin — Postgres génère l'UUID (l'objet local garde son id temporaire)
+    const url = `${SUPABASE_URL}/rest/v1/pins`;
+    const res = await fetch(url, {
+      method:  'POST',
+      headers,
+      body: JSON.stringify({
+        roadtrip_id: roadtripId,
+        created_by:  _getCurrentUserId(),
+        title:       pin.name,
+        category:    pin.category || 'nature',
+        lat:         pin.lat,
+        lng:         pin.lng,
+        description: pin.description || '',
+        type:        'stop',
+        status:      'active',
+        order_index: 999,
+      }),
+    });
+    if (!res.ok) throw new Error(`upsertRoadtripPin POST ${res.status}`);
+  }
+}
+
+// Supprime uniquement les pins dont l'id est un UUID (pins chargés depuis la table)
+export async function deleteRoadtripPin(roadtripId, pinId) {
+  if (!_isUUID(pinId)) return; // pin temporaire jamais persisté
+  const url = `${SUPABASE_URL}/rest/v1/pins?id=eq.${pinId}`;
+  const res = await fetch(url, { method: 'DELETE', headers: _authHeaders() });
+  if (!res.ok) throw new Error(`deleteRoadtripPin ${res.status}`);
 }
 
 // ── Cartes partagées (snapshots publics) ──────────────────────────────────────
