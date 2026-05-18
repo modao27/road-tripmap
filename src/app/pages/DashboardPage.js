@@ -1,0 +1,187 @@
+/**
+ * @fileoverview Page dashboard — liste des roadtrips de l'utilisateur.
+ */
+
+import { authStore }                                  from '../../features/auth/AuthStore.js';
+import { signOut }                                    from '../../features/auth/authService.js';
+import { listRoadtrips, createRoadtrip, deleteRoadtrip } from '../../features/roadtrips/roadtripService.js';
+import { renderList, renderListLoading, renderListError } from '../../features/dashboard/RoadtripList.js';
+import { router }                                     from '../router.js';
+
+export function renderDashboardPage(container) {
+  const { user } = authStore.getState();
+
+  container.innerHTML = `
+    <div class="page page--dashboard">
+
+      <header class="dash-header">
+        <div class="dash-header__brand">
+          <span class="dash-header__logo">🗺️</span>
+          <span class="dash-header__name">Road Trip Map</span>
+        </div>
+        <div class="dash-header__actions">
+          <button class="btn btn--primary" id="newTripBtn">
+            + Nouveau road trip
+          </button>
+          <button class="btn btn--ghost btn--icon" id="logoutBtn"
+                  title="Se déconnecter" aria-label="Se déconnecter">
+            ↩
+          </button>
+        </div>
+      </header>
+
+      <main class="dash-main">
+        <div class="dash-welcome">
+          <h1 class="dash-welcome__title">Mes road trips</h1>
+          <p class="dash-welcome__sub">
+            ${user?.email ? `Connecté en tant que <strong>${user.email}</strong>` : ''}
+          </p>
+        </div>
+
+        <div id="tripList" class="dash-list-wrap"></div>
+      </main>
+
+    </div>
+
+    <!-- Modale nouveau road trip -->
+    <div class="modal-backdrop" id="newTripBackdrop" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newTripTitle">
+        <h2 class="modal__title" id="newTripTitle">Nouveau road trip</h2>
+
+        <div id="newTripAlert" class="alert alert--error" hidden role="alert"></div>
+
+        <form class="modal__form" id="newTripForm">
+          <label class="form-field">
+            <span class="form-field__label">Nom du road trip *</span>
+            <input class="form-field__input" type="text" id="newTripName"
+                   placeholder="Ex : Jura sauvage 2025" maxlength="80" required>
+            <span class="form-field__error" id="newTripNameErr"></span>
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">Description (facultatif)</span>
+            <textarea class="form-field__input form-field__textarea" id="newTripDesc"
+                      placeholder="Quelques mots sur ce voyage…" rows="2" maxlength="200"></textarea>
+          </label>
+          <div class="modal__actions">
+            <button class="btn btn--ghost" type="button" id="newTripCancel">Annuler</button>
+            <button class="btn btn--primary" type="submit" id="newTripSubmit">Créer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modale confirmation suppression -->
+    <div class="modal-backdrop" id="deleteTripBackdrop" hidden>
+      <div class="modal modal--sm" role="dialog" aria-modal="true">
+        <h2 class="modal__title">Supprimer ce road trip ?</h2>
+        <p class="modal__body">Cette action est irréversible. Tous les pins et l'itinéraire seront supprimés.</p>
+        <div class="modal__actions">
+          <button class="btn btn--ghost" id="deleteTripCancel">Annuler</button>
+          <button class="btn btn--danger" id="deleteTripConfirm">Supprimer</button>
+        </div>
+      </div>
+    </div>`;
+
+  const listWrap          = container.querySelector('#tripList');
+  const newTripBackdrop   = container.querySelector('#newTripBackdrop');
+  const deleteTripBackdrop = container.querySelector('#deleteTripBackdrop');
+  let   pendingDeleteId   = null;
+
+  // ── Chargement ────────────────────────────────────────────────────────────
+  async function loadTrips() {
+    renderListLoading(listWrap);
+    try {
+      const trips = await listRoadtrips();
+      renderList(listWrap, trips, { onDelete: openDeleteModal });
+    } catch (err) {
+      renderListError(listWrap, 'Impossible de charger les road trips.');
+      listWrap.querySelector('#listRetry')?.addEventListener('click', loadTrips);
+    }
+  }
+
+  loadTrips();
+
+  // ── Déconnexion ───────────────────────────────────────────────────────────
+  container.querySelector('#logoutBtn').addEventListener('click', async () => {
+    await signOut();
+    router.navigate('');
+  });
+
+  // ── Nouveau road trip ─────────────────────────────────────────────────────
+  container.querySelector('#newTripBtn').addEventListener('click', () => {
+    container.querySelector('#newTripName').value = '';
+    container.querySelector('#newTripDesc').value = '';
+    container.querySelector('#newTripNameErr').textContent = '';
+    container.querySelector('#newTripAlert').hidden = true;
+    newTripBackdrop.hidden = false;
+    container.querySelector('#newTripName').focus();
+  });
+
+  container.querySelector('#newTripCancel').addEventListener('click', () => {
+    newTripBackdrop.hidden = true;
+  });
+
+  newTripBackdrop.addEventListener('click', e => {
+    if (e.target === newTripBackdrop) newTripBackdrop.hidden = true;
+  });
+
+  container.querySelector('#newTripForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const title = container.querySelector('#newTripName').value.trim();
+    if (!title) {
+      container.querySelector('#newTripNameErr').textContent = 'Le nom est requis.';
+      return;
+    }
+    const submitBtn = container.querySelector('#newTripSubmit');
+    submitBtn.disabled = true;
+    const desc  = container.querySelector('#newTripDesc').value.trim();
+    const { user: u } = authStore.getState();
+    try {
+      const trip = await createRoadtrip({ title, description: desc, userId: u?.id ?? null });
+      newTripBackdrop.hidden = true;
+      window.location.href = `map.html?map=${trip.id}&onboard=true`;
+    } catch {
+      submitBtn.disabled = false;
+      const alert = container.querySelector('#newTripAlert');
+      alert.textContent = 'Erreur lors de la création. Réessaie.';
+      alert.hidden = false;
+    }
+  });
+
+  // ── Suppression ───────────────────────────────────────────────────────────
+  function openDeleteModal(id) {
+    pendingDeleteId = id;
+    deleteTripBackdrop.hidden = false;
+  }
+
+  container.querySelector('#deleteTripCancel').addEventListener('click', () => {
+    pendingDeleteId = null;
+    deleteTripBackdrop.hidden = true;
+  });
+
+  deleteTripBackdrop.addEventListener('click', e => {
+    if (e.target === deleteTripBackdrop) {
+      pendingDeleteId = null;
+      deleteTripBackdrop.hidden = true;
+    }
+  });
+
+  container.querySelector('#deleteTripConfirm').addEventListener('click', async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    pendingDeleteId = null;
+    deleteTripBackdrop.hidden = true;
+    await deleteRoadtrip(id);
+    loadTrips();
+  });
+
+  // ── Fermeture modales clavier ─────────────────────────────────────────────
+  document.addEventListener('keydown', function onKey(e) {
+    if (e.key !== 'Escape') return;
+    newTripBackdrop.hidden  = true;
+    deleteTripBackdrop.hidden = true;
+    pendingDeleteId = null;
+    // Nettoyage quand la page est déchargée
+    if (!document.contains(container)) document.removeEventListener('keydown', onKey);
+  });
+}
