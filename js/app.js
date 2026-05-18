@@ -532,13 +532,10 @@ async function init() {
           setupMarkerHover(place);
           onRefresh();
         }
-      } catch (err) {
-        console.error('[onboard] createRoadtripPin:', err.message);
-        showToast(toastWrap, `Erreur pin départ : ${err.message}`, 'error');
-      }
+      } catch { /* pin optionnel, pas bloquant */ }
 
       try { await updateRoadtripCenter(mapParam, { lat, lng, zoom: 12, label }); }
-      catch (err) { console.error('[onboard] updateRoadtripCenter:', err.message); }
+      catch { /* pas bloquant */ }
     }
 
     onboardIn.addEventListener('input', () => {
