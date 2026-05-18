@@ -1768,6 +1768,8 @@ mark.search-highlight {
 
 /* ── Overlay onboard ─────────────────────────────────────────────────────────── */
 
+.onboard-overlay[hidden] { display: none; }
+
 .onboard-overlay {
   position: fixed;
   inset: 0;
