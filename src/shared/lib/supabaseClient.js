@@ -39,13 +39,11 @@ function restFetch(url, options = {}) {
         try {
           const payload = JSON.parse(atob(access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
           const now = Math.floor(Date.now() / 1000);
-          console.log('[restFetch] JWT payload:', {
-            role:    payload.role,
-            aud:     payload.aud,
-            exp:     new Date(payload.exp * 1000).toISOString(),
-            expired: payload.exp < now,
-            iss:     payload.iss,
-          });
+          console.log('[restFetch] JWT payload: role=' + payload.role
+            + ' aud=' + payload.aud
+            + ' exp=' + new Date(payload.exp * 1000).toISOString()
+            + ' expired=' + (payload.exp < now)
+            + ' iss=' + payload.iss);
         } catch { console.log('[restFetch] JWT decode failed'); }
         options = {
           ...options,
