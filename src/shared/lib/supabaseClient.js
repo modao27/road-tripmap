@@ -55,7 +55,13 @@ function restFetch(url, options = {}) {
       }
     } catch { /* sessionStorage indisponible ou token corrompu */ }
   }
-  return fetch(url, options);
+  return fetch(url, options).then(async res => {
+    if (!res.ok && res.status === 401 && urlStr.includes('/rest/v1/')) {
+      const body = await res.clone().json().catch(() => null);
+      console.error('[restFetch] 401 —', body?.message ?? body?.code ?? JSON.stringify(body));
+    }
+    return res;
+  });
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
