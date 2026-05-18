@@ -49,7 +49,6 @@ async function loadProfile(user) {
 
 function saveSessionBackup(session) {
   if (!session) { sessionStorage.removeItem(SESSION_BACKUP_KEY); return; }
-  console.log('[saveSessionBackup] access_token:', session.access_token ? session.access_token.slice(-10) : 'ABSENT');
   try {
     sessionStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify({
       access_token:  session.access_token,
@@ -84,7 +83,7 @@ async function tryRestoreFromBackup() {
 // ── Listener principal ────────────────────────────────────────────────────────
 
 onAuthChange(async (user, event, session) => {
-  console.log('[AuthStore]', event, user?.email ?? null);
+  console.log('[AuthStore]', event, user?.email ?? null); // TODO: retirer après debug
 
   if (event === 'SIGNED_IN' && user) {
     // session vient directement de l'event — pas d'appel getSession() qui deadlockerait
