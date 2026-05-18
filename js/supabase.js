@@ -111,12 +111,53 @@ export async function fetchRoadtripPins(roadtripId) {
   return res.json();
 }
 
-export async function fetchRoadtripTitle(roadtripId) {
-  const url = `${SUPABASE_URL}/rest/v1/roadtrips?id=eq.${roadtripId}&select=title`;
+export async function fetchRoadtripInfo(roadtripId) {
+  const url = `${SUPABASE_URL}/rest/v1/roadtrips` +
+    `?id=eq.${roadtripId}&select=title,center_lat,center_lng,default_zoom,start_lat,start_lng,start_label`;
   const res = await fetch(url, { headers: _authHeaders() });
   if (!res.ok) return null;
   const data = await res.json();
-  return data?.[0]?.title ?? null;
+  return data?.[0] ?? null;
+}
+
+export async function updateRoadtripCenter(roadtripId, { lat, lng, zoom = 12, label = '' }) {
+  const url = `${SUPABASE_URL}/rest/v1/roadtrips?id=eq.${roadtripId}`;
+  await fetch(url, {
+    method: 'PATCH',
+    headers: _authHeaders(true),
+    body: JSON.stringify({
+      center_lat:  lat,
+      center_lng:  lng,
+      default_zoom: zoom,
+      start_lat:   lat,
+      start_lng:   lng,
+      start_label: label,
+    }),
+  });
+}
+
+// Crée un pin et retourne l'objet créé avec son UUID Postgres
+export async function createRoadtripPin(roadtripId, pin) {
+  const url = `${SUPABASE_URL}/rest/v1/pins`;
+  const res = await fetch(url, {
+    method:  'POST',
+    headers: { ..._authHeaders(true), 'Prefer': 'return=representation' },
+    body: JSON.stringify({
+      roadtrip_id:  roadtripId,
+      created_by:   _getCurrentUserId(),
+      title:        pin.name,
+      category:     pin.category || 'nature',
+      lat:          pin.lat,
+      lng:          pin.lng,
+      description:  pin.description || '',
+      type:         pin.type || 'stop',
+      status:       'active',
+      order_index:  pin.order_index ?? 0,
+    }),
+  });
+  if (!res.ok) throw new Error(`createRoadtripPin ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data) ? data[0] : data;
 }
 
 // pin.name → title, pin.id UUID → PATCH, sinon → POST (nouveau pin)

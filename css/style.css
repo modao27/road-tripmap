@@ -1765,3 +1765,81 @@ mark.search-highlight {
   .popup h2, .popup b            { color: var(--forest-dark); }
   .popup p                       { color: #b8cec0; }
 }
+
+/* ── Overlay onboard ─────────────────────────────────────────────────────────── */
+
+.onboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(22, 35, 29, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.onboard-card {
+  background: var(--paper);
+  border-radius: 18px;
+  padding: 36px 32px 28px;
+  width: min(460px, 100%);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.onboard-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--forest-dark);
+}
+
+.onboard-hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.onboard-search-wrap {
+  position: relative;
+}
+
+.onboard-search {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.onboard-search:focus {
+  border-color: var(--forest);
+}
+
+.onboard-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.onboard-skip {
+  align-self: flex-end;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.onboard-skip:hover { color: var(--ink); }

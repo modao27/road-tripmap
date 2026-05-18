@@ -11,7 +11,8 @@ import { fetchUserPins, fetchOverrides,
          upsertUserPin, deleteUserPinRemote,
          upsertOverride, deleteOverrideRemote,
          loadSharedMap,
-         fetchRoadtripPins, fetchRoadtripTitle,
+         fetchRoadtripPins, fetchRoadtripInfo,
+         updateRoadtripCenter, createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
@@ -38,7 +39,8 @@ if (typeof L === 'undefined') {
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function init() {
-  const mapParam = getMapIdFromUrl();
+  const mapParam       = getMapIdFromUrl();
+  const isRoadtripUUID = !!mapParam && isUUID(mapParam);
   // Un slug (non UUID) dans ?map= indique une carte partagée
   let isSharedMap = !!mapParam && !isUUID(mapParam);
 
@@ -95,6 +97,7 @@ async function init() {
 
   // ── 3b. Pins du roadtrip (table 'pins', si ?map= est un UUID) ────────────
   let roadtripPinIds = [];
+  let roadtripInfo   = null;
   if (!isSharedMap && mapParam && isUUID(mapParam)) {
     try {
       const rawPins = await fetchRoadtripPins(mapParam);
@@ -113,12 +116,12 @@ async function init() {
       });
       roadtripPinIds = rawPins.map(p => p.id);
 
-      // Met à jour le titre de la page avec le nom du roadtrip
-      const title = await fetchRoadtripTitle(mapParam);
-      if (title) {
-        document.title = title;
+      // Met à jour le titre et mémorise les infos du roadtrip
+      roadtripInfo = await fetchRoadtripInfo(mapParam);
+      if (roadtripInfo?.title) {
+        document.title = roadtripInfo.title;
         const h1 = document.querySelector('.sidebar-header-main h1');
-        if (h1) h1.textContent = title;
+        if (h1) h1.textContent = roadtripInfo.title;
         const eyebrow = document.querySelector('.eyebrow');
         if (eyebrow) eyebrow.textContent = 'Road trip';
         const intro = document.getElementById('sidebarIntro');
@@ -143,7 +146,8 @@ async function init() {
     return placeOverrides[p.id] ? { ...p, ...placeOverrides[p.id] } : p;
   }
   function getAllPlaces() {
-    return [...staticPlaces.map(effectivePlace), ...userPlaces];
+    const base = isRoadtripUUID ? [] : staticPlaces.map(effectivePlace);
+    return [...base, ...userPlaces];
   }
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -230,7 +234,19 @@ async function init() {
 
   // ── Recentrer ─────────────────────────────────────────────────────────────
   const basePlace = staticPlaces.find(p => p.id === 'baume-les-messieurs');
-  document.querySelector('#recenterButton').addEventListener('click', () => doFocusPlace(basePlace));
+  document.querySelector('#recenterButton').addEventListener('click', () => {
+    if (isRoadtripUUID && userPlaces.length > 0) {
+      // Centroïde des pins du roadtrip
+      const lat = userPlaces.reduce((s, p) => s + p.lat, 0) / userPlaces.length;
+      const lng = userPlaces.reduce((s, p) => s + p.lng, 0) / userPlaces.length;
+      map.flyTo([lat, lng], roadtripInfo?.default_zoom ?? 10, { animate: true, duration: 1 });
+    } else if (isRoadtripUUID && roadtripInfo?.center_lat) {
+      map.flyTo([roadtripInfo.center_lat, roadtripInfo.center_lng],
+                roadtripInfo.default_zoom ?? 10, { animate: true, duration: 1 });
+    } else {
+      doFocusPlace(basePlace);
+    }
+  });
 
   // ── Filtres (pills) ───────────────────────────────────────────────────────
   filtersEl.addEventListener('change', (event) => {
@@ -466,6 +482,106 @@ async function init() {
   });
 
   updateRouteBadge();
+
+  // ── Onboard : première ouverture d'un roadtrip vide ───────────────────────
+  const onboardParam = new URLSearchParams(window.location.search).get('onboard');
+  if (isRoadtripUUID && onboardParam === 'true' && roadtripPinIds.length === 0) {
+    const overlay    = document.getElementById('onboardOverlay');
+    const onboardIn  = document.getElementById('onboardSearch');
+    const onboardRes = document.getElementById('onboardResults');
+    const skipBtn    = document.getElementById('onboardSkip');
+
+    overlay.hidden = false;
+
+    let obDebounce = null;
+    let obCtrl = null;
+    let obCandidates = [];
+
+    function closeOnboard() {
+      overlay.hidden = true;
+      const p = new URLSearchParams(window.location.search);
+      p.delete('onboard');
+      history.replaceState(null, '',
+        window.location.pathname + (p.toString() ? '?' + p : ''));
+    }
+
+    async function confirmOnboardPlace(r) {
+      const lat   = parseFloat(r.lat);
+      const lng   = parseFloat(r.lon);
+      const label = r.display_name.split(', ').slice(0, 3).join(', ');
+
+      closeOnboard();
+      map.flyTo([lat, lng], 12, { animate: true, duration: 1.2 });
+
+      try {
+        const created = await createRoadtripPin(mapParam, {
+          name: r.display_name.split(', ')[0],
+          lat, lng, category: 'nature', type: 'start', order_index: 0,
+        });
+        if (created) {
+          const place = {
+            id: created.id, name: created.title,
+            category: created.category || 'nature',
+            lat, lng, description: '',
+            interest: '', tip: '', mood: '',
+            userCreated: true, user_created: true,
+          };
+          userPlaces.push(place);
+          roadtripPinIds.push(created.id);
+          addMarker(place, markers, makePopupHtml, makeIconFn);
+          setupMarkerHover(place);
+          onRefresh();
+        }
+      } catch { /* pin optionnel, pas bloquant */ }
+
+      try { await updateRoadtripCenter(mapParam, { lat, lng, zoom: 12, label }); }
+      catch { /* pas bloquant */ }
+    }
+
+    onboardIn.addEventListener('input', () => {
+      clearTimeout(obDebounce);
+      const q = onboardIn.value.trim();
+      if (q.length < 3) { onboardRes.hidden = true; return; }
+      obDebounce = setTimeout(async () => {
+        if (obCtrl) obCtrl.abort();
+        obCtrl = new AbortController();
+        try {
+          const url = `https://nominatim.openstreetmap.org/search` +
+            `?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=fr`;
+          const res = await fetch(url, { signal: obCtrl.signal });
+          obCandidates = await res.json();
+          if (!obCandidates.length) { onboardRes.hidden = true; return; }
+          onboardRes.innerHTML = obCandidates.map((r, i) => {
+            const parts = r.display_name.split(', ');
+            return `<li class="geocode-result-item" data-idx="${i}">
+              <span class="geocode-result-name">${parts[0]}</span>
+              <span class="geocode-result-detail">${parts.slice(1, 4).join(', ')}</span>
+            </li>`;
+          }).join('');
+          onboardRes.hidden = false;
+        } catch (e) {
+          if (e.name !== 'AbortError') onboardRes.hidden = true;
+        }
+      }, 350);
+    });
+
+    onboardRes.addEventListener('click', e => {
+      const item = e.target.closest('.geocode-result-item');
+      if (!item) return;
+      const r = obCandidates[parseInt(item.dataset.idx)];
+      if (r) confirmOnboardPlace(r);
+    });
+
+    skipBtn.addEventListener('click', () => {
+      closeOnboard();
+      if (roadtripInfo?.center_lat) {
+        map.flyTo([roadtripInfo.center_lat, roadtripInfo.center_lng],
+                  roadtripInfo.default_zoom ?? 10);
+      }
+    });
+
+    setTimeout(() => onboardIn.focus(), 150);
+  }
 
   requestAnimationFrame(() => {
     map.invalidateSize();

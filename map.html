@@ -219,6 +219,22 @@
     </div>
   </div>
 
+  <!-- Overlay onboard : destination de départ (affiché si ?onboard=true + aucun pin) -->
+  <div class="onboard-overlay" id="onboardOverlay" hidden>
+    <div class="onboard-card">
+      <h2 class="onboard-title">Où commence ton road trip ?</h2>
+      <p class="onboard-hint">Cherche ta destination pour centrer la carte et créer ton point de départ.</p>
+      <div class="onboard-search-wrap">
+        <input type="search" id="onboardSearch" class="onboard-search"
+               placeholder="Ville, région, massif…" autocomplete="off">
+        <ul id="onboardResults" class="geocode-results onboard-results" hidden></ul>
+      </div>
+      <button class="secondary onboard-skip" id="onboardSkip" type="button">
+        Passer cette étape →
+      </button>
+    </div>
+  </div>
+
   <!-- Scripts classiques (globaux) chargés avant les modules ES -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
