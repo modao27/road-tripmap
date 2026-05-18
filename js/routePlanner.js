@@ -530,5 +530,12 @@ ${trk}
     serializeRoute,
     refresh:              () => { renderStepList(); updateRouteButtons(); },
     updateRouteButtons,
+    loadSteps(ids) {
+      steps = ids.filter(Boolean);
+      persist();
+      renderStepList();
+      updateRouteButtons();
+      if (steps.length >= 2) scheduleFetch();
+    },
   };
 }

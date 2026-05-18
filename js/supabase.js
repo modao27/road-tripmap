@@ -75,6 +75,37 @@ export async function deleteOverrideRemote(mapId, placeId) {
   if (error) throw error;
 }
 
+// ── Roadtrip pins (table 'pins', nécessite JWT utilisateur) ──────────────────
+//
+// Lit le JWT depuis sessionStorage['rta-session'] (persisté par le SPA).
+// Fetch REST direct — évite les problèmes de session asynchrone du SDK.
+
+function _authHeaders() {
+  let token = SUPABASE_ANON_KEY;
+  try {
+    const raw = window.sessionStorage.getItem('rta-session');
+    const s   = raw ? JSON.parse(raw) : null;
+    if (s?.access_token) token = s.access_token;
+  } catch { /* fallback anon */ }
+  return { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` };
+}
+
+export async function fetchRoadtripPins(roadtripId) {
+  const url = `${SUPABASE_URL}/rest/v1/pins` +
+    `?roadtrip_id=eq.${roadtripId}&status=eq.active&order=order_index.asc&select=*`;
+  const res = await fetch(url, { headers: _authHeaders() });
+  if (!res.ok) throw new Error(`fetchRoadtripPins HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function fetchRoadtripTitle(roadtripId) {
+  const url = `${SUPABASE_URL}/rest/v1/roadtrips?id=eq.${roadtripId}&select=title`;
+  const res = await fetch(url, { headers: _authHeaders() });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data?.[0]?.title ?? null;
+}
+
 // ── Cartes partagées (snapshots publics) ──────────────────────────────────────
 
 export async function saveSharedMap(baseSlug, payload) {

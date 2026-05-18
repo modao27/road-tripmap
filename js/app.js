@@ -10,7 +10,8 @@ import { popupHtml, initPins } from './pins.js';
 import { fetchUserPins, fetchOverrides,
          upsertUserPin, deleteUserPinRemote,
          upsertOverride, deleteOverrideRemote,
-         loadSharedMap } from './supabase.js';
+         loadSharedMap,
+         fetchRoadtripPins, fetchRoadtripTitle } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -88,6 +89,42 @@ async function init() {
     } catch {
       userPlaces     = loadUserPins();
       placeOverrides = loadOverrides();
+    }
+  }
+
+  // ── 3b. Pins du roadtrip (table 'pins', si ?map= est un UUID) ────────────
+  let roadtripPinIds = [];
+  if (!isSharedMap && mapParam && isUUID(mapParam)) {
+    try {
+      const rawPins = await fetchRoadtripPins(mapParam);
+      rawPins.forEach(pin => {
+        userPlaces.push({
+          id:           pin.id,
+          name:         pin.title,
+          category:     pin.category || 'nature',
+          lat:          pin.lat,
+          lng:          pin.lng,
+          description:  pin.description || '',
+          interest: '', tip: '', mood: '',
+          userCreated:  true,
+          user_created: true,
+        });
+      });
+      roadtripPinIds = rawPins.map(p => p.id);
+
+      // Met à jour le titre de la page avec le nom du roadtrip
+      const title = await fetchRoadtripTitle(mapParam);
+      if (title) {
+        document.title = title;
+        const h1 = document.querySelector('.sidebar-header-main h1');
+        if (h1) h1.textContent = title;
+        const eyebrow = document.querySelector('.eyebrow');
+        if (eyebrow) eyebrow.textContent = 'Road trip';
+        const intro = document.getElementById('sidebarIntro');
+        if (intro) intro.hidden = true;
+      }
+    } catch {
+      // Non connecté ou table inaccessible — fallback user_pins
     }
   }
 
@@ -356,6 +393,11 @@ async function init() {
     focusPlaceFn: doFocusPlace,
   });
 
+  // Charge les étapes du roadtrip si des pins ont été récupérés
+  if (roadtripPinIds.length >= 2) {
+    routePlanner.loadSteps(roadtripPinIds);
+  }
+
   // ── Cross-highlight sidebar ↔ carte ──────────────────────────────────────
   function setupMarkerHover(place) {
     const marker = markers.get(place.id);
@@ -423,7 +465,7 @@ async function init() {
 
   requestAnimationFrame(() => {
     map.invalidateSize();
-    if (!isSharedMap && !savedView) doFocusPlace(basePlace);
+    if (!isSharedMap && !savedView && !roadtripPinIds.length) doFocusPlace(basePlace);
   });
 
   window.addEventListener('load',   () => map.invalidateSize());
