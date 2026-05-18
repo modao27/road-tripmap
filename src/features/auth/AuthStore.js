@@ -45,8 +45,6 @@ async function loadProfile(user) {
 // ── Listener principal ────────────────────────────────────────────────────────
 
 onAuthChange(async (user, event) => {
-  console.log('[AuthStore]', event, user?.email ?? null);
-
   if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
     setState({ user: user ?? null, loading: false, error: null });
     if (user) await loadProfile(user);
