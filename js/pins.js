@@ -185,7 +185,7 @@ export function initPins({
 
   function saveUserPin(name, category, note, lat, lng) {
     const pin = {
-      id: 'user-' + Date.now(),
+      id: crypto.randomUUID(),
       name, category, lat, lng,
       description: note,
       interest: '', tip: '', mood: '',
