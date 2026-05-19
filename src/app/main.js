@@ -24,6 +24,7 @@ import { renderHomePage }           from './pages/HomePage.js';
 import { renderLoginPage }          from './pages/LoginPage.js';
 import { renderRegisterPage }       from './pages/RegisterPage.js';
 import { renderDashboardPage }      from './pages/DashboardPage.js';
+import { renderProfilePage }        from './pages/ProfilePage.js';
 import { renderRoadtripEditorPage } from './pages/RoadtripEditorPage.js';
 
 const app = document.getElementById('app');
@@ -34,6 +35,7 @@ const PAGES = {
   'login':     renderLoginPage,
   'register':  renderRegisterPage,
   'dashboard': renderDashboardPage,
+  'profile':   renderProfilePage,
   'roadtrip':  renderRoadtripEditorPage,
 };
 

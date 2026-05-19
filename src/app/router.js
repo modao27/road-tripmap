@@ -1,6 +1,6 @@
 /**
  * @fileoverview Routeur hash-based SPA.
- * Routes statiques : #/ #/login #/register #/dashboard
+ * Routes statiques : #/ #/login #/register #/dashboard #/profile
  * Routes dynamiques : #/roadtrips/:id
  *
  * Usage :
@@ -24,6 +24,7 @@ const STATIC = {
   'login':     { component: 'login',     needsAuth: false },
   'register':  { component: 'register',  needsAuth: false },
   'dashboard': { component: 'dashboard', needsAuth: true  },
+  'profile':   { component: 'profile',   needsAuth: true  },
 };
 
 // ── Routes dynamiques (ordre de priorité décroissant) ─────────────────────────

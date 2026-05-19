@@ -24,6 +24,10 @@ export function renderDashboardPage(container) {
           <button class="btn btn--primary" id="newTripBtn">
             + Nouveau road trip
           </button>
+          <button class="btn btn--ghost btn--icon" id="profileBtn"
+                  title="Mon profil" aria-label="Mon profil">
+            👤
+          </button>
           <button class="btn btn--ghost btn--icon" id="logoutBtn"
                   title="Se déconnecter" aria-label="Se déconnecter">
             ↩
@@ -101,6 +105,11 @@ export function renderDashboardPage(container) {
   }
 
   loadTrips();
+
+  // ── Profil ────────────────────────────────────────────────────────────────
+  container.querySelector('#profileBtn').addEventListener('click', () => {
+    router.navigate('profile');
+  });
 
   // ── Déconnexion ───────────────────────────────────────────────────────────
   container.querySelector('#logoutBtn').addEventListener('click', async () => {
