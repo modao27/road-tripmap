@@ -222,6 +222,19 @@ export async function upsertRoadtripPin(roadtripId, pin) {
   }
 }
 
+// Met à jour l'order_index de chaque pin (batch PATCH parallèle, UUID seulement)
+export async function updatePinOrder(pinIds) {
+  const uuids = pinIds.filter(_isUUID);
+  if (!uuids.length) return;
+  await Promise.all(uuids.map((id, i) =>
+    fetch(`${SUPABASE_URL}/rest/v1/pins?id=eq.${id}`, {
+      method:  'PATCH',
+      headers: _authHeaders(true),
+      body:    JSON.stringify({ order_index: i }),
+    })
+  ));
+}
+
 // Supprime uniquement les pins dont l'id est un UUID (pins chargés depuis la table)
 export async function deleteRoadtripPin(roadtripId, pinId) {
   if (!_isUUID(pinId)) return; // pin temporaire jamais persisté

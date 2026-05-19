@@ -13,7 +13,8 @@ import { fetchUserPins, fetchOverrides,
          loadSharedMap,
          fetchRoadtripPins, fetchRoadtripInfo,
          updateRoadtripCenter, createRoadtripPin,
-         upsertRoadtripPin, deleteRoadtripPin } from './supabase.js';
+         upsertRoadtripPin, deleteRoadtripPin,
+         updatePinOrder } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -408,10 +409,15 @@ async function init() {
 
   // ── Itinéraire ────────────────────────────────────────────────────────────
   // Déclaré en let pour que onRefresh() y ait accès via la closure
-  let routePlanner = null;
+  let routePlanner    = null;
+  let orderSaveTimer  = null;
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
     focusPlaceFn: doFocusPlace,
+    onStepsChange: isRoadtripMode ? (steps) => {
+      clearTimeout(orderSaveTimer);
+      orderSaveTimer = setTimeout(() => updatePinOrder(steps), 1000);
+    } : null,
   });
 
   // Charge les étapes du roadtrip si des pins ont été récupérés

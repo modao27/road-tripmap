@@ -42,7 +42,7 @@ function escapeXml(s) {
 
 // ── Module ────────────────────────────────────────────────────────────────────
 
-export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn }) {
+export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn, onStepsChange }) {
 
   // ── État ──────────────────────────────────────────────────────────────────
   let steps         = [];                 // toujours vide au démarrage — restauré uniquement via ?route=
@@ -122,6 +122,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   function persist() {
     saveRouteSteps(steps);
+    onStepsChange?.(steps);
   }
 
   // ── Optimisation (plus proche voisin) ─────────────────────────────────────
