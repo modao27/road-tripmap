@@ -170,7 +170,7 @@ async function _rpcCreatePin(roadtripId, pin, id) {
       p_id:          id,
       p_roadtrip_id: roadtripId,
       p_title:       pin.name,
-      p_category:    pin.category || 'nature',
+      p_category:    pin.category || 'base',
       p_lat:         pin.lat,
       p_lng:         pin.lng,
       p_description: pin.description || '',

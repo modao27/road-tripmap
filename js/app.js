@@ -517,7 +517,7 @@ async function init() {
       try {
         const created = await createRoadtripPin(mapParam, {
           name: r.display_name.split(', ')[0],
-          lat, lng, category: 'nature', type: 'start', order_index: 0,
+          lat, lng, category: 'base', type: 'start', order_index: 0,
         });
         if (created) {
           const place = {
