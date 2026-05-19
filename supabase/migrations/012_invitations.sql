@@ -27,6 +27,9 @@ CREATE INDEX IF NOT EXISTS invitations_email_idx
 
 ALTER TABLE public.roadtrip_invitations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "invitations_owner"     ON public.roadtrip_invitations;
+DROP POLICY IF EXISTS "invitations_self_read" ON public.roadtrip_invitations;
+
 -- Owner : gère ses propres invitations
 CREATE POLICY "invitations_owner" ON public.roadtrip_invitations
   FOR ALL
