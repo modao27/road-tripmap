@@ -369,8 +369,9 @@ async function init() {
     });
   }
 
-  // En mode roadtrip (UUID + pins chargés), les écritures vont dans la table 'pins'
-  const isRoadtripMode = !isSharedMap && roadtripPinIds.length > 0;
+  // Mode roadtrip : roadtrip reconnu en DB (même si aucun pin existant)
+  // roadtripInfo !== null = le UUID est dans la table roadtrips = nouvelle archi
+  const isRoadtripMode = !isSharedMap && roadtripInfo !== null;
 
   // ── Pins (sync Supabase désactivée pour les cartes partagées) ────────────
   let pinsModule = null;

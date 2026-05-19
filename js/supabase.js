@@ -183,7 +183,11 @@ export async function upsertRoadtripPin(roadtripId, pin) {
         updated_at:  new Date().toISOString(),
       }),
     });
-    if (!res.ok) throw new Error(`upsertRoadtripPin PATCH ${res.status}`);
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      console.error('[upsertRoadtripPin PATCH]', msg);
+      throw new Error(`upsertRoadtripPin PATCH ${res.status}: ${msg}`);
+    }
   } else {
     // Nouveau pin — Postgres génère l'UUID (l'objet local garde son id temporaire)
     const url = `${SUPABASE_URL}/rest/v1/pins`;
@@ -203,7 +207,11 @@ export async function upsertRoadtripPin(roadtripId, pin) {
         order_index: 999,
       }),
     });
-    if (!res.ok) throw new Error(`upsertRoadtripPin POST ${res.status}`);
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      console.error('[upsertRoadtripPin POST]', msg);
+      throw new Error(`upsertRoadtripPin POST ${res.status}: ${msg}`);
+    }
   }
 }
 
