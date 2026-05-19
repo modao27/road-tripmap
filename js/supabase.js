@@ -136,31 +136,34 @@ export async function updateRoadtripCenter(roadtripId, { lat, lng, zoom = 12, la
   });
 }
 
-// Crée un pin avec un UUID généré côté client (évite Prefer:return=representation).
-export async function createRoadtripPin(roadtripId, pin) {
-  const id  = crypto.randomUUID();
-  const url = `${SUPABASE_URL}/rest/v1/pins`;
+// Crée un pin via la fonction RPC create_pin — bypasse le schema cache PostgREST.
+async function _rpcCreatePin(roadtripId, pin, id) {
+  const url = `${SUPABASE_URL}/rest/v1/rpc/create_pin`;
   const res = await fetch(url, {
     method:  'POST',
     headers: _authHeaders(true),
     body: JSON.stringify({
-      id,
-      roadtrip_id:  roadtripId,
-      created_by:   _getCurrentUserId(),
-      title:        pin.name,
-      category:     pin.category || 'nature',
-      lat:          pin.lat,
-      lng:          pin.lng,
-      description:  pin.description || '',
-      type:         pin.type || 'stop',
-      status:       'active',
-      order_index:  pin.order_index ?? 0,
+      p_id:          id,
+      p_roadtrip_id: roadtripId,
+      p_title:       pin.name,
+      p_category:    pin.category || 'nature',
+      p_lat:         pin.lat,
+      p_lng:         pin.lng,
+      p_description: pin.description || '',
+      p_type:        pin.type || 'stop',
+      p_status:      'active',
+      p_order_index: pin.order_index ?? 0,
     }),
   });
   if (!res.ok) {
-    const msg = await res.text().catch(() => res.status);
-    throw new Error(`createRoadtripPin ${res.status}: ${msg}`);
+    const msg = await res.text().catch(() => '');
+    throw new Error(`create_pin RPC ${res.status}: ${msg}`);
   }
+}
+
+export async function createRoadtripPin(roadtripId, pin) {
+  const id = crypto.randomUUID();
+  await _rpcCreatePin(roadtripId, pin, id);
   return { id, title: pin.name, category: pin.category || 'nature',
            lat: pin.lat, lng: pin.lng };
 }
@@ -189,29 +192,9 @@ export async function upsertRoadtripPin(roadtripId, pin) {
       throw new Error(`upsertRoadtripPin PATCH ${res.status}: ${msg}`);
     }
   } else {
-    // Nouveau pin — Postgres génère l'UUID (l'objet local garde son id temporaire)
-    const url = `${SUPABASE_URL}/rest/v1/pins`;
-    const res = await fetch(url, {
-      method:  'POST',
-      headers,
-      body: JSON.stringify({
-        roadtrip_id: roadtripId,
-        created_by:  _getCurrentUserId(),
-        title:       pin.name,
-        category:    pin.category || 'nature',
-        lat:         pin.lat,
-        lng:         pin.lng,
-        description: pin.description || '',
-        type:        'stop',
-        status:      'active',
-        order_index: 999,
-      }),
-    });
-    if (!res.ok) {
-      const msg = await res.text().catch(() => '');
-      console.error('[upsertRoadtripPin POST]', msg);
-      throw new Error(`upsertRoadtripPin POST ${res.status}: ${msg}`);
-    }
+    // Nouveau pin via RPC (bypasse le schema cache pour 'category')
+    const id = crypto.randomUUID();
+    await _rpcCreatePin(roadtripId, { ...pin, order_index: 999 }, id);
   }
 }
 
