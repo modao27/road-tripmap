@@ -157,6 +157,7 @@ async function _rpcCreatePin(roadtripId, pin, id) {
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => '');
+    console.error('[create_pin RPC]', res.status, msg);
     throw new Error(`create_pin RPC ${res.status}: ${msg}`);
   }
 }
