@@ -116,7 +116,7 @@ function _authHeaders(json = false) {
   return h;
 }
 
-function _getCurrentUserId() {
+export function getCurrentUserId() {
   try {
     const s = JSON.parse(window.sessionStorage.getItem('rta-session') || 'null');
     return s?.user?.id ?? null;
@@ -137,7 +137,7 @@ export async function fetchRoadtripPins(roadtripId) {
 
 export async function fetchRoadtripInfo(roadtripId) {
   const url = `${SUPABASE_URL}/rest/v1/roadtrips` +
-    `?id=eq.${roadtripId}&select=title,center_lat,center_lng,default_zoom,start_lat,start_lng,start_label`;
+    `?id=eq.${roadtripId}&select=title,owner_id,center_lat,center_lng,default_zoom,start_lat,start_lng,start_label`;
   const res = await fetch(url, { headers: _authHeaders() });
   if (!res.ok) return null;
   const data = await res.json();

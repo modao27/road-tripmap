@@ -312,14 +312,15 @@ export function renderDashboardPage(container) {
     }
   });
 
-  // ── Partage ───────────────────────────────────────────────────────────────
-  function shareTrip(id) {
+  // ── Partage — publie le roadtrip + copie le lien ─────────────────────────
+  async function shareTrip(id) {
+    try {
+      await updateRoadtrip(id, { visibility: 'shared' });
+    } catch { /* ne bloque pas si déjà partagé */ }
     const url = `${window.location.origin}/map.html?map=${id}`;
     navigator.clipboard.writeText(url)
-      .then(() => toast.success('Lien copié dans le presse-papiers !'))
-      .catch(() => {
-        prompt('Copie ce lien :', url);
-      });
+      .then(() => toast.success('Lien copié ! La carte est accessible sans compte.'))
+      .catch(() => prompt('Copie ce lien :', url));
   }
 
   // ── Suppression ───────────────────────────────────────────────────────────

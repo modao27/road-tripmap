@@ -1845,3 +1845,13 @@ mark.search-highlight {
 }
 
 .onboard-skip:hover { color: var(--ink); }
+
+.readonly-banner {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(100, 80, 30, 0.12);
+  border-left: 3px solid #a07830;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #7a5c20;
+}

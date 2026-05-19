@@ -14,7 +14,7 @@ import { fetchUserPins, fetchOverrides,
          fetchRoadtripPins, fetchRoadtripInfo,
          updateRoadtripCenter, createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin,
-         updatePinOrder } from './supabase.js';
+         updatePinOrder, getCurrentUserId } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -464,6 +464,26 @@ async function init() {
     updateRouteBadge();
     setTimeout(() => map.invalidateSize(), 230);
   });
+
+  // ── Mode lecture seule (public/partagé sans être le propriétaire) ───────────
+  const currentUserId = getCurrentUserId();
+  const isReadOnly    = isRoadtripMode &&
+    roadtripInfo?.owner_id &&
+    roadtripInfo.owner_id !== currentUserId;
+
+  if (isReadOnly) {
+    // Masque les contrôles d'édition
+    document.getElementById('pinModeButton')?.setAttribute('hidden', '');
+    document.getElementById('pinHint')?.setAttribute('hidden', '');
+    document.getElementById('routeClear')?.setAttribute('hidden', '');
+    document.getElementById('routeOptimize')?.setAttribute('hidden', '');
+    document.getElementById('routeShare')?.setAttribute('hidden', '');
+    // Bannière lecture seule
+    const banner = document.createElement('div');
+    banner.className = 'readonly-banner';
+    banner.textContent = '👁 Lecture seule — ce road trip appartient à un autre utilisateur.';
+    document.querySelector('.sidebar-header')?.appendChild(banner);
+  }
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
   const savedView = !isSharedMap ? loadMapView() : null;
