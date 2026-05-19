@@ -7,15 +7,45 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Le CDN Supabase expose window.supabase (chargé avant ce module dans map.html)
 const { createClient } = window.supabase;
 
-// persistSession:false et autoRefreshToken:false empêchent ce client
-// (utilisé uniquement pour les données de la carte) d'interférer avec
-// la session auth gérée par le SPA (index.html / src/shared/lib/supabaseClient.js)
+// Client données (anon, pas de session — pour user_pins, shared_maps, etc.)
 export const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession:   false,
     autoRefreshToken: false,
     detectSessionInUrl: false,
   },
+});
+
+// ── Session partagée avec le SPA ──────────────────────────────────────────────
+// Lit et rafraîchit le token depuis sessionStorage['rta-session'].
+// Maintient _cachedToken à jour → _authHeaders() toujours valide même après
+// expiration du JWT (évite les 401 sur fetchRoadtripPins / fetchRoadtripInfo).
+
+let _cachedToken = (() => {
+  try {
+    const s = JSON.parse(window.sessionStorage.getItem('rta-session') || 'null');
+    return s?.access_token || SUPABASE_ANON_KEY;
+  } catch { return SUPABASE_ANON_KEY; }
+})();
+
+const _sessionClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storage:          window.sessionStorage,
+    storageKey:       'rta-session',
+    persistSession:   true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+  },
+});
+
+// Met à jour le token en cache à chaque changement (refresh, sign-in/out)
+_sessionClient.auth.onAuthStateChange((_event, session) => {
+  _cachedToken = session?.access_token || SUPABASE_ANON_KEY;
+});
+
+// Résolution initiale (refresh si le token est expiré)
+_sessionClient.auth.getSession().then(({ data: { session } }) => {
+  if (session?.access_token) _cachedToken = session.access_token;
 });
 
 // ── User pins ─────────────────────────────────────────────────────────────────
@@ -81,21 +111,15 @@ export async function deleteOverrideRemote(mapId, placeId) {
 // Fetch REST direct — évite les problèmes de session asynchrone du SDK.
 
 function _authHeaders(json = false) {
-  let token = SUPABASE_ANON_KEY;
-  try {
-    const raw = window.sessionStorage.getItem('rta-session');
-    const s   = raw ? JSON.parse(raw) : null;
-    if (s?.access_token) token = s.access_token;
-  } catch { /* fallback anon */ }
-  const h = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` };
+  const h = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${_cachedToken}` };
   if (json) h['Content-Type'] = 'application/json';
   return h;
 }
 
 function _getCurrentUserId() {
   try {
-    const raw = window.sessionStorage.getItem('rta-session');
-    return raw ? (JSON.parse(raw)?.user?.id ?? null) : null;
+    const s = JSON.parse(window.sessionStorage.getItem('rta-session') || 'null');
+    return s?.user?.id ?? null;
   } catch { return null; }
 }
 
