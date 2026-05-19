@@ -200,25 +200,79 @@ export async function deleteRoadtrip(id) {
 
 /**
  * Invite un utilisateur comme membre d'un roadtrip.
- * @param {string} roadtripId
- * @param {string} email
- * @param {'editor'|'viewer'} [role='editor']
- * @returns {Promise<{ ok: boolean, message: string }>}
+ * - Si l'email est enregistré → ajout direct dans roadtrip_members.
+ * - Sinon → création d'une invitation + envoi d'un magic link Supabase.
+ * @param {string}             roadtripId
+ * @param {string}             email
+ * @param {'editor'|'viewer'}  [role='editor']
+ * @returns {Promise<{ ok: boolean, type: 'added'|'invited', message: string }>}
  */
 export async function inviteMember(roadtripId, email, role = 'editor') {
-  // Cherche le profil par email via la fonction RPC
+  // Cherche le profil par email (utilisateur déjà inscrit)
   const { data: profiles, error: lookupErr } = await supabase
     .rpc('get_profile_by_email', { p_email: email });
   if (lookupErr) throw lookupErr;
-  if (!profiles?.length) return { ok: false, message: 'Aucun compte trouvé pour cet email.' };
 
-  const userId = profiles[0].id;
-  const { error } = await supabase
-    .from('roadtrip_members')
-    .upsert({ roadtrip_id: roadtripId, user_id: userId, role },
-             { onConflict: 'roadtrip_id,user_id' });
+  if (profiles?.length) {
+    // Utilisateur existant → ajout direct
+    const userId = profiles[0].id;
+    const { error } = await supabase
+      .from('roadtrip_members')
+      .upsert({ roadtrip_id: roadtripId, user_id: userId, role },
+               { onConflict: 'roadtrip_id,user_id' });
+    if (error) throw error;
+    return {
+      ok:      true,
+      type:    'added',
+      message: `${profiles[0].display_name || email} a rejoint le roadtrip.`,
+    };
+  }
+
+  // Utilisateur inconnu → invitation par magic link
+  await sendInvitationEmail(roadtripId, email, role);
+  return {
+    ok:      true,
+    type:    'invited',
+    message: `Invitation envoyée à ${email}. L'accès sera activé à la création du compte.`,
+  };
+}
+
+/**
+ * Crée une invitation en DB et envoie un magic link via Supabase Auth.
+ * @param {string}             roadtripId
+ * @param {string}             email
+ * @param {'editor'|'viewer'}  role
+ */
+export async function sendInvitationEmail(roadtripId, email, role = 'editor') {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Enregistre l'invitation (idempotent sur doublon)
+  const { error: insertErr } = await supabase
+    .from('roadtrip_invitations')
+    .upsert(
+      { roadtrip_id: roadtripId, invited_by: user.id, email, role },
+      { onConflict: 'roadtrip_id,email', ignoreDuplicates: false }
+    );
+  if (insertErr) throw insertErr;
+
+  // Envoie le magic link — l'invité sera redirigé vers l'app après inscription
+  const redirectTo = `${window.location.origin}/`;
+  const { error: otpErr } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, emailRedirectTo: redirectTo },
+  });
+  if (otpErr) throw otpErr;
+}
+
+/**
+ * Accepte toutes les invitations en attente pour l'utilisateur courant.
+ * Appelée automatiquement au chargement de l'app après une connexion.
+ * @returns {Promise<number>} Nombre d'invitations acceptées
+ */
+export async function acceptPendingInvitations() {
+  const { data, error } = await supabase.rpc('accept_pending_invitations');
   if (error) throw error;
-  return { ok: true, message: `${profiles[0].display_name || email} a rejoint le roadtrip.` };
+  return data ?? 0;
 }
 
 /**

@@ -248,19 +248,27 @@ export function renderDashboardPage(container) {
     container.querySelector('#inviteSuccess').hidden = true;
 
     try {
-      const { ok, message } = await inviteMember(pendingInviteId, email);
+      const { ok, type, message } = await inviteMember(pendingInviteId, email);
       if (ok) {
-        container.querySelector('#inviteSuccess').textContent = message;
-        container.querySelector('#inviteSuccess').hidden = false;
+        const successEl = container.querySelector('#inviteSuccess');
+        successEl.textContent = message;
+        // Astuce visuelle : invitation envoyée vs membre ajouté
+        if (type === 'invited') {
+          successEl.textContent += '\n✉️ Un email d\'accès lui a été envoyé.';
+        }
+        successEl.hidden = false;
         container.querySelector('#inviteForm').hidden = true;
-        loadTrips();
+        if (type === 'added') loadTrips();
       } else {
         container.querySelector('#inviteAlert').textContent = message;
         container.querySelector('#inviteAlert').hidden = false;
         submitBtn.disabled = false;
       }
-    } catch {
-      container.querySelector('#inviteAlert').textContent = 'Erreur lors de l\'invitation. Réessaie.';
+    } catch (err) {
+      const msg = err?.message?.includes('rate limit')
+        ? 'Trop d\'envois. Réessaie dans quelques minutes.'
+        : 'Erreur lors de l\'invitation. Réessaie.';
+      container.querySelector('#inviteAlert').textContent = msg;
       container.querySelector('#inviteAlert').hidden = false;
       submitBtn.disabled = false;
     }

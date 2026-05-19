@@ -18,8 +18,10 @@ window.addEventListener('error', ({ message, filename, lineno }) => {
     </div>`;
 });
 
-import { authStore }                from '../features/auth/AuthStore.js';
-import { router }                   from './router.js';
+import { authStore }                       from '../features/auth/AuthStore.js';
+import { router }                          from './router.js';
+import { acceptPendingInvitations }        from '../features/roadtrips/roadtripService.js';
+import { toast }                           from '../shared/ui/toast.js';
 import { renderHomePage }           from './pages/HomePage.js';
 import { renderLoginPage }          from './pages/LoginPage.js';
 import { renderRegisterPage }       from './pages/RegisterPage.js';
@@ -84,6 +86,18 @@ authStore.subscribe(({ user, loading, needsPasswordReset }) => {
   // Après résolution initiale de la session : déclenche la route active
   if (previousLoading && !loading) {
     previousLoading = false;
+    // Accepte automatiquement les invitations en attente pour cet utilisateur
+    if (user) {
+      acceptPendingInvitations().then(count => {
+        if (count > 0) {
+          toast.success(
+            `${count} invitation${count > 1 ? 's' : ''} acceptée${count > 1 ? 's' : ''} — `
+            + `de nouveau${count > 1 ? 'x' : ''} road trip${count > 1 ? 's' : ''} dans ton dashboard.`
+          );
+          router.navigate('dashboard');
+        }
+      }).catch(() => { /* silencieux */ });
+    }
     window.dispatchEvent(new Event('hashchange'));
     return;
   }
