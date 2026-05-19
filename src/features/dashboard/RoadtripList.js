@@ -47,7 +47,11 @@ export function renderListError(container, message) {
  * Rend la liste des roadtrips.
  * @param {HTMLElement} container
  * @param {Roadtrip[]}  trips
- * @param {{ onDelete: (id: string) => void, onShare: (id: string) => void }} handlers
+ * @param {{
+ *   onDelete: (id: string) => void,
+ *   onShare:  (id: string) => void,
+ *   onEdit:   (id: string, title: string, desc: string) => void,
+ * }} handlers
  */
 export function renderList(container, trips, handlers) {
   if (!trips.length) { renderListEmpty(container); return; }
@@ -62,5 +66,7 @@ export function renderList(container, trips, handlers) {
     if (!btn) return;
     if (btn.dataset.action === 'delete') handlers.onDelete(btn.dataset.id);
     if (btn.dataset.action === 'share')  handlers.onShare?.(btn.dataset.id);
+    if (btn.dataset.action === 'edit')
+      handlers.onEdit?.(btn.dataset.id, btn.dataset.title, btn.dataset.desc);
   });
 }

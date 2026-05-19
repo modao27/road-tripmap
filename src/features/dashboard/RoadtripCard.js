@@ -51,6 +51,10 @@ export function renderRoadtripCard(trip, index) {
         <a class="btn btn--primary btn--sm" href="map.html?map=${trip.id}">
           Ouvrir →
         </a>
+        <button class="btn btn--icon" data-action="edit" data-id="${trip.id}"
+                data-title="${trip.title.replace(/"/g, '&quot;')}"
+                data-desc="${(trip.description || '').replace(/"/g, '&quot;')}"
+                title="Renommer" aria-label="Modifier ${trip.title}">✏️</button>
         <button class="btn btn--icon" data-action="share" data-id="${trip.id}"
                 title="Copier le lien" aria-label="Partager ${trip.title}">🔗</button>
         <button class="btn btn--icon" data-action="delete" data-id="${trip.id}"
