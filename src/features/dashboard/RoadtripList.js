@@ -51,6 +51,7 @@ export function renderListError(container, message) {
  *   onDelete: (id: string) => void,
  *   onShare:  (id: string) => void,
  *   onEdit:   (id: string, title: string, desc: string) => void,
+ *   onInvite: (id: string) => void,
  * }} handlers
  */
 export function renderList(container, trips, handlers) {
@@ -68,5 +69,6 @@ export function renderList(container, trips, handlers) {
     if (btn.dataset.action === 'share')  handlers.onShare?.(btn.dataset.id);
     if (btn.dataset.action === 'edit')
       handlers.onEdit?.(btn.dataset.id, btn.dataset.title, btn.dataset.desc);
+    if (btn.dataset.action === 'invite') handlers.onInvite?.(btn.dataset.id);
   });
 }

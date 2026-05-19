@@ -4,7 +4,7 @@
 
 import { authStore }                                  from '../../features/auth/AuthStore.js';
 import { signOut }                                    from '../../features/auth/authService.js';
-import { listRoadtrips, createRoadtrip, deleteRoadtrip, updateRoadtrip } from '../../features/roadtrips/roadtripService.js';
+import { listRoadtrips, createRoadtrip, deleteRoadtrip, updateRoadtrip, inviteMember } from '../../features/roadtrips/roadtripService.js';
 import { renderList, renderListLoading, renderListError } from '../../features/dashboard/RoadtripList.js';
 import { toast }                                      from '../../shared/ui/toast.js';
 import { router }                                     from '../router.js';
@@ -75,6 +75,30 @@ export function renderDashboardPage(container) {
       </div>
     </div>
 
+    <!-- Modale invitation membre -->
+    <div class="modal-backdrop" id="inviteBackdrop" hidden>
+      <div class="modal modal--sm" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
+        <h2 class="modal__title" id="inviteTitle">Inviter un membre</h2>
+        <p class="modal__body">Entre l'email du compte Road Trip Map à inviter.</p>
+
+        <div id="inviteAlert"   class="alert alert--error"   hidden role="alert"></div>
+        <div id="inviteSuccess" class="alert alert--success" hidden role="status"></div>
+
+        <form class="modal__form" id="inviteForm" novalidate>
+          <label class="form-field">
+            <span class="form-field__label">Email *</span>
+            <input class="form-field__input" type="email" id="inviteEmail"
+                   placeholder="collaborateur@exemple.fr" required>
+            <span class="form-field__error" id="inviteEmailErr"></span>
+          </label>
+          <div class="modal__actions">
+            <button class="btn btn--ghost" type="button" id="inviteCancel">Fermer</button>
+            <button class="btn btn--primary" type="submit" id="inviteSubmit">Inviter</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Modale édition road trip -->
     <div class="modal-backdrop" id="editTripBackdrop" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTripTitle">
@@ -116,17 +140,19 @@ export function renderDashboardPage(container) {
 
   const listWrap            = container.querySelector('#tripList');
   const newTripBackdrop     = container.querySelector('#newTripBackdrop');
+  const inviteBackdrop      = container.querySelector('#inviteBackdrop');
   const editTripBackdrop    = container.querySelector('#editTripBackdrop');
   const deleteTripBackdrop  = container.querySelector('#deleteTripBackdrop');
   let   pendingDeleteId     = null;
   let   pendingEditId       = null;
+  let   pendingInviteId     = null;
 
   // ── Chargement ────────────────────────────────────────────────────────────
   async function loadTrips() {
     renderListLoading(listWrap);
     try {
       const trips = await listRoadtrips();
-      renderList(listWrap, trips, { onDelete: openDeleteModal, onShare: shareTrip, onEdit: openEditModal });
+      renderList(listWrap, trips, { onDelete: openDeleteModal, onShare: shareTrip, onEdit: openEditModal, onInvite: openInviteModal });
     } catch (err) {
       renderListError(listWrap, 'Impossible de charger les road trips.');
       listWrap.querySelector('#listRetry')?.addEventListener('click', loadTrips);
@@ -184,6 +210,59 @@ export function renderDashboardPage(container) {
       const alert = container.querySelector('#newTripAlert');
       alert.textContent = 'Erreur lors de la création. Réessaie.';
       alert.hidden = false;
+    }
+  });
+
+  // ── Invitation membre ─────────────────────────────────────────────────────
+  function openInviteModal(id) {
+    pendingInviteId = id;
+    container.querySelector('#inviteEmail').value = '';
+    container.querySelector('#inviteEmailErr').textContent = '';
+    container.querySelector('#inviteAlert').hidden   = true;
+    container.querySelector('#inviteSuccess').hidden = true;
+    container.querySelector('#inviteForm').hidden    = false;
+    container.querySelector('#inviteSubmit').disabled = false;
+    inviteBackdrop.hidden = false;
+    container.querySelector('#inviteEmail').focus();
+  }
+
+  container.querySelector('#inviteCancel').addEventListener('click', () => {
+    pendingInviteId = null;
+    inviteBackdrop.hidden = true;
+  });
+
+  inviteBackdrop.addEventListener('click', e => {
+    if (e.target === inviteBackdrop) { pendingInviteId = null; inviteBackdrop.hidden = true; }
+  });
+
+  container.querySelector('#inviteForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = container.querySelector('#inviteEmail').value.trim();
+    const emailErr = container.querySelector('#inviteEmailErr');
+    if (!email) { emailErr.textContent = 'Email requis.'; return; }
+    emailErr.textContent = '';
+
+    const submitBtn = container.querySelector('#inviteSubmit');
+    submitBtn.disabled = true;
+    container.querySelector('#inviteAlert').hidden   = true;
+    container.querySelector('#inviteSuccess').hidden = true;
+
+    try {
+      const { ok, message } = await inviteMember(pendingInviteId, email);
+      if (ok) {
+        container.querySelector('#inviteSuccess').textContent = message;
+        container.querySelector('#inviteSuccess').hidden = false;
+        container.querySelector('#inviteForm').hidden = true;
+        loadTrips();
+      } else {
+        container.querySelector('#inviteAlert').textContent = message;
+        container.querySelector('#inviteAlert').hidden = false;
+        submitBtn.disabled = false;
+      }
+    } catch {
+      container.querySelector('#inviteAlert').textContent = 'Erreur lors de l\'invitation. Réessaie.';
+      container.querySelector('#inviteAlert').hidden = false;
+      submitBtn.disabled = false;
     }
   });
 
@@ -274,10 +353,12 @@ export function renderDashboardPage(container) {
   document.addEventListener('keydown', function onKey(e) {
     if (e.key !== 'Escape') return;
     newTripBackdrop.hidden    = true;
+    inviteBackdrop.hidden     = true;
     editTripBackdrop.hidden   = true;
     deleteTripBackdrop.hidden = true;
-    pendingDeleteId = null;
-    pendingEditId   = null;
+    pendingDeleteId  = null;
+    pendingEditId    = null;
+    pendingInviteId  = null;
     // Nettoyage quand la page est déchargée
     if (!document.contains(container)) document.removeEventListener('keydown', onKey);
   });

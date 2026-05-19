@@ -196,6 +196,58 @@ export async function deleteRoadtrip(id) {
   localRemove(id);
 }
 
+// ── Collaboration ─────────────────────────────────────────────────────────────
+
+/**
+ * Invite un utilisateur comme membre d'un roadtrip.
+ * @param {string} roadtripId
+ * @param {string} email
+ * @param {'editor'|'viewer'} [role='editor']
+ * @returns {Promise<{ ok: boolean, message: string }>}
+ */
+export async function inviteMember(roadtripId, email, role = 'editor') {
+  // Cherche le profil par email via la fonction RPC
+  const { data: profiles, error: lookupErr } = await supabase
+    .rpc('get_profile_by_email', { p_email: email });
+  if (lookupErr) throw lookupErr;
+  if (!profiles?.length) return { ok: false, message: 'Aucun compte trouvé pour cet email.' };
+
+  const userId = profiles[0].id;
+  const { error } = await supabase
+    .from('roadtrip_members')
+    .upsert({ roadtrip_id: roadtripId, user_id: userId, role },
+             { onConflict: 'roadtrip_id,user_id' });
+  if (error) throw error;
+  return { ok: true, message: `${profiles[0].display_name || email} a rejoint le roadtrip.` };
+}
+
+/**
+ * Liste les membres d'un roadtrip.
+ * @param {string} roadtripId
+ */
+export async function listMembers(roadtripId) {
+  const { data, error } = await supabase
+    .from('roadtrip_members')
+    .select('user_id, role, profiles(display_name, email)')
+    .eq('roadtrip_id', roadtripId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Retire un membre d'un roadtrip.
+ * @param {string} roadtripId
+ * @param {string} userId
+ */
+export async function removeMember(roadtripId, userId) {
+  const { error } = await supabase
+    .from('roadtrip_members')
+    .delete()
+    .eq('roadtrip_id', roadtripId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
 // ── Helpers slug ──────────────────────────────────────────────────────────────
 
 function slugify(text) {
