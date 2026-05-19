@@ -148,7 +148,6 @@ export async function createRoadtripPin(roadtripId, pin) {
       roadtrip_id:  roadtripId,
       created_by:   _getCurrentUserId(),
       title:        pin.name,
-      category:     pin.category || 'nature',
       lat:          pin.lat,
       lng:          pin.lng,
       description:  pin.description || '',
@@ -176,7 +175,6 @@ export async function upsertRoadtripPin(roadtripId, pin) {
       headers,
       body: JSON.stringify({
         title:       pin.name,
-        category:    pin.category,
         lat:         pin.lat,
         lng:         pin.lng,
         description: pin.description || '',
