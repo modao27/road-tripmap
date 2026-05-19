@@ -19,10 +19,11 @@ import { getProfile }   from './profileService.js';
  * @property {UserProfile|null} profile
  * @property {boolean}          loading
  * @property {string|null}      error
+ * @property {boolean}          needsPasswordReset
  */
 
 /** @type {AuthState} */
-let state = { user: null, profile: null, loading: true, error: null };
+let state = { user: null, profile: null, loading: true, error: null, needsPasswordReset: false };
 
 /** @type {Set<(state: AuthState) => void>} */
 const subscribers = new Set();
@@ -46,13 +47,23 @@ async function loadProfile(user) {
 
 onAuthChange(async (user, event) => {
   if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-    setState({ user: user ?? null, loading: false, error: null });
+    setState({ user: user ?? null, loading: false, error: null, needsPasswordReset: false });
     if (user) await loadProfile(user);
     return;
   }
 
   if (event === 'SIGNED_OUT') {
-    setState({ user: null, profile: null, loading: false, error: null });
+    setState({ user: null, profile: null, loading: false, error: null, needsPasswordReset: false });
+    return;
+  }
+
+  if (event === 'PASSWORD_RECOVERY') {
+    setState({ user: user ?? null, loading: false, error: null, needsPasswordReset: true });
+    return;
+  }
+
+  if (event === 'USER_UPDATED') {
+    setState({ user: user ?? null, loading: false, needsPasswordReset: false });
     return;
   }
 
@@ -77,6 +88,7 @@ export const authStore = {
 
   setError(error)  { setState({ error }); },
   clearError()     { setState({ error: null }); },
+  clearPasswordReset() { setState({ needsPasswordReset: false }); },
 
   async refreshProfile() {
     if (state.user) await loadProfile(state.user);

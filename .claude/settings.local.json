@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:franceviaferrata.fr)",
+      "WebFetch(domain:www.laviaferrata.net)",
+      "WebFetch(domain:www.viaferrata-fr.net)",
+      "WebFetch(domain:viafer.play.free.fr)",
+      "WebFetch(domain:www.jura-tourism.com)",
+      "WebFetch(domain:www.doubs.travel)",
+      "WebFetch(domain:www.passionviaferrata.fr)",
+      "WebFetch(domain:monbeaupays.fr)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: services Supabase — roadtripService + pinService nouveau schéma *)"
+    ]
+  }
+}

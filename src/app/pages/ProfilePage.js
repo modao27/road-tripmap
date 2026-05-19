@@ -4,6 +4,7 @@
 
 import { authStore }       from '../../features/auth/AuthStore.js';
 import { upsertProfile }   from '../../features/auth/profileService.js';
+import { signOut }         from '../../features/auth/authService.js';
 import { toast }           from '../../shared/ui/toast.js';
 import { router }          from '../router.js';
 
@@ -75,12 +76,24 @@ export function renderProfilePage(container) {
             </div>
 
           </form>
+
+          <div class="profile-signout">
+            <button class="btn btn--ghost btn--danger-ghost" id="signOutBtn" type="button">
+              ↩ Se déconnecter
+            </button>
+          </div>
+
         </div>
       </main>
     </div>`;
 
   container.querySelector('#backBtn').addEventListener('click', () => {
     router.navigate('dashboard');
+  });
+
+  container.querySelector('#signOutBtn').addEventListener('click', async () => {
+    await signOut();
+    router.navigate('');
   });
 
   // Prévisualisation avatar à la saisie de l'URL

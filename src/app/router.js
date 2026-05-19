@@ -1,6 +1,6 @@
 /**
  * @fileoverview Routeur hash-based SPA.
- * Routes statiques : #/ #/login #/register #/dashboard #/profile
+ * Routes statiques : #/ #/login #/register #/dashboard #/profile #/forgot-password #/reset-password
  * Routes dynamiques : #/roadtrips/:id
  *
  * Usage :
@@ -23,8 +23,10 @@ const STATIC = {
   '':          { component: 'home',      needsAuth: false },
   'login':     { component: 'login',     needsAuth: false },
   'register':  { component: 'register',  needsAuth: false },
-  'dashboard': { component: 'dashboard', needsAuth: true  },
-  'profile':   { component: 'profile',   needsAuth: true  },
+  'dashboard':       { component: 'dashboard',       needsAuth: true  },
+  'profile':         { component: 'profile',         needsAuth: true  },
+  'forgot-password': { component: 'forgot-password', needsAuth: false },
+  'reset-password':  { component: 'reset-password',  needsAuth: true  },
 };
 
 // ── Routes dynamiques (ordre de priorité décroissant) ─────────────────────────

@@ -24,6 +24,7 @@ const ERROR_MESSAGES = {
   'Password should be at least 6 characters': 'Le mot de passe doit contenir au moins 6 caractères.',
   'Signup requires a valid password':   'Mot de passe invalide.',
   'rate limit':                         'Trop de tentatives. Réessaie dans quelques minutes.',
+  'For security purposes':              'Trop de tentatives. Réessaie dans quelques minutes.',
 };
 
 function localizeError(message = '') {
@@ -76,6 +77,32 @@ export async function signOut() {
 export async function getSession() {
   const { data } = await supabase.auth.getSession();
   return data.session ?? null;
+}
+
+/**
+ * Envoie un email de réinitialisation de mot de passe.
+ * L'URL de redirection doit être whitelistée dans Supabase →
+ * Authentication → URL Configuration → Redirect URLs.
+ * @param {string} email
+ * @returns {Promise<{ error: string|null }>}
+ */
+export async function resetPasswordForEmail(email) {
+  const redirectTo = window.location.origin + '/';
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) return { error: localizeError(error.message) };
+  return { error: null };
+}
+
+/**
+ * Met à jour le mot de passe de l'utilisateur connecté.
+ * À appeler uniquement après un événement PASSWORD_RECOVERY.
+ * @param {string} newPassword
+ * @returns {Promise<{ error: string|null }>}
+ */
+export async function updatePassword(newPassword) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: localizeError(error.message) };
+  return { error: null };
 }
 
 /**

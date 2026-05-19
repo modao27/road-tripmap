@@ -37,6 +37,10 @@ export function renderLoginPage(container) {
             <span class="form-field__error" id="loginPwErr"></span>
           </label>
 
+          <p class="auth-card__forgot">
+            <a class="auth-link" href="#/forgot-password">Mot de passe oublié ?</a>
+          </p>
+
           <button class="btn btn--primary btn--full" type="submit" id="loginSubmit">
             Se connecter
           </button>

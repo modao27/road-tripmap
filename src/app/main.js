@@ -24,8 +24,10 @@ import { renderHomePage }           from './pages/HomePage.js';
 import { renderLoginPage }          from './pages/LoginPage.js';
 import { renderRegisterPage }       from './pages/RegisterPage.js';
 import { renderDashboardPage }      from './pages/DashboardPage.js';
-import { renderProfilePage }        from './pages/ProfilePage.js';
-import { renderRoadtripEditorPage } from './pages/RoadtripEditorPage.js';
+import { renderProfilePage }         from './pages/ProfilePage.js';
+import { renderForgotPasswordPage }  from './pages/ForgotPasswordPage.js';
+import { renderResetPasswordPage }   from './pages/ResetPasswordPage.js';
+import { renderRoadtripEditorPage }  from './pages/RoadtripEditorPage.js';
 
 const app = document.getElementById('app');
 
@@ -35,8 +37,10 @@ const PAGES = {
   'login':     renderLoginPage,
   'register':  renderRegisterPage,
   'dashboard': renderDashboardPage,
-  'profile':   renderProfilePage,
-  'roadtrip':  renderRoadtripEditorPage,
+  'profile':         renderProfilePage,
+  'forgot-password': renderForgotPasswordPage,
+  'reset-password':  renderResetPasswordPage,
+  'roadtrip':        renderRoadtripEditorPage,
 };
 
 function renderLoadingScreen() {
@@ -71,13 +75,15 @@ router.onNavigate(({ path, component, params, needsAuth }) => {
 
 let previousLoading = true;
 
-authStore.subscribe(({ user, loading }) => {
+authStore.subscribe(({ user, loading, needsPasswordReset }) => {
   if (loading) { renderLoadingScreen(); return; }
+
+  // Après réception du lien de réinitialisation → page dédiée
+  if (needsPasswordReset) { router.navigate('reset-password'); return; }
 
   // Après résolution initiale de la session : déclenche la route active
   if (previousLoading && !loading) {
     previousLoading = false;
-    // hashchange a déjà été dispatché par DOMContentLoaded → re-dispatch
     window.dispatchEvent(new Event('hashchange'));
     return;
   }
@@ -85,7 +91,7 @@ authStore.subscribe(({ user, loading }) => {
   previousLoading = false;
   const path = router.currentPath();
 
-  if (user && ['', 'login', 'register'].includes(path)) {
+  if (user && ['', 'login', 'register', 'forgot-password'].includes(path)) {
     router.navigate('dashboard');
   }
   if (!user && path === 'dashboard') {
