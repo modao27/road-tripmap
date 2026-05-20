@@ -361,11 +361,13 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
           ? `<div class="op-details">${details.map(d => `<span class="op-detail">${d}</span>`).join('')}</div>`
           : '';
 
-        const osmName    = tags.name || tags['name:fr'] || null;
-        const displayName = tags.description || tags.note || name;
-        const isVf        = catKey === 'via_ferrata' && osmName;
-        const googleLink  = osmName
-          ? `https://www.google.com/search?q=site:viaferrata-fr.net+${encodeURIComponent(osmName)}`
+        // Pour la recherche sur viaferrata-fr.net :
+        // les noeuds OSM ont souvent description mais pas name
+        const osmSearchName = tags.name || tags['name:fr'] || tags.description || tags.note || null;
+        const displayName   = tags.description || tags.note || name;
+        const isVf          = catKey === 'via_ferrata' && osmSearchName && osmSearchName !== cat.label;
+        const googleLink    = isVf
+          ? `https://www.google.com/search?q=site:viaferrata-fr.net+${encodeURIComponent(osmSearchName)}`
           : null;
 
         const marker = L.marker([el.lat, el.lon], { icon, title: displayName })
@@ -399,7 +401,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               const res = await fetch(VF_INFO_URL, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-                body:    JSON.stringify({ name: osmName }),
+                body:    JSON.stringify({ name: osmSearchName }),
               });
               console.log('[vf] status', res.status);
               const data = await res.json();

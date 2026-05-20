@@ -76,6 +76,18 @@ function toSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+// ── Nettoyage du nom pour la recherche ───────────────────────────────────────
+// OSM stocke souvent la description complète comme "name" ou dans description.
+// Ex: "Via Ferrata La Roche au Dade: Itinéraire Ludique" → "La Roche au Dade"
+function cleanSearchName(raw: string): string {
+  let s = raw.trim();
+  // Prend ce qui est avant le ":" (retire le sous-titre)
+  s = s.split(":")[0].trim();
+  // Supprime le préfixe "Via Ferrata" / "Via-Ferrata" (insensible à la casse)
+  s = s.replace(/^via[\s-]+ferrata[\s-]*/i, "").trim();
+  return s || raw.trim();
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -114,10 +126,11 @@ serve(async (req) => {
   }
 
   // ── Recherche sur le site ────────────────────────────────────────────────
-  const searchUrl =
-    `${SITE}/rechercher.php?action=chercher&search=${encodeURIComponent(name)}`;
+  const searchTerm = cleanSearchName(name);
+  const searchUrl  =
+    `${SITE}/rechercher.php?action=chercher&search=${encodeURIComponent(searchTerm)}`;
 
-  console.log('[vf] search:', searchUrl);
+  console.log('[vf] search term:', searchTerm, '→', searchUrl);
 
   let searchHtml: string;
   try { searchHtml = await fetchPage(searchUrl); }
