@@ -99,16 +99,31 @@ function coordsToDept(lat: number, lng: number): number | null {
 }
 
 // ── Extraction champs label/valeur sur la page détail ─────────────────────────
+function normalizeKey(s: string): string {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s]/g, "").trim()
+    .replace(/\s+/g, "_");
+}
+
 function parseDetailRows(html: string): Record<string, string> {
   const rows: Record<string, string> = {};
-  const re = /class="label"[^>]*>\s*([^<]+?)\s*<\/div>\s*<p[^>]*>\s*([^<]+?)\s*<\/p>/gi;
+  // Tolère les tags internes dans label et valeur
+  const re = /<div\s+class="label"[^>]*>([\s\S]*?)<\/div>\s*<p[^>]*>([\s\S]*?)<\/p>/gi;
   for (const m of html.matchAll(re)) {
-    const key = m[1].trim().toLowerCase()
-      .normalize("NFD").replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9\s]/g, "").trim()
-      .replace(/\s+/g, "_");
-    rows[key] = m[2].trim();
+    const rawLabel = m[1].replace(/<[^>]+>/g, "").trim();
+    const rawValue = m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (!rawLabel || !rawValue) continue;
+
+    // Gère "Nombre de voies : 19" → key = "nombre_de_voies", count stocké séparément
+    const countMatch = rawLabel.match(/^(.+?)\s*:\s*(\d+)\s*$/);
+    const cleanLabel = countMatch ? countMatch[1] : rawLabel;
+    const key = normalizeKey(cleanLabel);
+
+    rows[key] = rawValue;
+    if (countMatch) rows[`${key}_count`] = countMatch[2];
   }
+  console.log("[climbing] parsed keys:", Object.keys(rows).join(", "));
   return rows;
 }
 
@@ -221,9 +236,9 @@ serve(async (req: Request) => {
     url:         bestUrl!,
     site_type:   fields["type"]                           ?? null,
     difficulty:  fields["nombre_de_voies"]               ?? null,
-    num_routes:  fields["nombre_de_voies"]
-                   ? fields["nombre_de_voies"].match(/\d+/)?.[0] ?? null
-                   : null,
+    num_routes:  fields["nombre_de_voies_count"]
+                   ?? fields["nombre_de_voies"]?.match(/\d+/)?.[0]
+                   ?? null,
     height_min:  fields["hauteur_minimale"]               ?? null,
     height_max:  fields["hauteur_maximale"]               ?? null,
     rock_type:   fields["rocher"]                         ?? null,
