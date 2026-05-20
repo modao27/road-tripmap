@@ -14,7 +14,7 @@ import { fetchUserPins, fetchOverrides,
          fetchRoadtripPins, fetchRoadtripInfo,
          updateRoadtripCenter, createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin,
-         updatePinOrder, getCurrentUserId } from './supabase.js';
+         updatePinOrder, getCurrentUserId, sessionReady } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -97,6 +97,10 @@ async function init() {
   }
 
   // ── 3b. Pins du roadtrip (table 'pins', si ?map= est un UUID) ────────────
+  // Attend que le token soit rafraîchi avant les appels authentifiés
+  // (évite la race condition sur mobile : JWT expiré lu en cache sync au démarrage)
+  if (isRoadtripUUID) await sessionReady;
+
   let roadtripPinIds = [];
   let roadtripInfo   = null;
   if (!isSharedMap && mapParam && isUUID(mapParam)) {

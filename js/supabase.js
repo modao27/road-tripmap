@@ -43,8 +43,9 @@ _sessionClient.auth.onAuthStateChange((_event, session) => {
   _cachedToken = session?.access_token || SUPABASE_ANON_KEY;
 });
 
-// Résolution initiale (refresh si le token est expiré)
-_sessionClient.auth.getSession().then(({ data: { session } }) => {
+// Résolution initiale (refresh si le token est expiré).
+// Exporté pour permettre à app.js d'attendre la session avant les appels auth-requireds.
+export const sessionReady = _sessionClient.auth.getSession().then(({ data: { session } }) => {
   if (session?.access_token) _cachedToken = session.access_token;
 });
 
