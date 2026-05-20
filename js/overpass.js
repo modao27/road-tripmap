@@ -1,5 +1,8 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
+
+const OVERPASS_URL  = 'https://overpass-api.de/api/interpreter';
+const VF_INFO_URL   = `${SUPABASE_URL}/functions/v1/via-ferrata-info`;
 
 const RADIUS_DEFAULT_KM = 10;
 const RADIUS_MIN_KM     = 1;
@@ -146,6 +149,44 @@ async function runQuery(selectedCats, center, radiusMeters) {
   });
   if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
   return res.json();
+}
+
+// ── Cotations via ferrata ─────────────────────────────────────────────────────
+const VF_GRADES = {
+  'F':   { label: 'Facile',                color: '#2e7d32' },
+  'PD':  { label: 'Peu Difficile',         color: '#1565c0' },
+  'AD':  { label: 'Assez Difficile',       color: '#e65100' },
+  'D':   { label: 'Difficile',             color: '#bf360c' },
+  'TD':  { label: 'Très Difficile',        color: '#b71c1c' },
+  'ED':  { label: 'Extrêmement Difficile', color: '#1a1a1a' },
+  'ABO': { label: 'Abominable',            color: '#000000' },
+};
+
+function renderVfEnriched(data) {
+  const firstGrade = data.difficulty?.match(/\b(ABO|ED|TD|D|AD|PD|F)\b/i)?.[1]?.toUpperCase();
+  const grade      = firstGrade ? VF_GRADES[firstGrade] : null;
+
+  const stats = [
+    data.duration       && `⏱ ${esc(data.duration)}`,
+    data.length_m       && `📏 ${esc(data.length_m)}`,
+    data.elevation_gain && `⬆ ${esc(data.elevation_gain)}`,
+    data.start_altitude && `🏔 Départ ${esc(data.start_altitude)}`,
+    data.price          && `💰 ${esc(data.price)}`,
+  ].filter(Boolean);
+
+  const desc = data.description?.trim();
+
+  return `
+    <div class="vf-enriched-data">
+      ${grade ? `
+        <div class="vf-grade" style="--gc:${grade.color}">
+          <span class="vf-grade-badge">${esc(data.difficulty)}</span>
+          <span class="vf-grade-label">${grade.label}</span>
+        </div>` : data.difficulty ? `<p class="vf-grade-plain">${esc(data.difficulty)}</p>` : ''}
+      ${stats.length ? `<div class="vf-stats">${stats.map(s => `<span class="vf-stat">${s}</span>`).join('')}</div>` : ''}
+      ${desc ? `<p class="vf-desc">${esc(desc.length > 320 ? desc.slice(0, 320) + '…' : desc)}</p>` : ''}
+      <a class="vf-site-link" href="${esc(data.url)}" target="_blank" rel="noopener noreferrer">📋 Fiche complète — viaferrata-fr.net</a>
+    </div>`;
 }
 
 // ── Module principal ──────────────────────────────────────────────────────────
@@ -320,7 +361,13 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
           ? `<div class="op-details">${details.map(d => `<span class="op-detail">${d}</span>`).join('')}</div>`
           : '';
 
+        const osmName    = tags.name || tags['name:fr'] || null;
         const displayName = tags.description || tags.note || name;
+        const isVf        = catKey === 'via_ferrata' && osmName;
+        const googleLink  = osmName
+          ? `https://www.google.com/search?q=site:viaferrata-fr.net+${encodeURIComponent(osmName)}`
+          : null;
+
         const marker = L.marker([el.lat, el.lon], { icon, title: displayName })
           .bindPopup(`
             <article class="popup" style="--color:${cat.color}">
@@ -328,7 +375,9 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               <div class="popup-category"><span>${cat.icon}</span>${esc(cat.label)}</div>
               ${name !== cat.label && (tags.description || tags.note) ? `<p class="op-osm-name">${esc(name)}</p>` : ''}
               ${detailsHtml}
+              ${isVf ? `<div class="vf-enriched" id="vf-${el.id}"><p class="vf-loading">⟳ Chargement des détails…</p></div>` : ''}
               ${website ? `<a class="osm-link" href="${encodeURI(website)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
+              ${googleLink ? `<a class="osm-link" href="${esc(googleLink)}" target="_blank" rel="noopener noreferrer">🔍 Chercher sur viaferrata-fr.net</a>` : ''}
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
               <div class="op-add-row">
                 <select class="op-cat-select" data-node-ref="${el.id}">${catSelectOptions}</select>
@@ -337,6 +386,30 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
             </article>
           `)
           .addTo(resultsLayer);
+
+        // Enrichissement via ferrata — chargé à l'ouverture de la popup
+        if (isVf) {
+          const nodeRef = el.id;
+          marker.on('popupopen', async () => {
+            const container = document.getElementById(`vf-${nodeRef}`);
+            if (!container || container.dataset.loaded) return;
+            container.dataset.loaded = 'true';
+            try {
+              const res = await fetch(VF_INFO_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+                body:    JSON.stringify({ name: osmName }),
+              });
+              const data = await res.json();
+              container.innerHTML = data?.error
+                ? '<p class="vf-not-found">Fiche introuvable sur viaferrata-fr.net</p>'
+                : renderVfEnriched(data);
+            } catch {
+              container.innerHTML = '';
+            }
+            marker.getPopup()?.update();
+          });
+        }
 
         markersByNodeId.set(el.id, marker);
 

@@ -1261,6 +1261,101 @@ mark.search-highlight {
   line-height: 1.45;
 }
 
+/* ── Enrichissement via ferrata (viaferrata-fr.net) ──────────────────── */
+.vf-enriched {
+  margin: 8px 0;
+}
+
+.vf-loading {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 4px 0;
+}
+
+@keyframes vf-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vf-enriched-data {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+  padding: 8px 10px;
+  background: rgba(145, 45, 45, 0.05);
+  border-left: 3px solid var(--gc, #912d2d);
+  border-radius: 0 8px 8px 0;
+}
+
+.vf-grade {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.vf-grade-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gc, #912d2d);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.vf-grade-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gc, #912d2d);
+}
+
+.vf-grade-plain {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.vf-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.vf-stat {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: rgba(28, 37, 32, 0.06);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.vf-desc {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.vf-site-link {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #912d2d;
+  text-decoration: none;
+  margin-top: 2px;
+}
+
+.vf-site-link:hover { text-decoration: underline; }
+
+.vf-not-found {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+}
+
 .op-osm-name {
   margin: -4px 0 8px;
   font-size: 0.78rem;
