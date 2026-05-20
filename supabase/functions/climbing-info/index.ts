@@ -123,7 +123,6 @@ function parseDetailRows(html: string): Record<string, string> {
     rows[key] = rawValue;
     if (countMatch) rows[`${key}_count`] = countMatch[2];
   }
-  console.log("[climbing] parsed keys:", Object.keys(rows).join(", "));
   return rows;
 }
 
@@ -190,8 +189,7 @@ serve(async (req: Request) => {
       rows.push({ url, siteName: tdTexts[0], location: tdTexts[1] ?? "" });
     }
   }
-  console.log("[climbing] listing rows:", rows.length,
-    rows.slice(0, 3).map((r) => r.siteName).join(", "));
+  console.log("[climbing] listing rows:", rows.length);
 
   if (!rows.length) {
     return new Response(JSON.stringify({ error: "listing_parse_failed" }), {
@@ -247,7 +245,6 @@ serve(async (req: Request) => {
   }
 
   const fields = parseDetailRows(detailHtml);
-  console.log("[climbing] fields keys:", Object.keys(fields).join(", "));
 
   const result = {
     cache_key:   cacheKey,
