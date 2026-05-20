@@ -397,7 +397,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
             if (!container || container.dataset.loaded) return;
             container.dataset.loaded = 'true';
             try {
-              console.log('[vf] fetch', osmName, VF_INFO_URL);
+              console.log('[vf] fetch', osmSearchName, VF_INFO_URL);
               const res = await fetch(VF_INFO_URL, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
