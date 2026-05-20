@@ -395,17 +395,23 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
             if (!container || container.dataset.loaded) return;
             container.dataset.loaded = 'true';
             try {
+              console.log('[vf] fetch', osmName, VF_INFO_URL);
               const res = await fetch(VF_INFO_URL, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
                 body:    JSON.stringify({ name: osmName }),
               });
+              console.log('[vf] status', res.status);
               const data = await res.json();
-              container.innerHTML = data?.error
-                ? '<p class="vf-not-found">Fiche introuvable sur viaferrata-fr.net</p>'
-                : renderVfEnriched(data);
-            } catch {
-              container.innerHTML = '';
+              console.log('[vf] data', data);
+              if (data?.error) {
+                container.innerHTML = `<p class="vf-not-found">viaferrata-fr.net : ${esc(data.error)}</p>`;
+              } else {
+                container.innerHTML = renderVfEnriched(data);
+              }
+            } catch (err) {
+              console.error('[vf] erreur fetch', err);
+              container.innerHTML = `<p class="vf-not-found">Erreur : ${esc(String(err))}</p>`;
             }
             marker.getPopup()?.update();
           });
