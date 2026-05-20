@@ -329,7 +329,6 @@ async function init() {
   const paneDiscover   = document.getElementById('tabPaneDiscover');
 
   function switchTab(tab) {
-    if (tab !== 'places') console.trace('[switchTab]', tab);
     const active = { places: tab === 'places', route: tab === 'route', discover: tab === 'discover' };
     tabPlacesBtn?.classList.toggle('active', active.places);
     tabPlacesBtn?.setAttribute('aria-selected', String(active.places));
