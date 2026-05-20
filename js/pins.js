@@ -6,15 +6,44 @@ function openInOSM(lat, lng, zoom = 14) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
 }
 
+// Rendu de la description : chips emojis, URL fiche, texte libre
+function renderDescription(desc) {
+  if (!desc) return '';
+  const lines = desc.split('\n').map(l => l.trim()).filter(Boolean);
+  let chipsHtml = '';
+  let vfUrl = null;
+  const textLines = [];
+
+  for (const line of lines) {
+    // URL fiche viaferrata-fr.net : 🔗 https://...
+    const urlMatch = line.match(/^🔗\s*(https?:\/\/\S+)$/);
+    if (urlMatch) { vfUrl = urlMatch[1]; continue; }
+
+    // Ligne de stats emoji (via ferrata enrichie) — séparées par double espace
+    if (/^[🎯⏱📏⬆🏔💰🏠🛏🚻💧✅🔒❄🧭🚿]/.test(line)) {
+      const chips = line.split(/\s{2,}/).filter(Boolean);
+      chipsHtml += `<div class="popup-chips">${chips.map(c => `<span class="popup-chip">${c}</span>`).join('')}</div>`;
+    } else {
+      textLines.push(line);
+    }
+  }
+
+  let out = chipsHtml;
+  if (textLines.length) out += `<p class="popup-desc-text">${textLines.join(' ')}</p>`;
+  if (vfUrl) out += `<a class="osm-link popup-vf-link" href="${vfUrl}" target="_blank" rel="noopener">📋 Fiche complète — viaferrata-fr.net</a>`;
+  return out;
+}
+
 export function popupHtml(place, categories, placeOverrides, isInRoute = false) {
-  const category = categories[place.category] || categories.water;
+  const category    = categories[place.category] || categories.water;
   const isOverridden = !place.userCreated && !!placeOverrides[place.id];
+
   const actions = `<div class="popup-user-actions">
-      <button class="popup-edit" data-edit-id="${place.id}" type="button">Modifier</button>
+      <button class="popup-edit"   data-edit-id="${place.id}"   type="button">Modifier</button>
       ${place.userCreated
         ? `<button class="popup-delete" data-delete-id="${place.id}" type="button">Supprimer</button>`
         : isOverridden
-          ? `<button class="popup-reset" data-reset-id="${place.id}" type="button">Réinitialiser</button>`
+          ? `<button class="popup-reset"  data-reset-id="${place.id}"  type="button">Réinitialiser</button>`
           : ''}
     </div>`;
 
@@ -22,10 +51,10 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
     <article class="popup" style="--color:${category.color}">
       <h2>${place.name}</h2>
       <div class="popup-category"><span>${category.icon}</span>${category.label}</div>
-      ${place.description ? `<p>${place.description}</p>` : ''}
-      ${place.interest ? `<p><b>Intérêt :</b> ${place.interest}</p>` : ''}
-      ${place.tip ? `<p><b>Conseil :</b> ${place.tip}</p>` : ''}
-      ${place.mood ? `<p><b>Ambiance :</b> ${place.mood}</p>` : ''}
+      ${renderDescription(place.description)}
+      ${place.interest ? `<div class="popup-section"><p class="popup-section-label">Intérêt</p><p class="popup-section-body">${place.interest}</p></div>` : ''}
+      ${place.tip      ? `<div class="popup-section"><p class="popup-section-label">Conseil</p><p class="popup-section-body">${place.tip}</p></div>`      : ''}
+      ${place.mood     ? `<p class="popup-mood">${place.mood}</p>`                                                                                          : ''}
       <a class="osm-link" href="${openInOSM(place.lat, place.lng)}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
       <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${place.id}" type="button">
         ${isInRoute ? "✓ Dans l'itinéraire" : "➕ Ajouter à l'itinéraire"}

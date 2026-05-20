@@ -418,6 +418,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
                     data.elevation_gain && `⬆ ${data.elevation_gain}`,
                     data.start_altitude && `🏔 Départ ${data.start_altitude}`,
                     data.price          && `💰 ${data.price}`,
+                    data.url            && `\n🔗 ${data.url}`,
                     data.description    && `\n${data.description}`,
                   ].filter(Boolean).join('  ');
                   payloadsByNodeId.set(el.id, { ...existing, description: enrichedDesc });
