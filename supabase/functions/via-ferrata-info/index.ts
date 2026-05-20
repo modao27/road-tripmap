@@ -143,27 +143,19 @@ serve(async (req) => {
 
   console.log('[vf] search HTML length:', searchHtml.length);
 
-  // Regex large : capture href relatif ou absolu contenant via-ferrata-[ID]
-  const linkMatch = searchHtml.match(/href="([^"]*via-ferrata-\d+[^"]+\.html)"/i);
+  // Cherche le pattern via-ferrata-[ID]-[slug].html — guillemets simples ou doubles
+  const linkMatch = searchHtml.match(/via-ferrata-(\d+)-([^'" <>\r\n]+?)\.html/i);
 
   if (!linkMatch) {
-    // Logue un extrait pour diagnostiquer le format réel des liens
-    const snippet = searchHtml.slice(0, 3000).replace(/\s+/g, ' ');
-    console.warn('[vf] no link found. HTML snippet:', snippet);
+    // Logue les 8000 premiers caractères pour voir la structure réelle
+    console.warn('[vf] no link found. Full HTML (8000):', searchHtml.slice(0, 8000).replace(/\s+/g, ' '));
     return new Response(JSON.stringify({ error: "not_found" }), {
       status: 404, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 
-  console.log('[vf] link found:', linkMatch[1]);
-
-  // Construit l'URL absolue quelle que soit la forme du href
-  const href    = linkMatch[1];
-  const pageUrl = href.startsWith('http')
-    ? href
-    : href.startsWith('/')
-      ? `${SITE}${href}`
-      : `${SITE}/${href}`;
+  const pageUrl = `${SITE}/via-ferrata-${linkMatch[1]}-${linkMatch[2]}.html`;
+  console.log('[vf] page URL:', pageUrl);
 
   // ── Page détail ──────────────────────────────────────────────────────────
   let detailHtml: string;
