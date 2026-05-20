@@ -117,23 +117,40 @@ serve(async (req) => {
   const searchUrl =
     `${SITE}/rechercher.php?action=chercher&search=${encodeURIComponent(name)}`;
 
+  console.log('[vf] search:', searchUrl);
+
   let searchHtml: string;
   try { searchHtml = await fetchPage(searchUrl); }
-  catch {
+  catch (e) {
+    console.error('[vf] fetch search failed:', e);
     return new Response(JSON.stringify({ error: "fetch_failed" }), {
       status: 503, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 
-  // Premier lien vers une fiche individuelle
-  const linkMatch = searchHtml.match(/href="(via-ferrata-\d+-[^"]+\.html)"/i);
+  console.log('[vf] search HTML length:', searchHtml.length);
+
+  // Regex large : capture href relatif ou absolu contenant via-ferrata-[ID]
+  const linkMatch = searchHtml.match(/href="([^"]*via-ferrata-\d+[^"]+\.html)"/i);
+
   if (!linkMatch) {
+    // Logue un extrait pour diagnostiquer le format réel des liens
+    const snippet = searchHtml.slice(0, 3000).replace(/\s+/g, ' ');
+    console.warn('[vf] no link found. HTML snippet:', snippet);
     return new Response(JSON.stringify({ error: "not_found" }), {
       status: 404, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 
-  const pageUrl = `${SITE}/${linkMatch[1]}`;
+  console.log('[vf] link found:', linkMatch[1]);
+
+  // Construit l'URL absolue quelle que soit la forme du href
+  const href    = linkMatch[1];
+  const pageUrl = href.startsWith('http')
+    ? href
+    : href.startsWith('/')
+      ? `${SITE}${href}`
+      : `${SITE}/${href}`;
 
   // ── Page détail ──────────────────────────────────────────────────────────
   let detailHtml: string;
