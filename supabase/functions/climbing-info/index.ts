@@ -174,18 +174,24 @@ serve(async (req: Request) => {
   }
 
   // ── Extraction des lignes du tableau ─────────────────────────────────────
-  // Format : data-href='https://www.ffme.fr/sne-fiche/ID/'
-  //   <td><a ...>Site Name</a></td>
-  //   <td>City (Region - DEPT_NUM)</td>
   type SiteRow = { url: string; siteName: string; location: string };
   const rows: SiteRow[] = [];
 
-  const rowRe =
-    /data-href='(https:\/\/www\.ffme\.fr\/sne-fiche\/\d+\/)'[^>]*>[\s\S]*?<td><a[^>]*>([^<]+)<\/a><\/td>[\s\S]*?<td>(?:<a[^>]*>)?([^<]+)(?:<\/a>)?<\/td>/gi;
-  for (const m of listHtml.matchAll(rowRe)) {
-    rows.push({ url: m[1], siteName: m[2].trim(), location: m[3].trim() });
+  // Extrait chaque <tr> contenant un data-href FFME, puis les textes des <td>
+  const trRe = /data-href='(https:\/\/www\.ffme\.fr\/sne-fiche\/\d+\/)'([\s\S]*?)<\/tr>/gi;
+  for (const trm of listHtml.matchAll(trRe)) {
+    const url = trm[1];
+    const tdTexts: string[] = [];
+    for (const td of trm[2].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)) {
+      const text = td[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+      if (text) tdTexts.push(text);
+    }
+    if (tdTexts.length >= 1) {
+      rows.push({ url, siteName: tdTexts[0], location: tdTexts[1] ?? "" });
+    }
   }
-  console.log("[climbing] listing rows:", rows.length);
+  console.log("[climbing] listing rows:", rows.length,
+    rows.slice(0, 3).map((r) => r.siteName).join(", "));
 
   if (!rows.length) {
     return new Response(JSON.stringify({ error: "listing_parse_failed" }), {
