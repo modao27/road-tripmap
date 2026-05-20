@@ -417,7 +417,9 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               console.error('[vf] fetch error', err);
               container.innerHTML = '<p class="vf-not-found">Erreur réseau</p>';
             }
-            e.popup.update();
+            // _updatePosition repositionne le popup sans réinitialiser le innerHTML
+            // (popup.update() appellerait _updateContent() qui effacerait nos données)
+            e.popup._updatePosition?.();
           });
         }
 
