@@ -186,7 +186,7 @@ async function _rpcCreatePin(roadtripId, pin, id) {
 }
 
 export async function createRoadtripPin(roadtripId, pin) {
-  const id = crypto.randomUUID();
+  const id = _isUUID(pin.id) ? pin.id : crypto.randomUUID();
   await _rpcCreatePin(roadtripId, pin, id);
   return { id, title: pin.name, category: pin.category || 'nature',
            lat: pin.lat, lng: pin.lng };

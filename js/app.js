@@ -388,6 +388,7 @@ async function init() {
     onMarkerAdded:    setupMarkerHover,
     config:           CONFIG,
     mapId,
+    createUserPinFn:  isSharedMap ? null : (isRoadtripMode ? (_ignored, pin) => createRoadtripPin(mapParam, pin) : upsertUserPin),
     upsertUserPinFn:  isSharedMap ? null : (isRoadtripMode ? upsertRoadtripPin : upsertUserPin),
     deleteUserPinFn:  isSharedMap ? null : (isRoadtripMode ? deleteRoadtripPin : deleteUserPinRemote),
     upsertOverrideFn: isSharedMap ? null : upsertOverride,

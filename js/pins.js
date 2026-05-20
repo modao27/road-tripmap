@@ -56,6 +56,7 @@ export function initPins({
   config,
   // Supabase (optionnel — graceful degradation si non fourni)
   mapId,
+  createUserPinFn,
   upsertUserPinFn,
   deleteUserPinFn,
   upsertOverrideFn,
@@ -194,7 +195,7 @@ export function initPins({
     };
     userPlacesRef.push(pin);
     saveUserPins(userPlacesRef);
-    syncRemote(upsertUserPinFn, pin);
+    syncRemote(createUserPinFn ?? upsertUserPinFn, pin);
     addMarker(pin, markers, makePopupHtml, makeIconFn);
     if (activeCategories.has(category)) markerLayer.addLayer(markers.get(pin.id));
     onMarkerAdded?.(pin);
