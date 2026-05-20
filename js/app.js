@@ -320,27 +320,35 @@ async function init() {
   initResizer(map, CONFIG);
 
   // ── Onglets ───────────────────────────────────────────────────────────────
-  const tabPlacesBtn  = document.getElementById('tabPlaces');
-  const tabRouteBtn   = document.getElementById('tabRoute');
-  tabBadgeEl          = document.getElementById('tabRouteBadge');
-  const panePlaces    = document.getElementById('tabPanePlaces');
-  const paneRoute     = document.getElementById('tabPaneRoute');
+  const tabPlacesBtn   = document.getElementById('tabPlaces');
+  const tabRouteBtn    = document.getElementById('tabRoute');
+  const tabDiscoverBtn = document.getElementById('tabDiscover');
+  tabBadgeEl           = document.getElementById('tabRouteBadge');
+  const panePlaces     = document.getElementById('tabPanePlaces');
+  const paneRoute      = document.getElementById('tabPaneRoute');
+  const paneDiscover   = document.getElementById('tabPaneDiscover');
 
   function switchTab(tab) {
-    const isPlaces = tab === 'places';
-    tabPlacesBtn?.classList.toggle('active', isPlaces);
-    tabPlacesBtn?.setAttribute('aria-selected', String(isPlaces));
-    tabRouteBtn?.classList.toggle('active', !isPlaces);
-    tabRouteBtn?.setAttribute('aria-selected', String(!isPlaces));
-    panePlaces?.classList.toggle('active', isPlaces);
-    paneRoute?.classList.toggle('active', !isPlaces);
+    const active = { places: tab === 'places', route: tab === 'route', discover: tab === 'discover' };
+    tabPlacesBtn?.classList.toggle('active', active.places);
+    tabPlacesBtn?.setAttribute('aria-selected', String(active.places));
+    tabRouteBtn?.classList.toggle('active', active.route);
+    tabRouteBtn?.setAttribute('aria-selected', String(active.route));
+    tabDiscoverBtn?.classList.toggle('active', active.discover);
+    tabDiscoverBtn?.setAttribute('aria-selected', String(active.discover));
+    panePlaces?.classList.toggle('active', active.places);
+    paneRoute?.classList.toggle('active', active.route);
+    paneDiscover?.classList.toggle('active', active.discover);
     localStorage.setItem('activeTab', tab);
     setTimeout(() => map.invalidateSize(), 10);
   }
 
-  tabPlacesBtn?.addEventListener('click', () => switchTab('places'));
-  tabRouteBtn?.addEventListener('click',  () => switchTab('route'));
-  switchTab(localStorage.getItem('activeTab') || 'places');
+  tabPlacesBtn?.addEventListener('click',   () => switchTab('places'));
+  tabRouteBtn?.addEventListener('click',    () => switchTab('route'));
+  tabDiscoverBtn?.addEventListener('click', () => switchTab('discover'));
+  // 'discover' en cache sans résultats → retombe sur 'places'
+  const savedTab = localStorage.getItem('activeTab') || 'places';
+  switchTab(savedTab === 'discover' ? 'places' : savedTab);
 
   // ── En-tête collapsible ───────────────────────────────────────────────────
   const headerToggleBtn = document.getElementById('headerToggleBtn');
@@ -407,9 +415,16 @@ async function init() {
   });
 
   // ── Découvrir (Overpass OSM) ──────────────────────────────────────────────
+  const tabDiscoverBadgeEl = document.getElementById('tabDiscoverBadge');
   initOverpass({
     map, toastWrap, showToastFn: showToast,
-    onAddToMap: data => pinsModule?.openForOverpass(data),
+    onAddToMap:        data => pinsModule?.openForOverpass(data),
+    appCategories:     categories,
+    onDiscoverResults: count => {
+      if (tabDiscoverBtn) tabDiscoverBtn.hidden = count === 0;
+      if (tabDiscoverBadgeEl) tabDiscoverBadgeEl.textContent = String(count);
+      if (count > 0) switchTab('discover');
+    },
   });
 
   // ── Itinéraire ────────────────────────────────────────────────────────────

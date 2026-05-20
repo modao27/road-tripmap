@@ -1140,6 +1140,119 @@ mark.search-highlight {
   background: rgba(31, 95, 67, 0.14);
 }
 
+/* ── Panneau Découvrir (onglet résultats) ────────────────────────────── */
+.discover-panel {
+  padding: 14px 14px 22px;
+}
+
+.discover-empty {
+  margin: 20px 4px 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.op-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.op-result-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Badge compteur sur les boutons catégorie ────────────────────────── */
+.cat-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.overpass-cat-btn.active .cat-count-badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.overpass-cat-btn:not(.active) .cat-count-badge {
+  background: var(--forest);
+  color: white;
+}
+
+/* ── Détails enrichis dans la popup Overpass ─────────────────────────── */
+.op-desc {
+  margin: 0 0 8px;
+  font-size: 0.84rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.op-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 6px 0 8px;
+}
+
+.op-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(28, 37, 32, 0.06);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* ── Ligne sélecteur catégorie + bouton Ajouter ──────────────────────── */
+.op-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  align-items: stretch;
+}
+
+.op-cat-select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(28, 37, 32, 0.18);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.op-add-row .popup-add-to-map {
+  flex-shrink: 0;
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
 /* ── Découvrir / Overpass ────────────────────────────────────────────── */
 .overpass-cats {
   display: flex;

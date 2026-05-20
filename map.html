@@ -41,6 +41,9 @@
         <button class="sidebar-tab" id="tabRoute" role="tab" aria-selected="false" aria-controls="tabPaneRoute" type="button">
           Road Trip <span class="tab-badge" id="tabRouteBadge" hidden>0</span>
         </button>
+        <button class="sidebar-tab" id="tabDiscover" role="tab" aria-selected="false" aria-controls="tabPaneDiscover" type="button" hidden>
+          Découvrir <span class="tab-badge" id="tabDiscoverBadge">0</span>
+        </button>
       </div>
 
       <div class="sidebar-body">
@@ -87,6 +90,18 @@
           <section class="places-panel">
             <p class="places-title"><span>Lieux visibles</span><span id="visibleCount" aria-live="polite" aria-atomic="true"></span></p>
             <ul class="place-list" id="placeList"></ul>
+          </section>
+        </div>
+
+        <!-- Panneau Découvrir -->
+        <div class="tab-pane" id="tabPaneDiscover" role="tabpanel" aria-labelledby="tabDiscover">
+          <section class="discover-panel">
+            <p class="places-title">
+              <span>Résultats</span>
+              <span id="discoverCount" aria-live="polite" aria-atomic="true"></span>
+            </p>
+            <ul class="place-list" id="overpassResultList"></ul>
+            <p class="discover-empty" id="discoverEmpty">Lance une recherche depuis l'onglet Lieux → Découvrir autour.</p>
           </section>
         </div>
 
