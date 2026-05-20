@@ -339,6 +339,7 @@ async function init() {
     panePlaces?.classList.toggle('active', active.places);
     paneRoute?.classList.toggle('active', active.route);
     paneDiscover?.classList.toggle('active', active.discover);
+    if (active.discover) overpassModule?.activate();
     localStorage.setItem('activeTab', tab);
     setTimeout(() => map.invalidateSize(), 10);
   }
@@ -414,7 +415,7 @@ async function init() {
 
   // ── Découvrir (Overpass OSM) ──────────────────────────────────────────────
   const tabDiscoverBadgeEl = document.getElementById('tabDiscoverBadge');
-  initOverpass({
+  const overpassModule = initOverpass({
     map, toastWrap, showToastFn: showToast,
     onAddToMap:        data => pinsModule?.openForOverpass(data),
     appCategories:     categories,

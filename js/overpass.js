@@ -155,19 +155,11 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
   const payloadsByNodeId = new Map();
   let isFetching = false;
 
-  // ── Cercle de recherche draggable ─────────────────────────────────────────
-  let circleCenter = map.getCenter();
+  // ── Cercle de recherche draggable (créé au premier accès à l'onglet) ─────
+  let searchCircle = null;
+  let centerMarker = null;
+  let circleCenter = null;
   let radiusMeters = RADIUS_DEFAULT_KM * 1000;
-
-  const searchCircle = L.circle(circleCenter, {
-    radius:      radiusMeters,
-    color:       '#2f6f36',
-    fillColor:   '#2f6f36',
-    fillOpacity: 0.06,
-    weight:      2,
-    dashArray:   '8 5',
-    interactive: false,
-  }).addTo(map);
 
   const centerIcon = L.divIcon({
     className:  '',
@@ -176,19 +168,31 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     iconAnchor: [17, 17],
   });
 
-  const centerMarker = L.marker(circleCenter, {
-    draggable:     true,
-    icon:          centerIcon,
-    zIndexOffset:  1000,
-  }).addTo(map);
-
-  centerMarker.on('drag', e => {
-    circleCenter = e.latlng;
-    searchCircle.setLatLng(circleCenter);
-  });
-  centerMarker.on('dragend', () => {
-    circleCenter = centerMarker.getLatLng();
-  });
+  function ensureCircle() {
+    if (searchCircle) return;
+    circleCenter = map.getCenter();
+    searchCircle = L.circle(circleCenter, {
+      radius:      radiusMeters,
+      color:       '#2f6f36',
+      fillColor:   '#2f6f36',
+      fillOpacity: 0.08,
+      weight:      2.5,
+      dashArray:   '8 5',
+      interactive: false,
+    }).addTo(map);
+    centerMarker = L.marker(circleCenter, {
+      draggable:    true,
+      icon:         centerIcon,
+      zIndexOffset: 1000,
+    }).addTo(map);
+    centerMarker.on('drag', e => {
+      circleCenter = e.latlng;
+      searchCircle.setLatLng(circleCenter);
+    });
+    centerMarker.on('dragend', () => {
+      circleCenter = centerMarker.getLatLng();
+    });
+  }
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const searchBtn     = document.getElementById('overpassSearch');
@@ -209,7 +213,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     radiusSlider.addEventListener('input', () => {
       const km     = +radiusSlider.value;
       radiusMeters = km * 1000;
-      searchCircle.setRadius(radiusMeters);
+      if (searchCircle) searchCircle.setRadius(radiusMeters);
       if (radiusLabel) radiusLabel.textContent = `${km} km`;
     });
   }
@@ -248,6 +252,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
       showToastFn(toastWrap, 'Sélectionne au moins une catégorie', '');
       return;
     }
+    ensureCircle(); // garantit que circleCenter et searchCircle existent
 
     clearResults();
     isFetching = true;
@@ -369,6 +374,8 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
 
   searchBtn?.addEventListener('click', doSearch);
   clearBtn?.addEventListener('click',  clearResults);
+
+  return { activate: ensureCircle };
 
   // Clic liste → flyTo + popup
   resultListEl?.addEventListener('click', e => {
