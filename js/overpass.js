@@ -392,22 +392,30 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
         // Enrichissement via ferrata — chargé à l'ouverture de la popup
         if (isVf) {
           marker.on('popupopen', async (e) => {
-            // Cherche directement dans l'élément du popup (plus fiable que getElementById)
-            const container = e.popup.getElement()?.querySelector('.vf-enriched');
-            if (!container || container.dataset.loading) return;
+            const popupEl   = e.popup.getElement();
+            const container = popupEl?.querySelector('.vf-enriched');
+            console.log('[vf] popupopen', { popupEl, container, osmSearchName });
+            if (!container || container.dataset.loading) {
+              console.log('[vf] skip — container:', !!container, 'loading:', container?.dataset.loading);
+              return;
+            }
             container.dataset.loading = 'true';
+            container.querySelector('.vf-loading').textContent = '⟳ Connexion à viaferrata-fr.net…';
             try {
               const res = await fetch(VF_INFO_URL, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
                 body:    JSON.stringify({ name: osmSearchName, lat: el.lat, lng: el.lon }),
               });
+              console.log('[vf] status', res.status);
               const data = await res.json();
+              console.log('[vf] data', data);
               container.innerHTML = data?.error
                 ? '<p class="vf-not-found">Fiche introuvable sur viaferrata-fr.net</p>'
                 : renderVfEnriched(data);
-            } catch {
-              container.innerHTML = '';
+            } catch (err) {
+              console.error('[vf] fetch error', err);
+              container.innerHTML = '<p class="vf-not-found">Erreur réseau</p>';
             }
             e.popup.update();
           });
