@@ -177,7 +177,7 @@ serve(async (req: Request) => {
   }
 
   const searchTerm = cleanSearchName(name);
-  console.log("[vf] name:", name, "→ searchTerm:", searchTerm, "coords:", lat, lng);
+  console.log("[vf]", searchTerm, lat, lng);
 
   let pageUrl: string | null = null;
 
