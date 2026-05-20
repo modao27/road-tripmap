@@ -401,7 +401,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               const res = await fetch(VF_INFO_URL, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-                body:    JSON.stringify({ name: osmSearchName }),
+                body:    JSON.stringify({ name: osmSearchName, lat: el.lat, lng: el.lon }),
               });
               console.log('[vf] status', res.status);
               const data = await res.json();
