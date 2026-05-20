@@ -402,9 +402,25 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
                 body:    JSON.stringify({ name: osmSearchName, lat: el.lat, lng: el.lon }),
               });
               const data = await res.json();
-              container.innerHTML = data?.error
-                ? '<p class="vf-not-found">Fiche introuvable sur viaferrata-fr.net</p>'
-                : renderVfEnriched(data);
+              if (data?.error) {
+                container.innerHTML = '<p class="vf-not-found">Fiche introuvable sur viaferrata-fr.net</p>';
+              } else {
+                container.innerHTML = renderVfEnriched(data);
+                // Met à jour le payload "Ajouter" avec les infos enrichies
+                const existing = payloadsByNodeId.get(el.id);
+                if (existing) {
+                  const enrichedDesc = [
+                    data.difficulty     && `Difficulté : ${data.difficulty}`,
+                    data.duration       && `Durée : ${data.duration}`,
+                    data.length_m       && `Longueur : ${data.length_m}`,
+                    data.elevation_gain && `Dénivelé : ${data.elevation_gain}`,
+                    data.start_altitude && `Départ : ${data.start_altitude}`,
+                    data.price          && `Prix : ${data.price}`,
+                    data.description    && data.description,
+                  ].filter(Boolean).join('\n');
+                  payloadsByNodeId.set(el.id, { ...existing, description: enrichedDesc });
+                }
+              }
             } catch {
               container.innerHTML = '';
             }
