@@ -147,8 +147,8 @@ serve(async (req) => {
   const linkMatch = searchHtml.match(/via-ferrata-(\d+)-([^'" <>\r\n]+?)\.html/i);
 
   if (!linkMatch) {
-    // Logue les 8000 premiers caractères pour voir la structure réelle
-    console.warn('[vf] no link found. Full HTML (8000):', searchHtml.slice(0, 8000).replace(/\s+/g, ' '));
+    // Logue la SECONDE moitié (où sont les résultats, après le header/nav)
+    console.warn('[vf] no link found. HTML tail:', searchHtml.slice(7000).replace(/\s+/g, ' '));
     return new Response(JSON.stringify({ error: "not_found" }), {
       status: 404, headers: { ...CORS, "Content-Type": "application/json" },
     });
