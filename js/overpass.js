@@ -377,7 +377,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               <div class="popup-category"><span>${cat.icon}</span>${esc(cat.label)}</div>
               ${name !== cat.label && (tags.description || tags.note) ? `<p class="op-osm-name">${esc(name)}</p>` : ''}
               ${detailsHtml}
-              ${isVf ? `<div class="vf-enriched" id="vf-${el.id}"><p class="vf-loading">⟳ Chargement des détails…</p></div>` : ''}
+              ${isVf ? `<div class="vf-enriched"><p class="vf-loading">⟳ Chargement des détails…</p></div>` : ''}
               ${website ? `<a class="osm-link" href="${encodeURI(website)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
               ${googleLink ? `<a class="osm-link" href="${esc(googleLink)}" target="_blank" rel="noopener noreferrer">🔍 Chercher sur viaferrata-fr.net</a>` : ''}
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
@@ -391,11 +391,11 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
 
         // Enrichissement via ferrata — chargé à l'ouverture de la popup
         if (isVf) {
-          const nodeRef = el.id;
-          marker.on('popupopen', async () => {
-            const container = document.getElementById(`vf-${nodeRef}`);
-            if (!container || container.dataset.loaded) return;
-            container.dataset.loaded = 'true';
+          marker.on('popupopen', async (e) => {
+            // Cherche directement dans l'élément du popup (plus fiable que getElementById)
+            const container = e.popup.getElement()?.querySelector('.vf-enriched');
+            if (!container || container.dataset.loading) return;
+            container.dataset.loading = 'true';
             try {
               const res = await fetch(VF_INFO_URL, {
                 method:  'POST',
@@ -409,7 +409,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
             } catch {
               container.innerHTML = '';
             }
-            marker.getPopup()?.update();
+            e.popup.update();
           });
         }
 
