@@ -320,12 +320,13 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
           ? `<div class="op-details">${details.map(d => `<span class="op-detail">${d}</span>`).join('')}</div>`
           : '';
 
-        const marker = L.marker([el.lat, el.lon], { icon, title: name })
+        const displayName = tags.description || tags.note || name;
+        const marker = L.marker([el.lat, el.lon], { icon, title: displayName })
           .bindPopup(`
             <article class="popup" style="--color:${cat.color}">
-              <h2>${esc(name)}</h2>
+              <h2>${esc(displayName)}</h2>
               <div class="popup-category"><span>${cat.icon}</span>${esc(cat.label)}</div>
-              ${tags.description ? `<p class="op-desc">${esc(tags.description)}</p>` : ''}
+              ${name !== cat.label && (tags.description || tags.note) ? `<p class="op-osm-name">${esc(name)}</p>` : ''}
               ${detailsHtml}
               ${website ? `<a class="osm-link" href="${encodeURI(website)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>

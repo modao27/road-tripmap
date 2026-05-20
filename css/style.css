@@ -1261,6 +1261,13 @@ mark.search-highlight {
   line-height: 1.45;
 }
 
+.op-osm-name {
+  margin: -4px 0 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .op-details {
   display: flex;
   flex-wrap: wrap;
