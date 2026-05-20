@@ -300,7 +300,13 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               .join('')
           : `<option value="${esc(appCat)}" selected>${esc(appCat)}</option>`;
 
-        payloadsByNodeId.set(el.id, { name, lat: el.lat, lng: el.lon, appCategory: appCat, description: desc });
+        payloadsByNodeId.set(el.id, {
+          name:        desc || name,
+          lat:         el.lat,
+          lng:         el.lon,
+          appCategory: appCat,
+          description: name !== cat.label ? name : '',
+        });
 
         const icon = L.divIcon({
           className:   '',
