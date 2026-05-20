@@ -1,8 +1,9 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
 
-const OVERPASS_URL  = 'https://overpass-api.de/api/interpreter';
-const VF_INFO_URL   = `${SUPABASE_URL}/functions/v1/via-ferrata-info`;
+const OVERPASS_URL      = 'https://overpass-api.de/api/interpreter';
+const VF_INFO_URL       = `${SUPABASE_URL}/functions/v1/via-ferrata-info`;
+const CLIMBING_INFO_URL = `${SUPABASE_URL}/functions/v1/climbing-info`;
 
 const RADIUS_DEFAULT_KM = 10;
 const RADIUS_MIN_KM     = 1;
@@ -46,6 +47,12 @@ export const OVERPASS_CATEGORIES = {
     color: '#912d2d',
     tags:  ['["climbing"="via_ferrata"]', '["sport"="via_ferrata"]'],
   },
+  escalade: {
+    label: 'Escalade',
+    icon:  '🪨',
+    color: '#7b4b2a',
+    tags:  ['["leisure"="climbing"]', '["climbing"="crag"]'],
+  },
   trailhead: {
     label: 'Départ rando',
     icon:  '🥾',
@@ -62,6 +69,7 @@ const OSM_TO_APP_CAT = {
   waterfall:   'water',
   viewpoint:   'hike',
   via_ferrata: 'via',
+  escalade:    'escalade',
   trailhead:   'hike',
 };
 
@@ -109,6 +117,17 @@ function buildDetails(tags, catKey) {
 
   if (catKey === 'viewpoint' && tags.direction) items.push(`🧭 ${esc(String(tags.direction))}`);
 
+  if (catKey === 'escalade') {
+    const minGrade = tags['climbing:grade:french:min'] || tags['climbing:grade:min'];
+    const maxGrade = tags['climbing:grade:french:max'] || tags['climbing:grade:max'];
+    if (minGrade && maxGrade) items.push(`🎯 ${esc(minGrade)}–${esc(maxGrade)}`);
+    else if (minGrade || maxGrade) items.push(`🎯 ${esc(minGrade || maxGrade)}`);
+    const routes = tags['climbing:routes'] || tags['climbing:bolts'];
+    if (routes) items.push(`🔢 ${esc(String(routes))} voies`);
+    if (tags['climbing:length']) items.push(`📏 ${esc(String(tags['climbing:length']))} m`);
+    if (tags['climbing:rock'])   items.push(`🪨 ${esc(String(tags['climbing:rock']))}`);
+  }
+
   if (catKey === 'bivouac') {
     if (tags.toilets === 'yes') items.push('🚻 Toilettes');
     if (tags.shower === 'yes')  items.push('🚿 Douches');
@@ -129,7 +148,8 @@ function detectCategory(tags) {
   if (tags.natural === 'spring' || tags.amenity === 'drinking_water') return 'water';
   if (tags.tourism === 'viewpoint')   return 'viewpoint';
   if (tags.amenity === 'shelter' || tags.tourism === 'alpine_hut' || tags.tourism === 'wilderness_hut') return 'shelter';
-  if (tags.climbing || tags.sport === 'via_ferrata') return 'via_ferrata';
+  if (tags.climbing === 'via_ferrata' || tags.sport === 'via_ferrata') return 'via_ferrata';
+  if (tags.leisure === 'climbing' || tags.climbing === 'crag') return 'escalade';
   if (tags.tourism === 'trailhead' || tags.hiking === 'trailhead') return 'trailhead';
   return 'bivouac';
 }
@@ -162,6 +182,33 @@ const VF_GRADES = {
   'ABO': { label: 'Abominable',            color: '#000000' },
 };
 
+function buildVfPayloadDesc(data) {
+  const firstGrade = data.difficulty?.match(/\b(ABO|ED|TD|D|AD|PD|F)\b/i)?.[1]?.toUpperCase();
+  const gradeLabel = firstGrade ? ` (${VF_GRADES[firstGrade]?.label ?? ''})` : '';
+  return [
+    data.difficulty     && `🎯 ${data.difficulty}${gradeLabel}`,
+    data.duration       && `⏱ ${data.duration}`,
+    data.length_m       && `📏 ${data.length_m}`,
+    data.elevation_gain && `⬆ ${data.elevation_gain}`,
+    data.start_altitude && `🏔 Départ ${data.start_altitude}`,
+    data.price          && `💰 ${data.price}`,
+    data.url            && `\n🔗 ${data.url}`,
+    data.description    && `\n${data.description}`,
+  ].filter(Boolean).join('  ');
+}
+
+function buildClimbingPayloadDesc(data) {
+  return [
+    data.difficulty && `🎯 ${data.difficulty}`,
+    data.num_routes && `🔢 ${data.num_routes} voies`,
+    data.height_min && data.height_max ? `📏 ${data.height_min}–${data.height_max}` : null,
+    data.rock_type  && `🪨 ${data.rock_type}`,
+    data.season     && `📅 ${data.season}`,
+    data.url        && `\n🔗 ${data.url}`,
+    data.description && `\n${data.description}`,
+  ].filter(Boolean).join('  ');
+}
+
 function renderVfEnriched(data) {
   const firstGrade = data.difficulty?.match(/\b(ABO|ED|TD|D|AD|PD|F)\b/i)?.[1]?.toUpperCase();
   const grade      = firstGrade ? VF_GRADES[firstGrade] : null;
@@ -186,6 +233,32 @@ function renderVfEnriched(data) {
       ${stats.length ? `<div class="vf-stats">${stats.map(s => `<span class="vf-stat">${s}</span>`).join('')}</div>` : ''}
       ${desc ? `<p class="vf-desc">${esc(desc.length > 320 ? desc.slice(0, 320) + '…' : desc)}</p>` : ''}
       <a class="vf-site-link" href="${esc(data.url)}" target="_blank" rel="noopener noreferrer">📋 Fiche complète — viaferrata-fr.net</a>
+    </div>`;
+}
+
+function renderClimbingEnriched(data) {
+  const stats = [
+    data.difficulty && `🎯 ${esc(data.difficulty)}`,
+    data.num_routes && `🔢 ${esc(data.num_routes)} voies`,
+    data.height_min && data.height_max
+      ? `📏 ${esc(data.height_min)}–${esc(data.height_max)}`
+      : (data.height_min || data.height_max)
+        ? `📏 ${esc(data.height_min || data.height_max)}`
+        : null,
+    data.rock_type && `🪨 ${esc(data.rock_type)}`,
+    data.season    && `📅 ${esc(data.season)}`,
+  ].filter(Boolean);
+
+  const desc  = data.description?.trim();
+  const regul = data.regulations?.trim();
+
+  return `
+    <div class="vf-enriched-data" style="--gc:#7b4b2a">
+      ${data.site_type ? `<p class="vf-grade-plain">${esc(data.site_type)}</p>` : ''}
+      ${stats.length ? `<div class="vf-stats">${stats.map(s => `<span class="vf-stat">${s}</span>`).join('')}</div>` : ''}
+      ${desc  ? `<p class="vf-desc">${esc(desc.length > 300 ? desc.slice(0, 300) + '…' : desc)}</p>` : ''}
+      ${regul ? `<p class="vf-desc" style="color:#c0392b">⚠ ${esc(regul.length > 200 ? regul.slice(0, 200) + '…' : regul)}</p>` : ''}
+      <a class="vf-site-link" href="${esc(data.url)}" target="_blank" rel="noopener noreferrer">📋 Fiche FFME</a>
     </div>`;
 }
 
@@ -366,9 +439,13 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
         const osmSearchName = tags.name || tags['name:fr'] || tags.description || tags.note || null;
         const displayName   = tags.description || tags.note || name;
         const isVf          = catKey === 'via_ferrata' && osmSearchName && osmSearchName !== cat.label;
+        const isClimbing    = catKey === 'escalade'    && osmSearchName && osmSearchName !== cat.label;
         const googleLink    = isVf
           ? `https://www.google.com/search?q=site:viaferrata-fr.net+${encodeURIComponent(osmSearchName)}`
+          : isClimbing
+          ? `https://www.google.com/search?q=site:ffme.fr+${encodeURIComponent(osmSearchName)}`
           : null;
+        const hasEnriched   = isVf || isClimbing;
 
         const marker = L.marker([el.lat, el.lon], { icon, title: displayName })
           .bindPopup(`
@@ -377,9 +454,9 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               <div class="popup-category"><span>${cat.icon}</span>${esc(cat.label)}</div>
               ${name !== cat.label && (tags.description || tags.note) ? `<p class="op-osm-name">${esc(name)}</p>` : ''}
               ${detailsHtml}
-              ${isVf ? `<div class="vf-enriched"><p class="vf-loading">⟳ Chargement des détails…</p></div>` : ''}
+              ${hasEnriched ? `<div class="vf-enriched"><p class="vf-loading">⟳ Chargement des détails…</p></div>` : ''}
               ${website ? `<a class="osm-link" href="${encodeURI(website)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
-              ${googleLink ? `<a class="osm-link" href="${esc(googleLink)}" target="_blank" rel="noopener noreferrer">🔍 Chercher sur viaferrata-fr.net</a>` : ''}
+              ${googleLink ? `<a class="osm-link" href="${esc(googleLink)}" target="_blank" rel="noopener noreferrer">🔍 Chercher sur ${isVf ? 'viaferrata-fr.net' : 'ffme.fr'}</a>` : ''}
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
               <div class="op-add-row">
                 <select class="op-cat-select" data-node-ref="${el.id}">${catSelectOptions}</select>
@@ -389,46 +466,41 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
           `)
           .addTo(resultsLayer);
 
-        // Enrichissement via ferrata — chargé à l'ouverture de la popup
-        if (isVf) {
+        // Enrichissement via ferrata / escalade — chargé à l'ouverture de la popup
+        if (hasEnriched) {
+          const infoUrl  = isVf ? VF_INFO_URL : CLIMBING_INFO_URL;
+          const renderFn = isVf ? renderVfEnriched : renderClimbingEnriched;
+          const notFoundMsg = isVf
+            ? '<p class="vf-not-found">Fiche introuvable sur viaferrata-fr.net</p>'
+            : '<p class="vf-not-found">Fiche introuvable sur ffme.fr</p>';
+
           marker.on('popupopen', async (e) => {
             const container = e.popup.getElement()?.querySelector('.vf-enriched');
             if (!container || container.dataset.loading) return;
             container.dataset.loading = 'true';
             try {
-              const res  = await fetch(VF_INFO_URL, {
+              const res  = await fetch(infoUrl, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
                 body:    JSON.stringify({ name: osmSearchName, lat: el.lat, lng: el.lon }),
               });
               const data = await res.json();
               if (data?.error) {
-                container.innerHTML = '<p class="vf-not-found">Fiche introuvable sur viaferrata-fr.net</p>';
+                container.innerHTML = notFoundMsg;
               } else {
-                container.innerHTML = renderVfEnriched(data);
+                container.innerHTML = renderFn(data);
                 // Met à jour le payload "Ajouter" avec les infos enrichies
                 const existing = payloadsByNodeId.get(el.id);
                 if (existing) {
-                  const firstGrade = data.difficulty?.match(/\b(ABO|ED|TD|D|AD|PD|F)\b/i)?.[1]?.toUpperCase();
-                  const gradeLabel = firstGrade ? ` (${VF_GRADES[firstGrade]?.label ?? ''})` : '';
-                  const enrichedDesc = [
-                    data.difficulty     && `🎯 ${data.difficulty}${gradeLabel}`,
-                    data.duration       && `⏱ ${data.duration}`,
-                    data.length_m       && `📏 ${data.length_m}`,
-                    data.elevation_gain && `⬆ ${data.elevation_gain}`,
-                    data.start_altitude && `🏔 Départ ${data.start_altitude}`,
-                    data.price          && `💰 ${data.price}`,
-                    data.url            && `\n🔗 ${data.url}`,
-                    data.description    && `\n${data.description}`,
-                  ].filter(Boolean).join('  ');
+                  const enrichedDesc = isVf
+                    ? buildVfPayloadDesc(data)
+                    : buildClimbingPayloadDesc(data);
                   payloadsByNodeId.set(el.id, { ...existing, description: enrichedDesc });
                 }
               }
             } catch {
               container.innerHTML = '';
             }
-            // _updatePosition repositionne sans réinitialiser innerHTML
-            // (popup.update() appellerait _updateContent() qui effacerait nos données)
             e.popup._updatePosition?.();
           });
         }
