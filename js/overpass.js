@@ -375,8 +375,6 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
   searchBtn?.addEventListener('click', doSearch);
   clearBtn?.addEventListener('click',  clearResults);
 
-  return { activate: ensureCircle };
-
   // Clic liste → flyTo + popup
   resultListEl?.addEventListener('click', e => {
     const item = e.target.closest('[data-node-id]');
@@ -399,4 +397,6 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     map.closePopup();
     onAddToMap?.(finalData);
   });
+
+  return { activate: ensureCircle };
 }
