@@ -200,23 +200,36 @@ serve(async (req: Request) => {
   console.log("[climbing] candidates after dept filter:", candidates.length);
 
   // ── Matching par mots-clés ────────────────────────────────────────────────
-  let bestUrl: string | null = null;
-  let bestScore = 0;
-
-  for (const row of (candidates.length ? candidates : rows)) {
-    const nameSlug = toSlug(row.siteName);
-    const score = termWords.filter((w) => nameSlug.includes(w)).length;
-    if (score > bestScore) { bestScore = score; bestUrl = row.url; }
+  function bestMatch(pool: SiteRow[]): { url: string; score: number } | null {
+    let bestUrl: string | null = null;
+    let bestScore = 0;
+    for (const row of pool) {
+      const nameSlug = toSlug(row.siteName);
+      const score = termWords.filter((w) => nameSlug.includes(w)).length;
+      if (score > bestScore) { bestScore = score; bestUrl = row.url; }
+    }
+    return bestUrl ? { url: bestUrl, score: bestScore } : null;
   }
 
   const threshold = Math.max(1, Math.floor(termWords.length / 2));
-  if (bestScore < threshold) {
-    console.warn("[climbing] no match for:", searchTerm, "bestScore:", bestScore);
+
+  // 1. Cherche dans le département détecté
+  let match = candidates.length ? bestMatch(candidates) : null;
+
+  // 2. Si pas de bon match dans le département, cherche dans toute la France
+  if (!match || match.score < threshold) {
+    match = bestMatch(rows);
+  }
+
+  if (!match || match.score < threshold) {
+    console.warn("[climbing] no match for:", searchTerm, "score:", match?.score ?? 0);
     return new Response(JSON.stringify({ error: "not_found" }), {
       status: 404, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
-  console.log("[climbing] match:", bestUrl, "score:", bestScore);
+
+  const bestUrl = match.url;
+  console.log("[climbing] match:", bestUrl, "score:", match.score);
 
   // ── Page détail ──────────────────────────────────────────────────────────
   let detailHtml: string;
