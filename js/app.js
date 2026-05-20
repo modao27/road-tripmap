@@ -340,14 +340,13 @@ async function init() {
     paneRoute?.classList.toggle('active', active.route);
     paneDiscover?.classList.toggle('active', active.discover);
     if (active.discover) overpassModule?.activate();
-    localStorage.setItem('activeTab', tab);
     setTimeout(() => map.invalidateSize(), 10);
   }
 
   tabPlacesBtn?.addEventListener('click',   () => switchTab('places'));
   tabRouteBtn?.addEventListener('click',    () => switchTab('route'));
   tabDiscoverBtn?.addEventListener('click', () => switchTab('discover'));
-  switchTab(localStorage.getItem('activeTab') || 'places');
+  switchTab('places');
 
   // ── En-tête collapsible ───────────────────────────────────────────────────
   const headerToggleBtn = document.getElementById('headerToggleBtn');
