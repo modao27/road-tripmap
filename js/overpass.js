@@ -409,15 +409,17 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
                 // Met à jour le payload "Ajouter" avec les infos enrichies
                 const existing = payloadsByNodeId.get(el.id);
                 if (existing) {
+                  const firstGrade = data.difficulty?.match(/\b(ABO|ED|TD|D|AD|PD|F)\b/i)?.[1]?.toUpperCase();
+                  const gradeLabel = firstGrade ? ` (${VF_GRADES[firstGrade]?.label ?? ''})` : '';
                   const enrichedDesc = [
-                    data.difficulty     && `Difficulté : ${data.difficulty}`,
-                    data.duration       && `Durée : ${data.duration}`,
-                    data.length_m       && `Longueur : ${data.length_m}`,
-                    data.elevation_gain && `Dénivelé : ${data.elevation_gain}`,
-                    data.start_altitude && `Départ : ${data.start_altitude}`,
-                    data.price          && `Prix : ${data.price}`,
-                    data.description    && data.description,
-                  ].filter(Boolean).join('\n');
+                    data.difficulty     && `🎯 ${data.difficulty}${gradeLabel}`,
+                    data.duration       && `⏱ ${data.duration}`,
+                    data.length_m       && `📏 ${data.length_m}`,
+                    data.elevation_gain && `⬆ ${data.elevation_gain}`,
+                    data.start_altitude && `🏔 Départ ${data.start_altitude}`,
+                    data.price          && `💰 ${data.price}`,
+                    data.description    && `\n${data.description}`,
+                  ].filter(Boolean).join('  ');
                   payloadsByNodeId.set(el.id, { ...existing, description: enrichedDesc });
                 }
               }
