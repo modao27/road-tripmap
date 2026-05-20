@@ -346,9 +346,7 @@ async function init() {
   tabPlacesBtn?.addEventListener('click',   () => switchTab('places'));
   tabRouteBtn?.addEventListener('click',    () => switchTab('route'));
   tabDiscoverBtn?.addEventListener('click', () => switchTab('discover'));
-  // 'discover' en cache sans résultats → retombe sur 'places'
-  const savedTab = localStorage.getItem('activeTab') || 'places';
-  switchTab(savedTab === 'discover' ? 'places' : savedTab);
+  switchTab(localStorage.getItem('activeTab') || 'places');
 
   // ── En-tête collapsible ───────────────────────────────────────────────────
   const headerToggleBtn = document.getElementById('headerToggleBtn');
@@ -421,8 +419,10 @@ async function init() {
     onAddToMap:        data => pinsModule?.openForOverpass(data),
     appCategories:     categories,
     onDiscoverResults: count => {
-      if (tabDiscoverBtn) tabDiscoverBtn.hidden = count === 0;
-      if (tabDiscoverBadgeEl) tabDiscoverBadgeEl.textContent = String(count);
+      if (tabDiscoverBadgeEl) {
+        tabDiscoverBadgeEl.textContent = String(count);
+        tabDiscoverBadgeEl.hidden = count === 0;
+      }
       if (count > 0) switchTab('discover');
     },
   });

@@ -1,6 +1,10 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
+const RADIUS_DEFAULT_KM = 10;
+const RADIUS_MIN_KM     = 1;
+const RADIUS_MAX_KM     = 50;
+
 // ── Catégories et leurs tags OSM ──────────────────────────────────────────────
 export const OVERPASS_CATEGORIES = {
   bivouac: {
@@ -49,29 +53,26 @@ export const OVERPASS_CATEGORIES = {
 
 // ── Mapping catégorie OSM → catégorie de l'app ───────────────────────────────
 const OSM_TO_APP_CAT = {
-  bivouac:    'bivouac',
-  shelter:    'bivouac',
-  water:      'water',
-  waterfall:  'water',
-  viewpoint:  'hike',
-  via_ferrata:'via',
-  trailhead:  'hike',
+  bivouac:     'bivouac',
+  shelter:     'bivouac',
+  water:       'water',
+  waterfall:   'water',
+  viewpoint:   'hike',
+  via_ferrata: 'via',
+  trailhead:   'hike',
 };
 
 // ── Sécurité HTML ─────────────────────────────────────────────────────────────
 function esc(str) {
   return String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ── Tags enrichis selon la catégorie ─────────────────────────────────────────
 function buildDetails(tags, catKey) {
   const items = [];
 
-  // Universels
   if (tags.ele)                                items.push(`🏔 ${Math.round(+tags.ele)} m`);
   if (tags.fee === 'yes')                      items.push('💶 Payant');
   else if (tags.fee === 'no')                  items.push('✅ Gratuit');
@@ -82,10 +83,9 @@ function buildDetails(tags, catKey) {
   else if (tags.access === 'permissive')       items.push('✅ Accès libre');
   if (tags.seasonal === 'yes' || tags.open_during_winter === 'no') items.push('❄ Saisonnier');
 
-  // Refuge / abri
   if (catKey === 'shelter') {
-    if (tags.beds)                             items.push(`🛏 ${esc(tags.beds)} lits`);
-    if (tags.toilets === 'yes')                items.push('🚻 Toilettes');
+    if (tags.beds)            items.push(`🛏 ${esc(tags.beds)} lits`);
+    if (tags.toilets === 'yes') items.push('🚻 Toilettes');
     const shelterLabels = {
       basic_hut: 'Cabane', lean_to: 'Abri', weather_shelter: 'Abri météo',
       public_transport: 'Abri bus', changing_rooms: 'Vestiaires',
@@ -94,41 +94,29 @@ function buildDetails(tags, catKey) {
     if (st) items.push(`🏠 ${st}`);
   }
 
-  // Cascade
-  if (catKey === 'waterfall') {
-    if (tags.height) items.push(`📏 ${esc(String(tags.height))} m`);
-  }
+  if (catKey === 'waterfall' && tags.height)   items.push(`📏 ${esc(String(tags.height))} m`);
 
-  // Via ferrata
   if (catKey === 'via_ferrata') {
     const grade = tags['climbing:grade'] || tags['via_ferrata:scale'] || tags.difficulty;
-    if (grade) items.push(`🎯 ${esc(String(grade))}`);
+    if (grade)       items.push(`🎯 ${esc(String(grade))}`);
     if (tags.length) items.push(`📏 ${esc(String(tags.length))} m`);
     const eleDiff = tags['ele:diff'] || tags.ele_diff;
-    if (eleDiff) items.push(`⬆ +${esc(String(eleDiff))} m`);
+    if (eleDiff)     items.push(`⬆ +${esc(String(eleDiff))} m`);
   }
 
-  // Panorama
-  if (catKey === 'viewpoint') {
-    if (tags.direction) items.push(`🧭 ${esc(String(tags.direction))}`);
-  }
+  if (catKey === 'viewpoint' && tags.direction) items.push(`🧭 ${esc(String(tags.direction))}`);
 
-  // Bivouac
   if (catKey === 'bivouac') {
-    if (tags.toilets === 'yes')  items.push('🚻 Toilettes');
-    if (tags.shower === 'yes')   items.push('🚿 Douches');
+    if (tags.toilets === 'yes') items.push('🚻 Toilettes');
+    if (tags.shower === 'yes')  items.push('🚿 Douches');
   }
 
   return items;
 }
 
-// ── Texte court pour la description du pin (sans HTML) ───────────────────────
 function buildPinDescription(tags, details) {
   const parts = [tags.description, tags.note].filter(Boolean);
-  // Ajoute les détails texte (sans emoji pour la note) en fallback
-  if (!parts.length && details.length) {
-    parts.push(details.slice(0, 3).join(' · '));
-  }
+  if (!parts.length && details.length) parts.push(details.slice(0, 3).join(' · '));
   return parts.join(' — ');
 }
 
@@ -143,14 +131,14 @@ function detectCategory(tags) {
   return 'bivouac';
 }
 
-// ── Requête Overpass QL ───────────────────────────────────────────────────────
-async function runQuery(selectedCats, bbox) {
+// ── Requête Overpass avec filtre `around` ─────────────────────────────────────
+async function runQuery(selectedCats, center, radiusMeters) {
+  const around = `around:${Math.round(radiusMeters)},${center.lat.toFixed(5)},${center.lng.toFixed(5)}`;
   const lines = selectedCats.flatMap(cat =>
-    (OVERPASS_CATEGORIES[cat]?.tags ?? []).map(tag => `  node${tag}(${bbox});`)
+    (OVERPASS_CATEGORIES[cat]?.tags ?? []).map(tag => `  node${tag}(${around});`)
   ).join('\n');
 
-  const ql = `[out:json][timeout:25];\n(\n${lines}\n);\nout body;`;
-
+  const ql = `[out:json][timeout:30];\n(\n${lines}\n);\nout body;`;
   const res = await fetch(OVERPASS_URL, {
     method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -162,12 +150,47 @@ async function runQuery(selectedCats, bbox) {
 
 // ── Module principal ──────────────────────────────────────────────────────────
 export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCategories, onDiscoverResults }) {
-  const resultsLayer    = L.layerGroup().addTo(map);
-  const markersByNodeId = new Map();   // nodeId → L.marker (pour flyTo)
-  const payloadsByNodeId = new Map();  // nodeId → objet données du pin
+  const resultsLayer     = L.layerGroup().addTo(map);
+  const markersByNodeId  = new Map();
+  const payloadsByNodeId = new Map();
   let isFetching = false;
 
-  // DOM refs
+  // ── Cercle de recherche draggable ─────────────────────────────────────────
+  let circleCenter = map.getCenter();
+  let radiusMeters = RADIUS_DEFAULT_KM * 1000;
+
+  const searchCircle = L.circle(circleCenter, {
+    radius:      radiusMeters,
+    color:       '#2f6f36',
+    fillColor:   '#2f6f36',
+    fillOpacity: 0.06,
+    weight:      2,
+    dashArray:   '8 5',
+    interactive: false,
+  }).addTo(map);
+
+  const centerIcon = L.divIcon({
+    className:  '',
+    html:       '<div class="search-center-pin" title="Déplacer pour changer la zone">🔍</div>',
+    iconSize:   [34, 34],
+    iconAnchor: [17, 17],
+  });
+
+  const centerMarker = L.marker(circleCenter, {
+    draggable:     true,
+    icon:          centerIcon,
+    zIndexOffset:  1000,
+  }).addTo(map);
+
+  centerMarker.on('drag', e => {
+    circleCenter = e.latlng;
+    searchCircle.setLatLng(circleCenter);
+  });
+  centerMarker.on('dragend', () => {
+    circleCenter = centerMarker.getLatLng();
+  });
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
   const searchBtn     = document.getElementById('overpassSearch');
   const clearBtn      = document.getElementById('overpassClear');
   const statusEl      = document.getElementById('overpassStatus');
@@ -175,8 +198,23 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
   const resultListEl  = document.getElementById('overpassResultList');
   const discoverEmpty = document.getElementById('discoverEmpty');
   const discoverCount = document.getElementById('discoverCount');
+  const radiusSlider  = document.getElementById('radiusSlider');
+  const radiusLabel   = document.getElementById('radiusLabel');
 
-  // Catégories actives par défaut
+  // ── Slider de rayon ───────────────────────────────────────────────────────
+  if (radiusSlider) {
+    radiusSlider.min   = String(RADIUS_MIN_KM);
+    radiusSlider.max   = String(RADIUS_MAX_KM);
+    radiusSlider.value = String(RADIUS_DEFAULT_KM);
+    radiusSlider.addEventListener('input', () => {
+      const km     = +radiusSlider.value;
+      radiusMeters = km * 1000;
+      searchCircle.setRadius(radiusMeters);
+      if (radiusLabel) radiusLabel.textContent = `${km} km`;
+    });
+  }
+
+  // ── Catégories actives ────────────────────────────────────────────────────
   const selected = new Set(['bivouac', 'shelter']);
   catBtns.forEach(btn => {
     const cat = btn.dataset.overpassCat;
@@ -186,7 +224,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     });
   });
 
-  // ── Effacer ───────────────────────────────────────────────────────────────
+  // ── Effacer les résultats (garde le cercle) ───────────────────────────────
   function clearResults() {
     resultsLayer.clearLayers();
     markersByNodeId.clear();
@@ -206,30 +244,26 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
   // ── Recherche ─────────────────────────────────────────────────────────────
   async function doSearch() {
     if (isFetching) return;
-    if (!selected.size) { showToastFn(toastWrap, 'Sélectionne au moins une catégorie', ''); return; }
-    if (map.getZoom() < 9) { showToastFn(toastWrap, 'Zoome sur une zone plus précise pour chercher', ''); return; }
+    if (!selected.size) {
+      showToastFn(toastWrap, 'Sélectionne au moins une catégorie', '');
+      return;
+    }
 
     clearResults();
     isFetching = true;
     if (searchBtn) searchBtn.disabled = true;
     if (statusEl)  statusEl.textContent = '⟳ Recherche en cours…';
 
-    const b    = map.getBounds();
-    const bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]
-      .map(n => n.toFixed(4)).join(',');
-
     try {
-      const data  = await runQuery([...selected], bbox);
+      const data  = await runQuery([...selected], circleCenter, radiusMeters);
       const nodes = (data.elements ?? []).filter(e => e.lat && e.lon);
 
-      // Comptage par catégorie pour les badges
+      // Badges par catégorie
       const countByCat = {};
       nodes.forEach(el => {
         const key = detectCategory(el.tags ?? {});
         countByCat[key] = (countByCat[key] ?? 0) + 1;
       });
-
-      // Mise à jour des badges sur les boutons catégorie
       catBtns.forEach(btn => {
         const cat   = btn.dataset.overpassCat;
         const count = countByCat[cat] ?? 0;
@@ -255,17 +289,14 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
         const desc    = buildPinDescription(tags, details);
         const website = tags.website || tags['contact:website'];
 
-        // Options du sélecteur de catégorie dans la popup
         const catSelectOptions = appCategories
           ? Object.entries(appCategories)
               .map(([k, c]) => `<option value="${k}"${k === appCat ? ' selected' : ''}>${c.icon} ${c.label}</option>`)
               .join('')
           : `<option value="${esc(appCat)}" selected>${esc(appCat)}</option>`;
 
-        // Stockage du payload (accédé via nodeId, pas via attribut HTML)
         payloadsByNodeId.set(el.id, { name, lat: el.lat, lng: el.lon, appCategory: appCat, description: desc });
 
-        // Icône marqueur
         const icon = L.divIcon({
           className:   '',
           html:        `<div class="overpass-marker" style="--color:${cat.color}">${cat.icon}</div>`,
@@ -274,7 +305,6 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
           popupAnchor: [0, -16],
         });
 
-        // Popup enrichie
         const detailsHtml = details.length
           ? `<div class="op-details">${details.map(d => `<span class="op-detail">${d}</span>`).join('')}</div>`
           : '';
@@ -298,7 +328,6 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
 
         markersByNodeId.set(el.id, marker);
 
-        // Élément de liste sidebar (2 premiers détails en méta)
         const metaStr = [cat.label, ...details.slice(0, 2)].join(' · ');
         listHtml.push(`
           <li class="place-item op-result-item" data-node-id="${el.id}">
@@ -315,10 +344,9 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
         `);
       });
 
-      // Injection de la liste
       if (resultListEl)  resultListEl.innerHTML = listHtml.join('');
       if (discoverEmpty) discoverEmpty.hidden = nodes.length > 0;
-      if (discoverCount) discoverCount.textContent = nodes.length ? `${nodes.length}` : '';
+      if (discoverCount) discoverCount.textContent = nodes.length ? String(nodes.length) : '';
 
       const n = nodes.length;
       if (statusEl)  statusEl.textContent = n ? `${n} résultat${n > 1 ? 's' : ''} · données OpenStreetMap` : '';
@@ -342,7 +370,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
   searchBtn?.addEventListener('click', doSearch);
   clearBtn?.addEventListener('click',  clearResults);
 
-  // Clic sur un item de la liste → flyTo + ouvre la popup
+  // Clic liste → flyTo + popup
   resultListEl?.addEventListener('click', e => {
     const item = e.target.closest('[data-node-id]');
     if (!item) return;
@@ -352,15 +380,14 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     setTimeout(() => marker.openPopup(), 650);
   });
 
-  // Délégation : bouton "Ajouter à ma carte" dans les popups Overpass
+  // Délégation : bouton "Ajouter à ma carte"
   document.addEventListener('click', e => {
     const btn = e.target.closest('button[data-node-ref]');
     if (!btn || !btn.classList.contains('popup-add-to-map')) return;
-    const nodeId = +btn.dataset.nodeRef;
+    const nodeId  = +btn.dataset.nodeRef;
     const payload = payloadsByNodeId.get(nodeId);
     if (!payload) return;
-    // Catégorie choisie dans le select de la même popup
-    const select = btn.closest('.popup')?.querySelector('.op-cat-select');
+    const select   = btn.closest('.popup')?.querySelector('.op-cat-select');
     const finalData = { ...payload, appCategory: select?.value ?? payload.appCategory };
     map.closePopup();
     onAddToMap?.(finalData);

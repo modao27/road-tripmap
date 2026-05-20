@@ -41,8 +41,8 @@
         <button class="sidebar-tab" id="tabRoute" role="tab" aria-selected="false" aria-controls="tabPaneRoute" type="button">
           Road Trip <span class="tab-badge" id="tabRouteBadge" hidden>0</span>
         </button>
-        <button class="sidebar-tab" id="tabDiscover" role="tab" aria-selected="false" aria-controls="tabPaneDiscover" type="button" hidden>
-          Découvrir <span class="tab-badge" id="tabDiscoverBadge">0</span>
+        <button class="sidebar-tab" id="tabDiscover" role="tab" aria-selected="false" aria-controls="tabPaneDiscover" type="button">
+          Découvrir <span class="tab-badge" id="tabDiscoverBadge" hidden>0</span>
         </button>
       </div>
 
@@ -68,24 +68,6 @@
               </div>
             </details>
 
-            <!-- Découvrir via OpenStreetMap -->
-            <details class="filter-section" id="overpassSection">
-              <summary>🔍 Découvrir autour <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
-              <div class="overpass-cats">
-                <button class="overpass-cat-btn active" data-overpass-cat="bivouac"    type="button">⛺ Bivouac</button>
-                <button class="overpass-cat-btn active" data-overpass-cat="shelter"    type="button">🏠 Refuges</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="water"      type="button">💧 Sources</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="waterfall"  type="button">🌊 Cascades</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="viewpoint"  type="button">🔭 Panoramas</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="via_ferrata" type="button">🧗 Via ferrata</button>
-                <button class="overpass-cat-btn"        data-overpass-cat="trailhead"  type="button">🥾 Départs</button>
-              </div>
-              <div class="overpass-actions">
-                <button class="button" id="overpassSearch" type="button">Chercher dans la zone visible</button>
-                <button class="secondary" id="overpassClear" type="button" hidden>✕ Effacer les résultats</button>
-              </div>
-              <p class="overpass-status" id="overpassStatus"></p>
-            </details>
           </section>
           <section class="places-panel">
             <p class="places-title"><span>Lieux visibles</span><span id="visibleCount" aria-live="polite" aria-atomic="true"></span></p>
@@ -95,14 +77,45 @@
 
         <!-- Panneau Découvrir -->
         <div class="tab-pane" id="tabPaneDiscover" role="tabpanel" aria-labelledby="tabDiscover">
-          <section class="discover-panel">
+
+          <!-- Contrôles de recherche -->
+          <section class="controls" aria-label="Recherche de points d'intérêt">
+            <div class="overpass-cats">
+              <button class="overpass-cat-btn active" data-overpass-cat="bivouac"     type="button">⛺ Bivouac</button>
+              <button class="overpass-cat-btn active" data-overpass-cat="shelter"     type="button">🏠 Refuges</button>
+              <button class="overpass-cat-btn"        data-overpass-cat="water"       type="button">💧 Sources</button>
+              <button class="overpass-cat-btn"        data-overpass-cat="waterfall"   type="button">🌊 Cascades</button>
+              <button class="overpass-cat-btn"        data-overpass-cat="viewpoint"   type="button">🔭 Panoramas</button>
+              <button class="overpass-cat-btn"        data-overpass-cat="via_ferrata" type="button">🧗 Via ferrata</button>
+              <button class="overpass-cat-btn"        data-overpass-cat="trailhead"   type="button">🥾 Départs</button>
+            </div>
+
+            <div class="radius-control">
+              <div class="radius-header">
+                <span class="radius-title">Rayon de recherche</span>
+                <strong class="radius-value" id="radiusLabel">10 km</strong>
+              </div>
+              <input type="range" id="radiusSlider" min="1" max="50" value="10" step="1"
+                     class="radius-slider" aria-label="Rayon de recherche en kilomètres">
+            </div>
+
+            <div class="overpass-actions">
+              <button class="button" id="overpassSearch" type="button">🔍 Chercher dans cette zone</button>
+              <button class="secondary" id="overpassClear" type="button" hidden>✕ Effacer les résultats</button>
+            </div>
+            <p class="overpass-status" id="overpassStatus"></p>
+          </section>
+
+          <!-- Résultats -->
+          <section class="places-panel">
             <p class="places-title">
               <span>Résultats</span>
               <span id="discoverCount" aria-live="polite" aria-atomic="true"></span>
             </p>
             <ul class="place-list" id="overpassResultList"></ul>
-            <p class="discover-empty" id="discoverEmpty">Lance une recherche depuis l'onglet Lieux → Découvrir autour.</p>
+            <p class="discover-empty" id="discoverEmpty">Déplace le cercle sur la carte et lance une recherche.</p>
           </section>
+
         </div>
 
         <!-- Panneau Road Trip -->
