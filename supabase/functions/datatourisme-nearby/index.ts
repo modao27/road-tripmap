@@ -169,8 +169,7 @@ serve(async (req: Request) => {
   // ── Requête DATAtourisme ─────────────────────────────────────────────────
   const dtUrl = `${DT_BASE}/catalog`
     + `?geo_distance=${lat},${lng},${radius}km`
-    + `&page_size=100`
-    + `&fields=rdfs:label,@type,isLocatedAt,hasContact`
+    + `&page_size=10`
     + `&api_key=${apiKey}`;
 
   let pois: Record<string, unknown>[];
@@ -193,7 +192,7 @@ serve(async (req: Request) => {
   console.log("[dt] raw POIs:", pois.length);
   if (pois.length > 0) {
     console.log("[dt] first POI keys:", Object.keys(pois[0]).join(", "));
-    console.log("[dt] first POI:", JSON.stringify(pois[0]).slice(0, 600));
+    console.log("[dt] first POI:", JSON.stringify(pois[0]).slice(0, 1200));
   }
 
   type PoiEntry = { icon: string; label: string; url: string; dist: number | null; lat: number | null; lng: number | null };
