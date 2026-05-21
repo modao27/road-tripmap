@@ -199,24 +199,16 @@ serve(async (req: Request) => {
   }
 
   // ── Classification et groupement ─────────────────────────────────────────
-  console.log("[dt] raw POIs:", pois.length);
-  if (pois.length > 0) {
-    const sample = pois.slice(0, 3).map(p => `type=${JSON.stringify(p["type"])} label=${JSON.stringify(p["label"])}`);
-    console.log("[dt] sample:", sample.join(" || "));
-  }
-
   type PoiEntry = { icon: string; label: string; url: string; dist: number | null; lat: number | null; lng: number | null };
   const result = Object.fromEntries(ALL_CATS.map(c => [c, [] as PoiEntry[]])) as Record<Category, PoiEntry[]>;
-  let unclassified = 0;
 
   for (const poi of pois) {
-    // API DATAtourisme : champ "type" (string ou array), pas "@type"
     const rawType = poi["type"] ?? poi["@type"];
     const types   = Array.isArray(rawType) ? rawType as string[]
                   : typeof rawType === "string" ? [rawType]
                   : [];
     const cat = classify(types);
-    if (!cat) { unclassified++; continue; }
+    if (!cat) continue;
     if (result[cat].length >= MAX_PER_CAT + 1) continue;
 
     const { label, url, dist, lat: poiLat, lng: poiLng } = extractPoi(poi, lat, lng);
@@ -229,8 +221,6 @@ serve(async (req: Request) => {
     result[cat].sort((a, b) => (a.dist ?? 99) - (b.dist ?? 99));
     result[cat] = result[cat].slice(0, MAX_PER_CAT);
   }
-
-  console.log("[dt] unclassified:", unclassified, "| grouped:", ALL_CATS.map(c => `${c}:${result[c].length}`).join(" "));
 
   // ── Mise en cache (rayon par défaut uniquement) ──────────────────────────
   if (useCache) {
