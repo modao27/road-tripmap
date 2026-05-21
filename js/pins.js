@@ -52,6 +52,9 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
       <h2>${place.name}</h2>
       <div class="popup-category"><span>${category.icon}</span>${category.label}</div>
       ${renderDescription(place.description)}
+      ${(place.category === 'village' || place.category === 'base') && place.lat && place.lng
+        ? `<div class="wiki-enriched" data-wiki-lat="${place.lat}" data-wiki-lng="${place.lng}"><p class="wiki-loading">⟳ Wikivoyage…</p></div>`
+        : ''}
       ${place.interest ? `<div class="popup-section"><p class="popup-section-label">Intérêt</p><p class="popup-section-body">${place.interest}</p></div>` : ''}
       ${place.tip      ? `<div class="popup-section"><p class="popup-section-label">Conseil</p><p class="popup-section-body">${place.tip}</p></div>`      : ''}
       ${place.mood     ? `<p class="popup-mood">${place.mood}</p>`                                                                                          : ''}

@@ -530,6 +530,60 @@ async function init() {
 
   updateRouteBadge();
 
+  // ── Wikivoyage — enrichissement popup villages/points d'ancrage ──────────
+  const wikiCache = new Map(); // title → données summary (cache session)
+
+  map.on('popupopen', async (e) => {
+    const container = e.popup.getElement()?.querySelector('.wiki-enriched');
+    if (!container || container.dataset.loading) return;
+    container.dataset.loading = 'true';
+
+    const lat = +container.dataset.wikiLat;
+    const lng = +container.dataset.wikiLng;
+    if (!lat || !lng) { container.innerHTML = ''; return; }
+
+    try {
+      // 1. Geosearch : article Wikivoyage le plus proche
+      const gsUrl = `https://fr.wikivoyage.org/w/api.php?action=query&list=geosearch`
+        + `&gscoord=${lat}|${lng}&gsradius=10000&gslimit=3&format=json&origin=*`;
+      const gsData   = await fetch(gsUrl).then(r => r.json());
+      const hits     = gsData.query?.geosearch ?? [];
+      if (!hits.length) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
+
+      const title = hits[0].title;
+
+      // 2. Résumé (avec cache)
+      let summary = wikiCache.get(title);
+      if (!summary) {
+        const sumUrl = `https://fr.wikivoyage.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+        summary = await fetch(sumUrl).then(r => r.json());
+        wikiCache.set(title, summary);
+      }
+
+      if (!summary?.extract) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
+
+      const extract  = summary.extract.length > 280
+        ? summary.extract.slice(0, 280) + '…'
+        : summary.extract;
+      const pageUrl  = summary.content_urls?.desktop?.page
+        ?? `https://fr.wikivoyage.org/wiki/${encodeURIComponent(title)}`;
+      const thumb    = summary.thumbnail?.source;
+
+      container.innerHTML = `
+        <div class="wiki-section">
+          ${thumb ? `<img class="wiki-thumb" src="${thumb}" alt="${title}" loading="lazy">` : ''}
+          <div class="wiki-body">
+            <p class="wiki-title">📖 ${title}</p>
+            <p class="wiki-extract">${extract}</p>
+            <a class="osm-link wiki-link" href="${pageUrl}" target="_blank" rel="noopener">Lire sur Wikivoyage →</a>
+          </div>
+        </div>`;
+    } catch {
+      container.innerHTML = '';
+    }
+    e.popup._updatePosition?.();
+  });
+
   // ── Onboard : première ouverture d'un roadtrip vide ───────────────────────
   const onboardParam = new URLSearchParams(window.location.search).get('onboard');
   if (isRoadtripUUID && onboardParam === 'true' && roadtripPinIds.length === 0) {

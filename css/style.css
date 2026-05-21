@@ -706,6 +706,61 @@ h1 {
   font-style: italic;
 }
 
+/* ── Wikivoyage ──────────────────────────────────────────────────────── */
+.wiki-loading {
+  margin: 6px 0 2px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.wiki-section {
+  display: flex;
+  gap: 9px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: rgba(96, 93, 128, 0.06);
+  border-left: 3px solid rgba(96, 93, 128, 0.4);
+  border-radius: 0 6px 6px 0;
+}
+
+.wiki-thumb {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.wiki-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wiki-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #605d80;
+}
+
+.wiki-extract {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #35413b;
+  line-height: 1.4;
+}
+
+.wiki-link {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #605d80;
+  text-decoration: none;
+}
+
+.wiki-link:hover { text-decoration: underline; }
+
 .osm-link {
   display: inline-flex;
   margin-top: 8px;
