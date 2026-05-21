@@ -535,13 +535,17 @@ async function init() {
   const wikiCache = new Map(); // title → sections parsées (cache session)
 
   // Mapping sections Wikivoyage FR → catégories UX
+  // Ordre = priorité de matching (premier match gagne)
   const WIKI_CATS = [
-    { keys: ['voir'],                        icon: '👁️',  label: 'À voir'   },
-    { keys: ['faire', 'activit', 'sport'],   icon: '🎯',  label: 'À faire'  },
-    { keys: ['manger', 'restau', 'boire'],   icon: '🍽️', label: 'Manger'   },
-    { keys: ['loger', 'dormir', 'héberg'],   icon: '🛏️', label: 'Dormir'   },
-    { keys: ['aller', 'accès', 'circuler'],  icon: '🚗',  label: 'Accès'    },
-    { keys: ['comprendre', 'environ', 'respect', 'pratique'], icon: '💡', label: 'Conseils' },
+    { keys: ['voir'],                          icon: '👁️',  label: 'À voir'        },
+    { keys: ['faire', 'activit'],              icon: '🎯',  label: 'À faire'       },
+    { keys: ['acheter'],                       icon: '🛍️', label: 'Acheter'       },
+    { keys: ['manger', 'restau'],              icon: '🍽️', label: 'Manger'        },
+    { keys: ['boire', 'sortir'],               icon: '🍺',  label: 'Boire / Sortir'},
+    { keys: ['loger', 'heberg'],               icon: '🛏️', label: 'Se loger'      },
+    { keys: ['aller', 'circuler'],             icon: '🚗',  label: 'Y aller'       },
+    { keys: ['comprendre', 'quotidien'],       icon: '💡',  label: 'Comprendre'    },
+    { keys: ['environ', 'voisin', 'alentour'], icon: '🗺️', label: 'Aux environs'  },
   ];
 
   function wikiCatFor(sectionTitle) {
