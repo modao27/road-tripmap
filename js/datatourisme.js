@@ -90,12 +90,14 @@ export function initDatatourisme({
               iconAnchor:  [15, 15],
               popupAnchor: [0, -16],
             });
-            const distStr = item.dist != null ? ` · ${item.dist} km` : '';
-            const popup   = `
+            const popup = `
               <article class="popup" style="--color:${catDef.color}">
                 <h2>${esc(item.label)}</h2>
                 <div class="popup-category"><span>${item.icon}</span>${esc(catDef.label)}</div>
-                ${distStr ? `<p class="op-result-meta">${distStr.trim()}</p>` : ''}
+                ${item.address ? `<p class="op-result-meta">📍 ${esc(item.address)}${item.dist != null ? ` · ${item.dist} km` : ''}</p>` : item.dist != null ? `<p class="op-result-meta">${item.dist} km</p>` : ''}
+                ${item.description ? `<p class="popup-desc-text">${esc(item.description)}</p>` : ''}
+                ${item.phone ? `<a class="osm-link" href="tel:${esc(item.phone)}">📞 ${esc(item.phone)}</a>` : ''}
+                ${item.email ? `<a class="osm-link" href="mailto:${esc(item.email)}">✉️ ${esc(item.email)}</a>` : ''}
                 ${item.url ? `<a class="osm-link" href="${esc(item.url)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
               </article>`;
             L.marker([item.lat, item.lng], { icon, title: item.label })

@@ -86,44 +86,76 @@ function iconFor(cat: Category, types: string[]): string {
   return "🏛";
 }
 
+function langStr(raw: unknown): string {
+  if (typeof raw === "string") return raw;
+  if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    const v = o["@fr"] ?? o["fr"] ?? o["@en"] ?? o["en"] ?? "";
+    return Array.isArray(v) ? (v[0] ?? "") as string : v as string;
+  }
+  return "";
+}
+
 // ── Extraction des champs d'un POI DATAtourisme ───────────────────────────────
 function extractPoi(poi: Record<string, unknown>, centerLat: number, centerLng: number) {
-  // API DATAtourisme : champ "label" avec clés de langue @fr / fr / @en / en
-  const rawLabel = poi["label"] ?? poi["rdfs:label"] ?? poi["schema:name"];
-  let label = "";
-  if (typeof rawLabel === "string") {
-    label = rawLabel;
-  } else if (rawLabel && typeof rawLabel === "object") {
-    const l = rawLabel as Record<string, unknown>;
-    const v = l["@fr"] ?? l["fr"] ?? l["@en"] ?? l["en"] ?? "";
-    label = Array.isArray(v) ? (v[0] ?? "") as string : v as string;
-  }
-  if (!label) label = "Sans nom";
+  // Nom
+  const label = langStr(poi["label"] ?? poi["rdfs:label"] ?? poi["schema:name"]) || "Sans nom";
 
+  // Géolocalisation
   let poiLat = 0, poiLng = 0;
   const loc = (poi["isLocatedAt"] as Record<string, unknown>[] | undefined)?.[0];
   if (loc) {
-    // API JSON-LD : schema:geo   API JSON simplifié : geo
     const geo = (loc["schema:geo"] ?? loc["geo"]) as Record<string, unknown> | undefined;
     if (geo) {
-      poiLat = +((geo["schema:latitude"] ?? geo["latitude"]   ?? 0) as number);
+      poiLat = +((geo["schema:latitude"] ?? geo["latitude"]  ?? 0) as number);
       poiLng = +((geo["schema:longitude"] ?? geo["longitude"] ?? 0) as number);
     }
   }
 
-  let url = "";
+  // Adresse (ville + code postal)
+  let address = "";
+  const addr = (loc?.["address"] as Record<string, unknown>[] | undefined)?.[0];
+  if (addr) {
+    const city = langStr(
+      (addr["hasAddressCity"] as Record<string, unknown> | undefined)?.["label"]
+    ) || (addr["addressLocality"] as string | undefined) || "";
+    const zip  = (addr["postalCode"] as string | undefined) ?? "";
+    address = [zip, city].filter(Boolean).join(" ");
+  }
+
+  // Contact : URL + téléphone + email
+  let url = "", phone = "", email = "";
   const contacts = poi["hasContact"] as Record<string, unknown>[] | undefined;
   if (contacts?.length) {
     const c = contacts[0];
-    url = (c["foaf:homepage"] ?? c["schema:url"] ?? c["url"] ?? "") as string;
-    if (Array.isArray(url)) url = (url as string[])[0] ?? "";
+    let raw = (c["foaf:homepage"] ?? c["schema:url"] ?? c["url"] ?? "") as string | string[];
+    if (Array.isArray(raw)) raw = raw[0] ?? "";
+    url = raw as string;
+
+    const tel = c["schema:telephone"] ?? c["telephone"] ?? c["phone"] ?? "";
+    phone = Array.isArray(tel) ? (tel[0] ?? "") as string : tel as string;
+
+    const em = c["schema:email"] ?? c["email"] ?? "";
+    email = Array.isArray(em) ? (em[0] ?? "") as string : em as string;
+  }
+
+  // Description courte (max 200 chars)
+  let description = "";
+  const descs = poi["hasDescription"] as Record<string, unknown>[] | undefined;
+  if (descs?.length) {
+    const raw = langStr((descs[0]["description"] ?? descs[0]["shortDescription"]) as unknown);
+    if (raw) description = raw.length > 200 ? raw.slice(0, raw.lastIndexOf(" ", 200)) + "…" : raw;
   }
 
   const dist = (poiLat && poiLng)
     ? Math.round(distKm(centerLat, centerLng, poiLat, poiLng) * 10) / 10
     : null;
 
-  return { label: label.trim(), url: url.trim(), dist, lat: poiLat || null, lng: poiLng || null };
+  return {
+    label: label.trim(), url: url.trim(), phone: phone.trim(), email: email.trim(),
+    address: address.trim(), description: description.trim(),
+    dist, lat: poiLat || null, lng: poiLng || null,
+  };
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -199,7 +231,10 @@ serve(async (req: Request) => {
   }
 
   // ── Classification et groupement ─────────────────────────────────────────
-  type PoiEntry = { icon: string; label: string; url: string; dist: number | null; lat: number | null; lng: number | null };
+  type PoiEntry = {
+    icon: string; label: string; url: string; phone: string; email: string;
+    address: string; description: string; dist: number | null; lat: number | null; lng: number | null;
+  };
   const result = Object.fromEntries(ALL_CATS.map(c => [c, [] as PoiEntry[]])) as Record<Category, PoiEntry[]>;
 
   for (const poi of pois) {
@@ -211,10 +246,10 @@ serve(async (req: Request) => {
     if (!cat) continue;
     if (result[cat].length >= MAX_PER_CAT + 1) continue;
 
-    const { label, url, dist, lat: poiLat, lng: poiLng } = extractPoi(poi, lat, lng);
+    const { label, url, phone, email, address, description, dist, lat: poiLat, lng: poiLng } = extractPoi(poi, lat, lng);
     if (!label || label === "Sans nom") continue;
 
-    result[cat].push({ icon: iconFor(cat, types), label, url, dist, lat: poiLat, lng: poiLng });
+    result[cat].push({ icon: iconFor(cat, types), label, url, phone, email, address, description, dist, lat: poiLat, lng: poiLng });
   }
 
   for (const cat of ALL_CATS) {
