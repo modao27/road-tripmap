@@ -1,4 +1,4 @@
-# Road trip outdoor — Jura
+# Road trip outdoor
 
 Application web de planification de road trip outdoor. La carte agrège plusieurs sources de données en temps réel — OpenStreetMap, données touristiques officielles françaises (DATAtourisme), Wikivoyage — et les enrichit à la volée pour donner un aperçu complet d'une zone avant d'y aller.
 
