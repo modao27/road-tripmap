@@ -95,9 +95,10 @@ function extractPoi(poi: Record<string, unknown>, centerLat: number, centerLng: 
   let poiLat = 0, poiLng = 0;
   const loc = (poi["isLocatedAt"] as Record<string, unknown>[] | undefined)?.[0];
   if (loc) {
+    // API JSON-LD : schema:geo   API JSON simplifié : geo
     const geo = (loc["schema:geo"] ?? loc["geo"]) as Record<string, unknown> | undefined;
     if (geo) {
-      poiLat = +((geo["schema:latitude"]  ?? geo["latitude"]  ?? 0) as number);
+      poiLat = +((geo["schema:latitude"] ?? geo["latitude"]   ?? 0) as number);
       poiLng = +((geo["schema:longitude"] ?? geo["longitude"] ?? 0) as number);
     }
   }
@@ -169,18 +170,19 @@ serve(async (req: Request) => {
   // ── Requête DATAtourisme ─────────────────────────────────────────────────
   const dtUrl = `${DT_BASE}/catalog`
     + `?geo_distance=${lat},${lng},${radius}km`
-    + `&page_size=10`
+    + `&page_size=100`
     + `&api_key=${apiKey}`;
 
   let pois: Record<string, unknown>[];
   try {
     const res = await fetch(dtUrl, {
-      headers: { "User-Agent": "RoadTripApp/1.0", "Accept": "application/json" },
+      // application/ld+json retourne le JSON-LD complet avec @type et rdfs:label
+      headers: { "User-Agent": "RoadTripApp/1.0", "Accept": "application/ld+json" },
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) throw new Error(`DT API ${res.status}`);
     const json = await res.json();
-    pois = (json["objects"] ?? json["@graph"] ?? json) as Record<string, unknown>[];
+    pois = (json["@graph"] ?? json["objects"] ?? json) as Record<string, unknown>[];
   } catch (e) {
     console.error("[dt] fetch failed:", e);
     return new Response(JSON.stringify({ error: "fetch_failed" }), {
