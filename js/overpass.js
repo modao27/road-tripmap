@@ -209,42 +209,34 @@ function buildClimbingPayloadDesc(data) {
   ].filter(Boolean).join('  ');
 }
 
-// Construit l'URL thecrag.com la plus précise possible depuis les coordonnées
+// Construit l'URL thecrag.com au niveau pays depuis les coordonnées
+// (thecrag utilise des IDs numériques propres pour les sous-régions, non déductibles)
 function getTheCragUrl(lat, lng) {
   const BASE = 'https://www.thecrag.com/fr/grimper';
 
-  // Régions françaises (bounding boxes approx.)
-  const FR = [
-    [44.1, 46.9,  1.7,  7.8, 'auvergne-rhone-alpes'],
-    [46.2, 48.3,  2.8,  7.1, 'bourgogne-franche-comte'],
-    [47.3, 48.9, -5.2, -1.1, 'bretagne'],
-    [46.3, 48.9,  0.1,  3.2, 'centre-val-de-loire'],
-    [48.0, 50.4,  3.4,  8.2, 'grand-est'],
-    [49.5, 51.1,  1.4,  4.2, 'hauts-de-france'],
-    [48.1, 49.2,  1.4,  3.6, 'ile-de-france'],
-    [48.5, 50.0, -2.0,  2.0, 'normandie'],
-    [42.8, 47.6, -5.1,  0.9, 'nouvelle-aquitaine'],
-    [42.3, 45.6, -0.8,  4.8, 'occitanie'],
-    [46.3, 48.6, -2.6,  0.3, 'pays-de-la-loire'],
-    [43.0, 45.2,  4.2,  7.7, 'provence-alpes-cote-d-azur'],
+  // Pays par bounding box
+  const COUNTRIES = [
+    [41.3, 51.2, -5.2,  9.6, 'france'],
+    [36.0, 43.8, -9.4,  4.4, 'espagne'],
+    [36.0, 47.1,  6.4, 18.5, 'italie'],
+    [45.8, 47.8,  5.9, 10.5, 'suisse'],
+    [46.4, 49.0,  9.5, 17.2, 'autriche'],
+    [47.3, 55.1,  5.9, 15.0, 'allemagne'],
+    [49.5, 51.5,  2.5,  6.4, 'belgique'],
+    [36.5, 41.9, -9.5, -6.2, 'portugal'],
+    [54.5, 71.0,  4.0, 31.0, 'scandinavie'],
+    [35.0, 42.0, 25.0, 45.0, 'turquie'],
+    [35.0, 42.5, 19.0, 28.5, 'grece'],
   ];
 
-  if (lat >= 41.3 && lat <= 51.2 && lng >= -5.2 && lng <= 9.6) {
-    for (const [la, lb, ga, gb, slug] of FR) {
-      if (lat >= la && lat <= lb && lng >= ga && lng <= gb)
-        return `${BASE}/france/${slug}`;
-    }
-    return `${BASE}/france`;
+  for (const [la, lb, ga, gb, country] of COUNTRIES) {
+    if (lat >= la && lat <= lb && lng >= ga && lng <= gb)
+      return `${BASE}/${country}`;
   }
 
-  // Pays voisins
-  if (lat >= 36.0 && lat <= 43.8 && lng >= -9.4 && lng <= 4.4) return `${BASE}/espagne`;
-  if (lat >= 36.0 && lat <= 47.1 && lng >=  6.4 && lng <= 18.5) return `${BASE}/italie`;
-  if (lat >= 45.8 && lat <= 47.8 && lng >=  5.9 && lng <= 10.5) return `${BASE}/suisse`;
-  if (lat >= 46.4 && lat <= 49.0 && lng >=  9.5 && lng <= 17.2) return `${BASE}/autriche`;
-  if (lat >= 47.3 && lat <= 55.1 && lng >=  5.9 && lng <= 15.0) return `${BASE}/allemagne`;
+  if (lat >= 35.0 && lat <= 71.0 && lng >= -10.0 && lng <= 40.0)
+    return `${BASE}/europe`;
 
-  if (lat >= 35.0 && lat <= 71.0 && lng >= -10.0 && lng <= 40.0) return `${BASE}/europe`;
   return `${BASE}/world`;
 }
 
