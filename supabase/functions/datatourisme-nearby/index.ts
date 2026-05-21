@@ -114,7 +114,7 @@ function extractPoi(poi: Record<string, unknown>, centerLat: number, centerLng: 
     ? Math.round(distKm(centerLat, centerLng, poiLat, poiLng) * 10) / 10
     : null;
 
-  return { label: label.trim(), url: url.trim(), dist };
+  return { label: label.trim(), url: url.trim(), dist, lat: poiLat || null, lng: poiLng || null };
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ serve(async (req: Request) => {
   }
 
   // ── Classification et groupement ─────────────────────────────────────────
-  type PoiEntry = { icon: string; label: string; url: string; dist: number | null };
+  type PoiEntry = { icon: string; label: string; url: string; dist: number | null; lat: number | null; lng: number | null };
   const result = Object.fromEntries(ALL_CATS.map(c => [c, [] as PoiEntry[]])) as Record<Category, PoiEntry[]>;
 
   for (const poi of pois) {
@@ -199,10 +199,10 @@ serve(async (req: Request) => {
     if (!cat) continue;
     if (result[cat].length >= MAX_PER_CAT + 1) continue;
 
-    const { label, url, dist } = extractPoi(poi, lat, lng);
+    const { label, url, dist, lat: poiLat, lng: poiLng } = extractPoi(poi, lat, lng);
     if (!label || label === "Sans nom") continue;
 
-    result[cat].push({ icon: iconFor(cat, types), label, url, dist });
+    result[cat].push({ icon: iconFor(cat, types), label, url, dist, lat: poiLat, lng: poiLng });
   }
 
   for (const cat of ALL_CATS) {
