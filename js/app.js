@@ -613,6 +613,12 @@ async function init() {
             </details>`).join('')}
           <a class="wiki-more" href="${pageUrl}" target="_blank" rel="noopener">Article complet sur Wikivoyage →</a>
         </div>`;
+
+      // Accordion exclusif : ferme les autres sections à l'ouverture d'une
+      const details = container.querySelectorAll('.wiki-item');
+      details.forEach(d => d.addEventListener('toggle', () => {
+        if (d.open) details.forEach(other => { if (other !== d) other.open = false; });
+      }));
     } catch {
       container.innerHTML = '';
     }
