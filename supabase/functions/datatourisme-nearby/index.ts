@@ -84,13 +84,17 @@ function iconFor(cat: Category, types: string[]): string {
 
 // ── Extraction des champs d'un POI DATAtourisme ───────────────────────────────
 function extractPoi(poi: Record<string, unknown>, centerLat: number, centerLng: number) {
-  const label = (
-    (poi["rdfs:label"] as Record<string, string[]> | undefined)?.fr?.[0]
-    ?? (poi["rdfs:label"] as Record<string, string>)?.fr
-    ?? poi["label"]
-    ?? poi["schema:name"]
-    ?? "Sans nom"
-  ) as string;
+  // API DATAtourisme : champ "label" avec clés de langue @fr / fr / @en / en
+  const rawLabel = poi["label"] ?? poi["rdfs:label"] ?? poi["schema:name"];
+  let label = "";
+  if (typeof rawLabel === "string") {
+    label = rawLabel;
+  } else if (rawLabel && typeof rawLabel === "object") {
+    const l = rawLabel as Record<string, unknown>;
+    const v = l["@fr"] ?? l["fr"] ?? l["@en"] ?? l["en"] ?? "";
+    label = Array.isArray(v) ? (v[0] ?? "") as string : v as string;
+  }
+  if (!label) label = "Sans nom";
 
   let poiLat = 0, poiLng = 0;
   const loc = (poi["isLocatedAt"] as Record<string, unknown>[] | undefined)?.[0];
@@ -193,8 +197,8 @@ serve(async (req: Request) => {
   // ── Classification et groupement ─────────────────────────────────────────
   console.log("[dt] raw POIs:", pois.length);
   if (pois.length > 0) {
-    console.log("[dt] first POI keys:", Object.keys(pois[0]).join(", "));
-    console.log("[dt] first POI:", JSON.stringify(pois[0]).slice(0, 1200));
+    const sample = pois.slice(0, 3).map(p => `type=${JSON.stringify(p["type"])} label=${JSON.stringify(p["label"])}`);
+    console.log("[dt] sample:", sample.join(" || "));
   }
 
   type PoiEntry = { icon: string; label: string; url: string; dist: number | null; lat: number | null; lng: number | null };
@@ -202,8 +206,12 @@ serve(async (req: Request) => {
   let unclassified = 0;
 
   for (const poi of pois) {
-    const types = (poi["@type"] as string[] | undefined) ?? [];
-    const cat   = classify(types);
+    // API DATAtourisme : champ "type" (string ou array), pas "@type"
+    const rawType = poi["type"] ?? poi["@type"];
+    const types   = Array.isArray(rawType) ? rawType as string[]
+                  : typeof rawType === "string" ? [rawType]
+                  : [];
+    const cat = classify(types);
     if (!cat) { unclassified++; continue; }
     if (result[cat].length >= MAX_PER_CAT + 1) continue;
 
