@@ -237,6 +237,16 @@ serve(async (req: Request) => {
     });
   }
 
+  // ── Diagnostic hasContact (temporaire) ──────────────────────────────────
+  const firstRestaurant = pois.find(p => {
+    const rt = p["type"] ?? p["@type"];
+    const types = Array.isArray(rt) ? rt as string[] : typeof rt === "string" ? [rt] : [];
+    return classify(types) === "restaurant";
+  });
+  if (firstRestaurant) {
+    console.log("[dt] hasContact:", JSON.stringify(firstRestaurant["hasContact"]).slice(0, 600));
+  }
+
   // ── Classification et groupement ─────────────────────────────────────────
   type PoiEntry = {
     icon: string; label: string; url: string; phone: string; email: string;
