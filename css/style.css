@@ -1673,6 +1673,7 @@ mark.search-highlight {
 }
 
 /* ── Découvrir / Overpass ────────────────────────────────────────────── */
+.overpass-cats[hidden] { display: none; } /* empêche display:flex d'écraser hidden */
 .overpass-cats {
   display: flex;
   flex-wrap: wrap;
