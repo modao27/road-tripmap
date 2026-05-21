@@ -609,7 +609,7 @@ async function init() {
               const bold = li.querySelector('b, strong');
               const text = (bold ? bold.textContent : li.textContent)
                 .trim().split(/\s*[-–—:]\s*/)[0].trim();
-              if (text.length >= 3 && !items.includes(text) && items.length < 7) items.push(text);
+              if (text.length >= 3 && !items.includes(text) && items.length < 7 && !/^\d/.test(text)) items.push(text);
             }
             el = el.nextElementSibling;
           }
