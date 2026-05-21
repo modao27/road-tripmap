@@ -80,7 +80,15 @@
 
           <!-- Contrôles de recherche -->
           <section class="controls" aria-label="Recherche de points d'intérêt">
-            <div class="overpass-cats">
+
+            <!-- Switch source de données -->
+            <div class="source-switch" role="group" aria-label="Source de données">
+              <button class="source-btn active" id="sourceOsm"      type="button">OSM</button>
+              <button class="source-btn"        id="sourceTourisme"  type="button">Tourisme officiel 🇫🇷</button>
+            </div>
+
+            <!-- Catégories OSM (Overpass) -->
+            <div class="overpass-cats" id="osmCats">
               <button class="overpass-cat-btn active" data-overpass-cat="bivouac"     type="button">⛺ Bivouac</button>
               <button class="overpass-cat-btn active" data-overpass-cat="shelter"     type="button">🏠 Refuges</button>
               <button class="overpass-cat-btn"        data-overpass-cat="water"       type="button">💧 Sources</button>
@@ -89,6 +97,14 @@
               <button class="overpass-cat-btn"        data-overpass-cat="via_ferrata" type="button">🧗 Via ferrata</button>
               <button class="overpass-cat-btn"        data-overpass-cat="escalade"    type="button">🪨 Escalade</button>
               <button class="overpass-cat-btn"        data-overpass-cat="trailhead"   type="button">🥾 Départs</button>
+            </div>
+
+            <!-- Catégories DATAtourisme (masquées par défaut) -->
+            <div class="overpass-cats" id="tourismeCats" hidden>
+              <button class="overpass-cat-btn active" data-dt-cat="hebergement" type="button">🏕 Hébergement</button>
+              <button class="overpass-cat-btn active" data-dt-cat="restaurant"  type="button">🍽 Restauration</button>
+              <button class="overpass-cat-btn active" data-dt-cat="evenement"   type="button">🎭 Événements</button>
+              <button class="overpass-cat-btn active" data-dt-cat="patrimoine"  type="button">🏛 Patrimoine</button>
             </div>
 
             <div class="radius-control">
