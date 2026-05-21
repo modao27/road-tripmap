@@ -531,7 +531,36 @@ async function init() {
   updateRouteBadge();
 
   // ── Wikivoyage — enrichissement popup villages/points d'ancrage ──────────
-  const wikiCache = new Map(); // title → données summary (cache session)
+  const wikiCache = new Map(); // title → sections parsées (cache session)
+
+  // Mapping sections Wikivoyage FR → catégories UX
+  const WIKI_CATS = [
+    { keys: ['voir'],                        icon: '👁️',  label: 'À voir'   },
+    { keys: ['faire', 'activit', 'sport'],   icon: '🎯',  label: 'À faire'  },
+    { keys: ['manger', 'restau', 'boire'],   icon: '🍽️', label: 'Manger'   },
+    { keys: ['loger', 'dormir', 'héberg'],   icon: '🛏️', label: 'Dormir'   },
+    { keys: ['aller', 'accès', 'circuler'],  icon: '🚗',  label: 'Accès'    },
+    { keys: ['comprendre', 'environ', 'respect', 'pratique'], icon: '💡', label: 'Conseils' },
+  ];
+
+  function wikiCatFor(sectionTitle) {
+    const low = sectionTitle.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return WIKI_CATS.find(c => c.keys.some(k => low.includes(k)));
+  }
+
+  function wikiExtractItems(html, max = 7) {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    const items = [];
+    for (const li of d.querySelectorAll('li')) {
+      // Préfère le nom en gras (ex. <b>Château d'Annecy</b> - description…)
+      const bold = li.querySelector('b, strong');
+      const text = (bold ? bold.textContent : li.textContent).trim().split(/\s*[-–—]\s*/)[0].trim();
+      if (text.length >= 3 && !items.includes(text)) items.push(text);
+      if (items.length >= max) break;
+    }
+    return items;
+  }
 
   map.on('popupopen', async (e) => {
     const container = e.popup.getElement()?.querySelector('.wiki-enriched');
@@ -543,40 +572,46 @@ async function init() {
     if (!lat || !lng) { container.innerHTML = ''; return; }
 
     try {
-      // 1. Geosearch : article Wikivoyage le plus proche
+      // 1. Geosearch
       const gsUrl = `https://fr.wikivoyage.org/w/api.php?action=query&list=geosearch`
         + `&gscoord=${lat}|${lng}&gsradius=10000&gslimit=3&format=json&origin=*`;
-      const gsData   = await fetch(gsUrl).then(r => r.json());
-      const hits     = gsData.query?.geosearch ?? [];
+      const hits = (await fetch(gsUrl).then(r => r.json())).query?.geosearch ?? [];
       if (!hits.length) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
 
       const title = hits[0].title;
 
-      // 2. Résumé (avec cache)
-      let summary = wikiCache.get(title);
-      if (!summary) {
-        const sumUrl = `https://fr.wikivoyage.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-        summary = await fetch(sumUrl).then(r => r.json());
-        wikiCache.set(title, summary);
+      // 2. Sections (avec cache)
+      let grouped = wikiCache.get(title);
+      if (!grouped) {
+        const msUrl = `https://fr.wikivoyage.org/api/rest_v1/page/mobile-sections/${encodeURIComponent(title)}`;
+        const ms    = await fetch(msUrl).then(r => r.json());
+        grouped = {};
+        for (const sec of ms.remaining?.sections ?? []) {
+          if (sec.toclevel !== 1) continue; // top-level uniquement
+          const cat = wikiCatFor(sec.line);
+          if (!cat) continue;
+          if (!grouped[cat.label]) grouped[cat.label] = { ...cat, items: [] };
+          grouped[cat.label].items.push(...wikiExtractItems(sec.text));
+        }
+        wikiCache.set(title, grouped);
       }
 
-      if (!summary?.extract) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
+      const pageUrl = `https://fr.wikivoyage.org/wiki/${encodeURIComponent(title)}`;
+      const sections = Object.values(grouped).filter(s => s.items.length > 0);
 
-      const extract  = summary.extract.length > 280
-        ? summary.extract.slice(0, 280) + '…'
-        : summary.extract;
-      const pageUrl  = summary.content_urls?.desktop?.page
-        ?? `https://fr.wikivoyage.org/wiki/${encodeURIComponent(title)}`;
-      const thumb    = summary.thumbnail?.source;
+      if (!sections.length) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
 
       container.innerHTML = `
-        <div class="wiki-section">
-          ${thumb ? `<img class="wiki-thumb" src="${thumb}" alt="${title}" loading="lazy">` : ''}
-          <div class="wiki-body">
-            <p class="wiki-title">📖 ${title}</p>
-            <p class="wiki-extract">${extract}</p>
-            <a class="osm-link wiki-link" href="${pageUrl}" target="_blank" rel="noopener">Lire sur Wikivoyage →</a>
-          </div>
+        <div class="wiki-sections">
+          <p class="wiki-heading">📖 ${title}</p>
+          ${sections.map(s => `
+            <details class="wiki-item">
+              <summary class="wiki-item-hd">${s.icon} ${s.label}</summary>
+              <ul class="wiki-item-list">
+                ${s.items.map(it => `<li>${it}</li>`).join('')}
+              </ul>
+            </details>`).join('')}
+          <a class="wiki-more" href="${pageUrl}" target="_blank" rel="noopener">Article complet sur Wikivoyage →</a>
         </div>`;
     } catch {
       container.innerHTML = '';

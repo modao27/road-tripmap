@@ -706,60 +706,93 @@ h1 {
   font-style: italic;
 }
 
-/* ── Wikivoyage ──────────────────────────────────────────────────────── */
+/* ── Wikivoyage — accordion sections ─────────────────────────────────── */
 .wiki-loading {
   margin: 6px 0 2px;
   font-size: 0.76rem;
   color: var(--muted);
 }
 
-.wiki-section {
-  display: flex;
-  gap: 9px;
-  margin: 8px 0;
-  padding: 8px 10px;
-  background: rgba(96, 93, 128, 0.06);
-  border-left: 3px solid rgba(96, 93, 128, 0.4);
-  border-radius: 0 6px 6px 0;
+.wiki-sections {
+  margin: 8px 0 4px;
+  max-height: 48vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-.wiki-thumb {
-  flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 5px;
-}
-
-.wiki-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.wiki-title {
-  margin: 0;
+.wiki-heading {
+  margin: 0 0 6px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 900;
   color: #605d80;
+  letter-spacing: 0.02em;
 }
 
-.wiki-extract {
-  margin: 0;
-  font-size: 0.78rem;
-  color: #35413b;
-  line-height: 1.4;
+.wiki-item {
+  margin-bottom: 3px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(96, 93, 128, 0.05);
 }
 
-.wiki-link {
-  font-size: 0.76rem;
+.wiki-item-hd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  font-size: 0.83rem;
   font-weight: 700;
   color: #605d80;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 120ms ease;
+}
+
+.wiki-item-hd::-webkit-details-marker { display: none; }
+
+.wiki-item-hd::after {
+  content: '›';
+  margin-left: auto;
+  font-size: 1rem;
+  transition: transform 150ms ease;
+  color: #9b97b8;
+}
+
+.wiki-item[open] .wiki-item-hd {
+  background: rgba(96, 93, 128, 0.12);
+  border-radius: 7px 7px 0 0;
+}
+
+.wiki-item[open] .wiki-item-hd::after {
+  transform: rotate(90deg);
+}
+
+.wiki-item-list {
+  margin: 0;
+  padding: 5px 12px 8px 28px;
+  list-style: disc;
+  background: rgba(96, 93, 128, 0.03);
+  border-radius: 0 0 7px 7px;
+}
+
+.wiki-item-list li {
+  font-size: 0.79rem;
+  color: var(--ink);
+  line-height: 1.45;
+  margin-bottom: 3px;
+}
+
+.wiki-more {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #9b97b8;
   text-decoration: none;
 }
 
-.wiki-link:hover { text-decoration: underline; }
+.wiki-more:hover { color: #605d80; text-decoration: underline; }
 
 .osm-link {
   display: inline-flex;
