@@ -794,6 +794,76 @@ h1 {
 
 .wiki-more:hover { color: #605d80; text-decoration: underline; }
 
+/* ── DATAtourisme — Aux alentours ────────────────────────────────────── */
+.dt-loading {
+  margin: 6px 0 2px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.dt-section {
+  margin: 10px 0 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.dt-heading {
+  margin: 0 0 7px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dt-group {
+  margin-bottom: 7px;
+}
+
+.dt-group-label {
+  margin: 0 0 3px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.dt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dt-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.dt-name {
+  color: var(--forest-dark);
+  text-decoration: none;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+a.dt-name:hover { text-decoration: underline; }
+
+.dt-dist {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .osm-link {
   display: inline-flex;
   margin-top: 8px;

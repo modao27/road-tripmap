@@ -14,7 +14,8 @@ import { fetchUserPins, fetchOverrides,
          fetchRoadtripPins, fetchRoadtripInfo,
          updateRoadtripCenter, createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin,
-         updatePinOrder, getCurrentUserId, sessionReady } from './supabase.js';
+         updatePinOrder, getCurrentUserId, sessionReady,
+         SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -622,6 +623,72 @@ async function init() {
     } catch {
       container.innerHTML = '';
     }
+    e.popup._updatePosition?.();
+  });
+
+  // ── DATAtourisme — hébergements, restaurants, événements à proximité ─────
+  const DT_URL    = `${SUPABASE_URL}/functions/v1/datatourisme-nearby`;
+  const dtCache   = new Map(); // cellKey → data (cache session)
+
+  function dtCellKey(lat, lng) {
+    return `${Math.round(lat * 10) / 10}_${Math.round(lng * 10) / 10}`;
+  }
+
+  function renderDtNearby(data) {
+    const GROUPS = [
+      { key: 'hebergement', label: 'Hébergements', defaultIcon: '🏕' },
+      { key: 'restaurant',  label: 'Restauration', defaultIcon: '🍽' },
+      { key: 'evenement',   label: 'Événements',   defaultIcon: '📅' },
+    ];
+    const filled = GROUPS.filter(g => data[g.key]?.length);
+    if (!filled.length) return '';
+
+    return `<div class="dt-section">
+      <p class="dt-heading">Aux alentours</p>
+      ${filled.map(g => `
+        <div class="dt-group">
+          <p class="dt-group-label">${g.defaultIcon} ${g.label}</p>
+          <ul class="dt-list">
+            ${data[g.key].map(item => `
+              <li class="dt-item">
+                ${item.url
+                  ? `<a class="dt-name" href="${item.url}" target="_blank" rel="noopener">${item.icon} ${item.label}</a>`
+                  : `<span class="dt-name">${item.icon} ${item.label}</span>`}
+                ${item.dist != null ? `<span class="dt-dist">${item.dist} km</span>` : ''}
+              </li>`).join('')}
+          </ul>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  map.on('popupopen', async (e) => {
+    const container = e.popup.getElement()?.querySelector('.dt-nearby');
+    if (!container || container.dataset.loading) return;
+    container.dataset.loading = 'true';
+
+    const lat = +container.dataset.dtLat;
+    const lng = +container.dataset.dtLng;
+    if (!lat || !lng) { container.innerHTML = ''; return; }
+
+    const cellKey = dtCellKey(lat, lng);
+    let data = dtCache.get(cellKey);
+
+    if (!data) {
+      try {
+        const res = await fetch(DT_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+          body:    JSON.stringify({ lat, lng }),
+        });
+        data = await res.json();
+        if (!data?.error) dtCache.set(cellKey, data);
+      } catch {
+        container.innerHTML = '';
+        return;
+      }
+    }
+
+    container.innerHTML = data?.error ? '' : renderDtNearby(data);
     e.popup._updatePosition?.();
   });
 

@@ -58,6 +58,9 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
       ${place.interest ? `<div class="popup-section"><p class="popup-section-label">Intérêt</p><p class="popup-section-body">${place.interest}</p></div>` : ''}
       ${place.tip      ? `<div class="popup-section"><p class="popup-section-label">Conseil</p><p class="popup-section-body">${place.tip}</p></div>`      : ''}
       ${place.mood     ? `<p class="popup-mood">${place.mood}</p>`                                                                                          : ''}
+      ${(place.category === 'village' || place.category === 'base') && place.lat && place.lng
+        ? `<div class="dt-nearby" data-dt-lat="${place.lat}" data-dt-lng="${place.lng}"><p class="dt-loading">⟳ Infos touristiques…</p></div>`
+        : ''}
       <a class="osm-link" href="${openInOSM(place.lat, place.lng)}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
       <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${place.id}" type="button">
         ${isInRoute ? "✓ Dans l'itinéraire" : "➕ Ajouter à l'itinéraire"}
