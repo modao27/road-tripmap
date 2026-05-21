@@ -19,6 +19,7 @@ import { fetchUserPins, fetchOverrides,
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
+import { initDatatourisme, DT_CATEGORIES } from './datatourisme.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 export const CONFIG = {
@@ -413,19 +414,79 @@ async function init() {
     },
   });
 
-  // ── Découvrir (Overpass OSM) ──────────────────────────────────────────────
+  // ── Découvrir ─────────────────────────────────────────────────────────────
   const tabDiscoverBadgeEl = document.getElementById('tabDiscoverBadge');
+
+  function onDiscoverResults(count) {
+    if (tabDiscoverBadgeEl) {
+      tabDiscoverBadgeEl.textContent = String(count);
+      tabDiscoverBadgeEl.hidden = count === 0;
+    }
+    if (count > 0) switchTab('discover');
+  }
+
   const overpassModule = initOverpass({
     map, toastWrap, showToastFn: showToast,
     onAddToMap:        data => pinsModule?.openForOverpass(data),
     appCategories:     categories,
-    onDiscoverResults: count => {
-      if (tabDiscoverBadgeEl) {
-        tabDiscoverBadgeEl.textContent = String(count);
-        tabDiscoverBadgeEl.hidden = count === 0;
+    onDiscoverResults,
+  });
+
+  const dtModule = initDatatourisme({
+    map, toastWrap, showToastFn: showToast,
+    resultListEl:    document.getElementById('overpassResultList'),
+    statusEl:        document.getElementById('overpassStatus'),
+    clearBtn:        document.getElementById('overpassClear'),
+    discoverCountEl: document.getElementById('discoverCount'),
+    discoverEmptyEl: document.getElementById('discoverEmpty'),
+    onDiscoverResults,
+  });
+
+  // ── Switch source OSM / Tourisme officiel ─────────────────────────────────
+  let discoverMode       = 'osm';
+  const sourceOsmBtn     = document.getElementById('sourceOsm');
+  const sourceTourismeBtn = document.getElementById('sourceTourisme');
+  const osmCatsEl        = document.getElementById('osmCats');
+  const tourismeCatsEl   = document.getElementById('tourismeCats');
+  const dtCatBtns        = document.querySelectorAll('[data-dt-cat]');
+  const selectedDtCats   = new Set(Object.keys(DT_CATEGORIES));
+
+  dtCatBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.dtCat;
+      if (selectedDtCats.has(cat)) {
+        if (selectedDtCats.size > 1) { selectedDtCats.delete(cat); btn.classList.remove('active'); }
+      } else {
+        selectedDtCats.add(cat); btn.classList.add('active');
       }
-      if (count > 0) switchTab('discover');
-    },
+    });
+  });
+
+  function setDiscoverMode(mode) {
+    discoverMode = mode;
+    sourceOsmBtn?.classList.toggle('active', mode === 'osm');
+    sourceTourismeBtn?.classList.toggle('active', mode === 'tourisme');
+    if (osmCatsEl)      osmCatsEl.hidden      = mode !== 'osm';
+    if (tourismeCatsEl) tourismeCatsEl.hidden = mode !== 'tourisme';
+    if (mode === 'osm') dtModule.clear();
+    else overpassModule.clearResults();
+  }
+
+  sourceOsmBtn?.addEventListener('click',      () => setDiscoverMode('osm'));
+  sourceTourismeBtn?.addEventListener('click', () => setDiscoverMode('tourisme'));
+
+  document.getElementById('overpassSearch')?.addEventListener('click', () => {
+    if (discoverMode === 'osm') {
+      overpassModule.doSearch();
+    } else {
+      const { lat, lng, radiusKm } = overpassModule.getCircleState();
+      dtModule.search(lat, lng, radiusKm, selectedDtCats);
+    }
+  });
+
+  document.getElementById('overpassClear')?.addEventListener('click', () => {
+    overpassModule.clearResults();
+    dtModule.clear();
   });
 
   // ── Itinéraire ────────────────────────────────────────────────────────────
