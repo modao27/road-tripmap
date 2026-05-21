@@ -600,8 +600,11 @@ async function init() {
           if (!cat || grouped[cat.label]) continue;
 
           const items = [];
-          let el = h2.nextElementSibling;
-          while (el && el.tagName !== 'H2') {
+          // MediaWiki récent encapsule le <h2> dans <div class="mw-heading">
+          // → le contenu de la section est frère du div, pas du h2
+          const headingBlock = h2.closest('.mw-heading') ?? h2;
+          let el = headingBlock.nextElementSibling;
+          while (el && el.tagName !== 'H2' && !el.classList.contains('mw-heading')) {
             for (const li of el.querySelectorAll('li')) {
               const bold = li.querySelector('b, strong');
               const text = (bold ? bold.textContent : li.textContent)
