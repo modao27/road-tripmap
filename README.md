@@ -1,6 +1,15 @@
 # Road trip outdoor — Jura
 
-Carte interactive pour planifier un road trip outdoor autour de **Baume-les-Messieurs** dans le Jura. Sans planning imposé — une carte libre pour repérer cascades, belvédères, villages, bivouacs, lacs et via ferratas.
+Application web de planification de road trip outdoor. La carte agrège plusieurs sources de données en temps réel — OpenStreetMap, données touristiques officielles françaises (DATAtourisme), Wikivoyage — et les enrichit à la volée pour donner un aperçu complet d'une zone avant d'y aller.
+
+Trois modes de travail dans la même interface :
+- **Lieux** — 35 POI statiques (bivouacs, via ferratas, cascades, villages…) + pins personnalisés synchronisés sur Supabase
+- **Road Trip** — construction d'un itinéraire par drag & drop, calcul d'itinéraire OSRM, export GPX, partage par URL
+- **Découvrir** — exploration par zone (cercle draggable) en mode OSM (Overpass) ou Tourisme officiel 🇫🇷 (DATAtourisme)
+
+Les popups des villes et points d'ancrage s'enrichissent automatiquement avec les sections Wikivoyage et les hébergements/restaurants/événements/patrimoine à proximité.
+
+Aucun outil de build — ES modules natifs, Leaflet en CDN, Supabase pour la persistence et les Edge Functions d'enrichissement.
 
 ![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-brightgreen) ![ES Modules](https://img.shields.io/badge/JS-ES%20Modules-blue) ![Supabase](https://img.shields.io/badge/Supabase-cloud-3ECF8E) ![Build](https://img.shields.io/badge/build-aucun-lightgrey)
 
