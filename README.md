@@ -1,4 +1,4 @@
-# Road trip outdoor dans le Jura
+# Road trip outdoor — Jura
 
 Carte interactive pour planifier un road trip outdoor autour de **Baume-les-Messieurs** dans le Jura. Sans planning imposé — une carte libre pour repérer cascades, belvédères, villages, bivouacs, lacs et via ferratas.
 
@@ -9,7 +9,7 @@ Carte interactive pour planifier un road trip outdoor autour de **Baume-les-Mess
 ## Fonctionnalités
 
 ### Carte
-- **30 lieux préchargés** — cascades, lacs, randonnées, bivouacs, via ferratas, villages
+- **35 lieux préchargés** — cascades, lacs, randonnées, bivouacs, via ferratas, villages, points d'ancrage
 - **Filtres par catégorie** avec compteurs dynamiques
 - **Recherche textuelle** avec highlight du texte correspondant
 - **3 fonds de carte** — OpenStreetMap, IGN topo (Géoportail), satellite (ESRI)
@@ -33,6 +33,36 @@ Carte interactive pour planifier un road trip outdoor autour de **Baume-les-Mess
 - Export **GPX** (waypoints + tracé)
 - Partage via URL (`?route=id1,id2&rmode=driving`)
 - Restauration automatique au rechargement
+
+### Onglet Découvrir
+
+#### Mode OSM (Overpass)
+Recherche de POIs dans une zone draggable sur la carte :
+- ⛺ Bivouacs · 🏠 Refuges · 💧 Sources · 🌊 Cascades
+- 🔭 Panoramas · 🧗 Via ferratas · 🪨 Escalade · 🥾 Départs de randonnée
+- Rayon ajustable de 1 à 50 km
+- Enrichissement automatique via ferrata ([viaferrata-fr.net](https://viaferrata-fr.net)) et escalade ([theCrag](https://www.thecrag.com/), [FFME](https://www.ffme.fr/)) via Edge Functions Supabase
+- Bouton "Ajouter à ma carte" depuis le résultat
+
+#### Mode Tourisme officiel 🇫🇷 (DATAtourisme)
+Switch dans le même onglet pour basculer sur les données officielles :
+- 🏕 Hébergement · 🍽 Restauration · 🎭 Événements · 🏛 Patrimoine
+- Markers sur la carte + liste dans la sidebar
+- Cache 7 jours côté Supabase (cellule 0.1°)
+- Rayon partagé avec le mode OSM
+
+### Enrichissement des popups ville / ancrage
+
+Pour les lieux de type **Village** ou **Point d'ancrage**, les popups affichent automatiquement :
+
+**Wikivoyage** (API MediaWiki) :
+- Sections À voir · À faire · Acheter · Manger · Boire/Sortir · Se loger · Y aller · Comprendre · Aux environs
+- Accordion exclusif, lien vers l'article complet
+- Cache session navigateur
+
+**DATAtourisme** (via Edge Function) :
+- Hébergements · Restauration · Événements proches (rayon 15 km)
+- Cache 7 jours côté Supabase
 
 ### Partage & collaboration
 - **Cartes partagées** — snapshot public via URL `?map=slug`
@@ -58,7 +88,7 @@ Les ES modules nécessitent un serveur HTTP (pas `file://`).
 
 ### VS Code Live Server *(recommandé)*
 1. Installer l'extension **Live Server** (Ritwick Dey)
-2. Clic droit sur `index.html` → **Open with Live Server**
+2. Clic droit sur `map.html` → **Open with Live Server**
 
 ### npx serve
 ```bash
@@ -75,43 +105,15 @@ python -m http.server 8000
 ## Configuration Supabase
 
 1. Créer un projet sur [supabase.com](https://supabase.com)
-2. Exécuter le SQL dans **SQL Editor** :
+2. Exécuter les migrations dans **SQL Editor** (dossier `supabase/migrations/` — dans l'ordre numérique)
+3. Déployer les trois Edge Functions (dossier `supabase/functions/`) via l'éditeur Supabase Dashboard
+4. Configurer les secrets dans **Dashboard → Project Settings → Edge Functions → Secrets** :
 
-```sql
-create table user_pins (
-  id text primary key, map_id text not null,
-  name text not null, category text not null,
-  lat float8 not null, lng float8 not null,
-  description text default '', user_created boolean default true,
-  created_at timestamptz default now()
-);
+| Secret | Description |
+|---|---|
+| `DATATOURISME_API_KEY` | Clé API [DATAtourisme](https://datadocs.datatourisme.fr/) |
 
-create table place_overrides (
-  place_id text not null, map_id text not null,
-  name text, category text, description text, lat float8, lng float8,
-  primary key (place_id, map_id)
-);
-
-create table shared_maps (
-  slug text primary key, title text not null,
-  description text default '', pins jsonb default '[]',
-  overrides jsonb default '{}', center_lat float8 not null,
-  center_lng float8 not null, zoom int not null default 10,
-  base_layer text not null default 'osm', filters jsonb not null default '[]',
-  created_at timestamptz default now()
-);
-
-alter table user_pins       enable row level security;
-alter table place_overrides enable row level security;
-alter table shared_maps     enable row level security;
-
-create policy "anon access" on user_pins       for all using (true) with check (true);
-create policy "anon access" on place_overrides for all using (true) with check (true);
-create policy "public read" on shared_maps     for select using (true);
-create policy "public write" on shared_maps    for insert with check (true);
-```
-
-3. Renseigner les credentials dans `js/supabase.js` :
+5. Renseigner les credentials dans `js/supabase.js` :
 
 ```js
 const SUPABASE_URL      = 'https://VOTRE_PROJET.supabase.co';
@@ -126,41 +128,31 @@ const SUPABASE_ANON_KEY = 'VOTRE_CLE_ANON';
 
 ```
 road-trip-jura/
-├── index.html              HTML pur + CDN + <script type="module">
+├── map.html                Point d'entrée principal de la carte
+├── index.html              Page d'accueil / redirection
 ├── css/
 │   └── style.css           Tous les styles (dark mode inclus)
-└── js/
-    ├── app.js              Point d'entrée — CONFIG, état, bootstrap
-    ├── map.js              Leaflet : init, layers, markers, clusters
-    ├── ui.js               Sidebar, resizer, toasts, focus trap
-    ├── pins.js             Pins utilisateur — CRUD + geocoding
-    ├── filters.js          Filtres, légende, liste des lieux
-    ├── routePlanner.js     Itinéraire — OSRM, GPX, drag & drop
-    ├── share.js            Partage — modale, slug, bannière
-    ├── storage.js          localStorage — toutes les clés
-    ├── supabase.js         Client Supabase — CRUD + cartes partagées
-    └── data/
-        ├── places.js       30 lieux statiques
-        └── categories.js   6 catégories
-```
-
----
-
-## Configuration
-
-```js
-// js/app.js
-export const CONFIG = {
-  defaultCenter:   [46.709, 5.646], // Baume-les-Messieurs
-  defaultZoom:     10,
-  focusZoom:       13,
-  clusterRadius:   50,
-  geocodeLimit:    5,
-  geocodeDebounce: 350,             // ms avant la requête Nominatim
-  sidebarDefault:  390,             // px
-  sidebarMin:      240,
-  sidebarMax:      720,
-};
+├── js/
+│   ├── app.js              Bootstrap — état global, onglets, wiring des modules
+│   ├── map.js              Leaflet : init, layers, markers, clusters
+│   ├── ui.js               Sidebar, resizer, toasts, focus trap
+│   ├── pins.js             Pins utilisateur — CRUD + geocoding + popupHtml
+│   ├── filters.js          Filtres, légende, liste des lieux
+│   ├── overpass.js         Onglet Découvrir — recherche OSM via Overpass API
+│   ├── datatourisme.js     Onglet Découvrir — recherche Tourisme officiel (DATAtourisme)
+│   ├── routePlanner.js     Itinéraire — OSRM, GPX, drag & drop
+│   ├── share.js            Partage — modale, slug, bannière
+│   ├── storage.js          localStorage — toutes les clés
+│   ├── supabase.js         Client Supabase — CRUD + cartes partagées
+│   └── data/
+│       ├── places.js       35 lieux statiques
+│       └── categories.js   7 catégories
+└── supabase/
+    ├── migrations/         015 migrations SQL (schéma + RLS + caches)
+    └── functions/
+        ├── via-ferrata-info/     Enrichissement via ferrata (CamptoCamp + cache)
+        ├── climbing-info/        Enrichissement escalade (cache Supabase)
+        └── datatourisme-nearby/  POIs touristiques officiels (DATAtourisme + cache 7j)
 ```
 
 ---
@@ -172,6 +164,7 @@ export const CONFIG = {
 | Point d'ancrage | ★ | Base principale du séjour |
 | Bivouac | ⛺ | Spots en forêt ou lac |
 | Via ferrata | 🧗 | Parcours aériens équipés |
+| Escalade | 🪨 | Sites d'escalade |
 | Randonnée / belvédère | 🥾 | Sentiers et points de vue |
 | Cascade / lac | 💧 | Sites aquatiques |
 | Village / patrimoine | 🏘️ | Villages, villes, gastronomie |
@@ -186,7 +179,7 @@ export const CONFIG = {
 {
   id:          "identifiant-unique",  // kebab-case, unique
   name:        "Nom du lieu",
-  category:    "water",               // base | bivouac | via | hike | water | village
+  category:    "water",               // base | bivouac | via | escalade | hike | water | village
   lat:         46.1234,
   lng:         5.6789,
   description: "Description courte.",
@@ -206,7 +199,10 @@ export const CONFIG = {
 | [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) | Clustering |
 | [OSRM](https://project-osrm.org/) | Calcul d'itinéraire (API publique) |
 | [Nominatim](https://nominatim.org/) | Géocodage (OpenStreetMap) |
-| [Supabase](https://supabase.com/) | Base de données cloud + RLS |
+| [Overpass API](https://overpass-api.de/) | Recherche POI OpenStreetMap |
+| [Wikivoyage](https://fr.wikivoyage.org/) | Enrichissement popup ville (API MediaWiki) |
+| [DATAtourisme](https://datadocs.datatourisme.fr/) | POIs touristiques officiels français |
+| [Supabase](https://supabase.com/) | Base de données cloud + RLS + Edge Functions |
 | [IGN Géoportail](https://geoservices.ign.fr/) | Fond de carte topographique |
 | ES Modules natifs | Pas de build tool |
 
@@ -219,6 +215,7 @@ export const CONFIG = {
 Le site sera disponible sur `https://ton-pseudo.github.io/road-trip-jura/`.
 
 > GitHub Pages sert les fichiers via HTTPS — les ES modules fonctionnent sans serveur local.
+> Les Edge Functions Supabase continuent de tourner indépendamment.
 
 ---
 
@@ -226,3 +223,5 @@ Le site sera disponible sur `https://ton-pseudo.github.io/road-trip-jura/`.
 
 > Les coordonnées des lieux sont **approximatives**. Vérifier avant usage sur le terrain.
 > Certains bivouacs sont en forêt domaniale — se renseigner sur la réglementation locale.
+> Via ferrata Roche au Dade : fermée depuis mars 2026 (roche dégradée) — vérifier réouverture.
+> Gorges de l'Abîme : fermées par arrêté municipal (travaux en cours 2026).
