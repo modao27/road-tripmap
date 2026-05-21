@@ -123,20 +123,25 @@ function extractPoi(poi: Record<string, unknown>, centerLat: number, centerLng: 
     address = [zip, city].filter(Boolean).join(" ");
   }
 
-  // Contact : URL + téléphone + email
+  // Contact : URL + téléphone + email — cherche dans tous les objets hasContact
   let url = "", phone = "", email = "";
   const contacts = poi["hasContact"] as Record<string, unknown>[] | undefined;
-  if (contacts?.length) {
-    const c = contacts[0];
-    let raw = (c["foaf:homepage"] ?? c["schema:url"] ?? c["url"] ?? "") as string | string[];
-    if (Array.isArray(raw)) raw = raw[0] ?? "";
-    url = raw as string;
-
-    const tel = c["schema:telephone"] ?? c["telephone"] ?? c["phone"] ?? "";
-    phone = Array.isArray(tel) ? (tel[0] ?? "") as string : tel as string;
-
-    const em = c["schema:email"] ?? c["email"] ?? "";
-    email = Array.isArray(em) ? (em[0] ?? "") as string : em as string;
+  for (const c of contacts ?? []) {
+    if (!url) {
+      const raw = c["foaf:homepage"] ?? c["schema:url"] ?? c["website"] ?? c["url"] ?? "";
+      const v   = Array.isArray(raw) ? raw[0] ?? "" : raw as string;
+      if (v) url = v;
+    }
+    if (!phone) {
+      const raw = c["schema:telephone"] ?? c["telephone"] ?? c["phone"] ?? "";
+      const v   = Array.isArray(raw) ? raw[0] ?? "" : raw as string;
+      if (v) phone = v;
+    }
+    if (!email) {
+      const raw = c["schema:email"] ?? c["email"] ?? "";
+      const v   = Array.isArray(raw) ? raw[0] ?? "" : raw as string;
+      if (v) email = v;
+    }
   }
 
   // Description courte (max 200 chars)
