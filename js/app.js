@@ -581,18 +581,36 @@ async function init() {
 
       const title = hits[0].title;
 
-      // 2. Sections (avec cache)
+      // 2. Sections via MediaWiki action=parse (CORS natif avec origin=*)
+      //    Remplace mobile-sections (décommissionnée T328036)
       let grouped = wikiCache.get(title);
       if (!grouped) {
-        const msUrl = `https://fr.wikivoyage.org/api/rest_v1/page/mobile-sections/${encodeURIComponent(title)}`;
-        const ms    = await fetch(msUrl).then(r => r.json());
+        const parseUrl = `https://fr.wikivoyage.org/w/api.php?action=parse`
+          + `&page=${encodeURIComponent(title)}&prop=text|sections&format=json&origin=*`;
+        const parsed = await fetch(parseUrl).then(r => r.json());
+
+        const fullHtml  = parsed.parse?.text?.['*'] ?? '';
+        const doc       = new DOMParser().parseFromString(fullHtml, 'text/html');
         grouped = {};
-        for (const sec of ms.remaining?.sections ?? []) {
-          if (sec.toclevel !== 1) continue; // top-level uniquement
-          const cat = wikiCatFor(sec.line);
-          if (!cat) continue;
-          if (!grouped[cat.label]) grouped[cat.label] = { ...cat, items: [] };
-          grouped[cat.label].items.push(...wikiExtractItems(sec.text));
+
+        // Parcourt les <h2> du HTML rendu et extrait le contenu jusqu'au h2 suivant
+        for (const h2 of doc.querySelectorAll('h2')) {
+          const sectionTitle = (h2.querySelector('.mw-headline') ?? h2).textContent?.trim() ?? '';
+          const cat = wikiCatFor(sectionTitle);
+          if (!cat || grouped[cat.label]) continue;
+
+          const items = [];
+          let el = h2.nextElementSibling;
+          while (el && el.tagName !== 'H2') {
+            for (const li of el.querySelectorAll('li')) {
+              const bold = li.querySelector('b, strong');
+              const text = (bold ? bold.textContent : li.textContent)
+                .trim().split(/\s*[-–—:]\s*/)[0].trim();
+              if (text.length >= 3 && !items.includes(text) && items.length < 7) items.push(text);
+            }
+            el = el.nextElementSibling;
+          }
+          if (items.length) grouped[cat.label] = { ...cat, items };
         }
         wikiCache.set(title, grouped);
       }
