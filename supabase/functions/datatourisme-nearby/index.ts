@@ -192,9 +192,8 @@ serve(async (req: Request) => {
   // ── Classification et groupement ─────────────────────────────────────────
   console.log("[dt] raw POIs:", pois.length);
   if (pois.length > 0) {
-    // Log des types des 3 premiers POIs pour diagnostic
-    const sample = pois.slice(0, 3).map(p => (p["@type"] as string[] | undefined)?.join("|") ?? "?");
-    console.log("[dt] sample @types:", sample.join(" // "));
+    console.log("[dt] first POI keys:", Object.keys(pois[0]).join(", "));
+    console.log("[dt] first POI:", JSON.stringify(pois[0]).slice(0, 600));
   }
 
   type PoiEntry = { icon: string; label: string; url: string; dist: number | null; lat: number | null; lng: number | null };
