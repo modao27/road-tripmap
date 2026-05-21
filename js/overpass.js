@@ -579,9 +579,6 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     }
   }
 
-  searchBtn?.addEventListener('click', doSearch);
-  clearBtn?.addEventListener('click',  clearResults);
-
   // Clic liste → flyTo + popup
   resultListEl?.addEventListener('click', e => {
     const item = e.target.closest('[data-node-id]');
@@ -605,5 +602,10 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     onAddToMap?.(finalData);
   });
 
-  return { activate: ensureCircle };
+  function getCircleState() {
+    const center = circleCenter ?? map.getCenter();
+    return { lat: center.lat, lng: center.lng, radiusKm: radiusMeters / 1000 };
+  }
+
+  return { activate: ensureCircle, doSearch, clearResults, getCircleState };
 }
