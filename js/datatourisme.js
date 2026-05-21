@@ -98,7 +98,8 @@ export function initDatatourisme({
                 ${item.description ? `<p class="popup-desc-text">${esc(item.description)}</p>` : ''}
                 ${item.phone ? `<a class="osm-link" href="tel:${esc(item.phone)}">📞 ${esc(item.phone)}</a>` : ''}
                 ${item.email ? `<a class="osm-link" href="mailto:${esc(item.email)}">✉️ ${esc(item.email)}</a>` : ''}
-                ${item.url ? `<a class="osm-link" href="${esc(item.url)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
+                ${item.url    ? `<a class="osm-link" href="${esc(item.url)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
+                ${item.dtPage ? `<a class="osm-link" href="${esc(item.dtPage)}" target="_blank" rel="noopener">📋 Fiche DATAtourisme</a>` : ''}
               </article>`;
             L.marker([item.lat, item.lng], { icon, title: item.label })
               .bindPopup(popup)
