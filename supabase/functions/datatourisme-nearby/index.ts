@@ -128,7 +128,7 @@ function extractPoi(poi: Record<string, unknown>, centerLat: number, centerLng: 
   const contacts = poi["hasContact"] as Record<string, unknown>[] | undefined;
   for (const c of contacts ?? []) {
     if (!url) {
-      const raw = c["foaf:homepage"] ?? c["schema:url"] ?? c["website"] ?? c["url"] ?? "";
+      const raw = c["homepage"] ?? c["foaf:homepage"] ?? c["schema:url"] ?? c["website"] ?? c["url"] ?? "";
       const v   = Array.isArray(raw) ? raw[0] ?? "" : raw as string;
       if (v) url = v;
     }
@@ -235,16 +235,6 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: "fetch_failed" }), {
       status: 503, headers: { ...CORS, "Content-Type": "application/json" },
     });
-  }
-
-  // ── Diagnostic hasContact (temporaire) ──────────────────────────────────
-  const firstRestaurant = pois.find(p => {
-    const rt = p["type"] ?? p["@type"];
-    const types = Array.isArray(rt) ? rt as string[] : typeof rt === "string" ? [rt] : [];
-    return classify(types) === "restaurant";
-  });
-  if (firstRestaurant) {
-    console.log("[dt] hasContact:", JSON.stringify(firstRestaurant["hasContact"]).slice(0, 600));
   }
 
   // ── Classification et groupement ─────────────────────────────────────────
