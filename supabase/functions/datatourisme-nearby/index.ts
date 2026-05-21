@@ -47,13 +47,17 @@ const ALL_CATS: Category[] = ["hebergement", "restaurant", "evenement", "patrimo
 
 function classify(types: string[]): Category | null {
   const t = types.join(" ").toLowerCase();
-  if (t.match(/accommodation|hotel|camping|hostel|gite|yurt|treehouse|bedand|vacation|chalet/))
+  // Hébergement — types DATAtourisme réels
+  if (t.match(/accommodation|hotel|camping|hostel|gite|yurt|treehouse|bedand|vacation|chalet|selfcatering|touristresidence|holidayvillage/))
     return "hebergement";
-  if (t.match(/foodestablishment|restaurant|cafe|bar|bakery|bistro|snack/))
+  // Restauration
+  if (t.match(/foodestablishment|restaurant|cafe|bar|bakery|bistro|snack|winery|wineries|tasting/))
     return "restaurant";
-  if (t.match(/entertainmentandevent|festival|concert|exhibition|market|sportingevent/))
+  // Événements & activités (Event seul, EntertainmentAndEvent, activités loisirs)
+  if (t.match(/entertainmentandevent|festival|concert|exhibition|market|sportingevent|\bevent\b|practice|traineeship|activityprovider|leisuresport|sportsandleisure/))
     return "evenement";
-  if (t.match(/culturalsite|museum|castle|monument|religioussite|abbey|church|heritage|archeolog|memorial/))
+  // Patrimoine
+  if (t.match(/culturalsite|museum|castle|monument|religioussite|abbey|church|heritage|archeolog|memorial|remarkablegarden|technicalheritage|naturalheritage/))
     return "patrimoine";
   return null;
 }
@@ -111,7 +115,7 @@ function extractPoi(poi: Record<string, unknown>, centerLat: number, centerLng: 
   const contacts = poi["hasContact"] as Record<string, unknown>[] | undefined;
   if (contacts?.length) {
     const c = contacts[0];
-    url = (c["foaf:homepage"] ?? c["schema:url"] ?? "") as string;
+    url = (c["foaf:homepage"] ?? c["schema:url"] ?? c["url"] ?? "") as string;
     if (Array.isArray(url)) url = (url as string[])[0] ?? "";
   }
 
