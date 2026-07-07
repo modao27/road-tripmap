@@ -66,7 +66,13 @@ sont à traiter.
       2 clients supplémentaires et du cache de token manuel).
       ⚠ RLS des tables legacy (user_pins, place_overrides, shared_maps) non
       versionnées — à valider en navigateur connecté (sync pin perso)
-- [ ] B3 — Extraire datatourisme / routePlanner / share
+- [x] B3 — Extraire datatourisme / routePlanner / share — `b43b148`
+      (datatourismeService : catégories + fetch Edge Function, partagé entre
+      l'onglet Découvrir et l'enrichissement popup), `2f7e1bd` (routingService :
+      OSRM, haversine, optimisation, GPX + 11 tests), `14a97c5` (titleToSlug /
+      buildShareUrl dans sharingService + 4 tests).
+      Note : src/features/sources/enrichmentService.js (CamptoCamp /
+      refuges.info) est du code mort jamais importé — à supprimer en B6
 - [ ] B4 — Découper js/app.js
 - [ ] B5 — MapPage dans la SPA
 - [ ] B6 — Suppression de js/ + compat liens
