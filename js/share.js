@@ -1,25 +1,6 @@
-import { saveSharedMap } from './supabase.js';
-
-// ── Slug ──────────────────────────────────────────────────────────────────────
-
-function titleToSlug(title) {
-  return title
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')   // retire les accents
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .substring(0, 50) || 'carte';
-}
-
-export function buildShareUrl(slug) {
-  const url = new URL(window.location.href);
-  url.searchParams.set('map', slug);
-  url.hash = '';
-  return url.toString();
-}
+// Slug et URL de partage : src/features/sharing/sharingService.js
+// (source unique). Ce module garde la modale, la bannière et le DOM.
+import { saveSharedMap, titleToSlug, buildShareUrl } from '../src/features/sharing/sharingService.js';
 
 // ── Modale de partage ─────────────────────────────────────────────────────────
 

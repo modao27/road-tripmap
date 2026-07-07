@@ -9,6 +9,36 @@
 import { supabase } from '../../shared/lib/supabaseClient.js';
 
 /**
+ * Dérive un slug URL-safe d'un titre (accents retirés, kebab-case,
+ * 50 caractères max, fallback 'carte').
+ * @param {string} title
+ * @returns {string}
+ */
+export function titleToSlug(title) {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')   // retire les accents
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 50) || 'carte';
+}
+
+/**
+ * URL de partage de la page courante (?map=slug, hash retiré).
+ * @param {string} slug
+ * @returns {string}
+ */
+export function buildShareUrl(slug) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('map', slug);
+  url.hash = '';
+  return url.toString();
+}
+
+/**
  * Sauvegarde une carte partagée avec un slug unique.
  * @param {string}                                slug    - Slug de base (ex: "jura-juin-2025")
  * @param {Omit<SharedMap, 'slug'>}               payload
