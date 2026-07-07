@@ -4,6 +4,8 @@
  * @typedef {import('../pins/pinService.js').RoadtripPin} RoadtripPin
  */
 
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
+
 const TYPE_OPTIONS = [
   { value: 'custom', label: '📍 Pin' },
   { value: 'start',  label: '🏁 Départ' },
@@ -40,7 +42,7 @@ function renderViewMode(container, { pin, saving, onClose, onEdit, onDelete, onF
   container.innerHTML = `
     <aside class="pin-detail" aria-label="Détail du pin">
       <div class="pin-detail__header">
-        <h2 class="pin-detail__title">${pin.title}</h2>
+        <h2 class="pin-detail__title">${esc(pin.title)}</h2>
         <button class="pin-detail__close btn btn--icon" type="button"
                 aria-label="Fermer" id="pdClose">✕</button>
       </div>
@@ -48,7 +50,7 @@ function renderViewMode(container, { pin, saving, onClose, onEdit, onDelete, onF
       <span class="pin-detail__badge">${typeLabel(pin.type)}</span>
 
       ${pin.description
-        ? `<p class="pin-detail__desc">${pin.description}</p>`
+        ? `<p class="pin-detail__desc">${esc(pin.description)}</p>`
         : `<p class="pin-detail__desc pin-detail__desc--empty">Aucune description.</p>`}
 
       <div class="pin-detail__coords">
@@ -93,14 +95,14 @@ function renderEditMode(container, { pin, saving, onSave, onClose }) {
         <label class="form-field">
           <span class="form-field__label">Titre *</span>
           <input class="form-field__input" type="text" id="pdTitle"
-                 value="${pin.title}" maxlength="80" required>
+                 value="${esc(pin.title)}" maxlength="80" required>
           <span class="form-field__error" id="pdTitleErr"></span>
         </label>
 
         <label class="form-field">
           <span class="form-field__label">Description</span>
           <textarea class="form-field__input form-field__textarea" id="pdDesc"
-                    rows="3" maxlength="500">${pin.description ?? ''}</textarea>
+                    rows="3" maxlength="500">${esc(pin.description ?? '')}</textarea>
         </label>
 
         <label class="form-field">

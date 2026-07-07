@@ -4,6 +4,8 @@
  * @typedef {import('../../shared/types/index.js').Roadtrip} Roadtrip
  */
 
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
+
 const GRADIENTS = [
   'linear-gradient(135deg, #1f5f43 0%, #2f8a60 100%)',
   'linear-gradient(135deg, #2477a6 0%, #3a9fd4 100%)',
@@ -37,30 +39,35 @@ export function renderRoadtripCard(trip, index) {
     `modifié ${relativeDate(trip.updated_at)}`,
   ].filter(Boolean).join(' · ');
 
+  // Titre et description sont saisis par les membres du road trip
+  // (collaboration) : échappement obligatoire, y compris en attribut.
+  const id    = esc(trip.id);
+  const title = esc(trip.title);
+
   return `
-    <article class="rt-card" data-id="${trip.id}">
+    <article class="rt-card" data-id="${id}">
       <div class="rt-card__cover" style="background:${gradient}" aria-hidden="true">
         <span class="rt-card__icon">🗺️</span>
       </div>
       <div class="rt-card__body">
-        <h2 class="rt-card__title">${trip.title}</h2>
-        ${trip.description ? `<p class="rt-card__desc">${trip.description}</p>` : ''}
+        <h2 class="rt-card__title">${title}</h2>
+        ${trip.description ? `<p class="rt-card__desc">${esc(trip.description)}</p>` : ''}
         <p class="rt-card__meta">${meta}</p>
       </div>
       <div class="rt-card__actions">
-        <a class="btn btn--primary btn--sm" href="map.html?map=${trip.id}">
+        <a class="btn btn--primary btn--sm" href="map.html?map=${id}">
           Ouvrir →
         </a>
-        <button class="btn btn--icon" data-action="invite" data-id="${trip.id}"
-                title="Inviter un membre" aria-label="Inviter sur ${trip.title}">👥</button>
-        <button class="btn btn--icon" data-action="edit" data-id="${trip.id}"
-                data-title="${trip.title.replace(/"/g, '&quot;')}"
-                data-desc="${(trip.description || '').replace(/"/g, '&quot;')}"
-                title="Renommer" aria-label="Modifier ${trip.title}">✏️</button>
-        <button class="btn btn--icon" data-action="share" data-id="${trip.id}"
-                title="Copier le lien" aria-label="Partager ${trip.title}">🔗</button>
-        <button class="btn btn--icon" data-action="delete" data-id="${trip.id}"
-                title="Supprimer" aria-label="Supprimer ${trip.title}">✕</button>
+        <button class="btn btn--icon" data-action="invite" data-id="${id}"
+                title="Inviter un membre" aria-label="Inviter sur ${title}">👥</button>
+        <button class="btn btn--icon" data-action="edit" data-id="${id}"
+                data-title="${title}"
+                data-desc="${esc(trip.description || '')}"
+                title="Renommer" aria-label="Modifier ${title}">✏️</button>
+        <button class="btn btn--icon" data-action="share" data-id="${id}"
+                title="Copier le lien" aria-label="Partager ${title}">🔗</button>
+        <button class="btn btn--icon" data-action="delete" data-id="${id}"
+                title="Supprimer" aria-label="Supprimer ${title}">✕</button>
       </div>
     </article>`;
 }

@@ -7,6 +7,7 @@ import { upsertProfile }   from '../../features/auth/profileService.js';
 import { signOut }         from '../../features/auth/authService.js';
 import { toast }           from '../../shared/ui/toast.js';
 import { router }          from '../router.js';
+import { escapeHtml as esc, safeUrl } from '../../shared/utils/escape.js';
 
 /**
  * @param {HTMLElement} container
@@ -31,9 +32,9 @@ export function renderProfilePage(container) {
         <div class="profile-card">
 
           <div class="profile-avatar" id="profileAvatar">
-            ${profile?.avatar_url
-              ? `<img src="${profile.avatar_url}" alt="Avatar" class="profile-avatar__img">`
-              : `<span class="profile-avatar__initials">${initials}</span>`}
+            ${safeUrl(profile?.avatar_url)
+              ? `<img src="${safeUrl(profile.avatar_url)}" alt="Avatar" class="profile-avatar__img">`
+              : `<span class="profile-avatar__initials">${esc(initials)}</span>`}
           </div>
 
           <div id="profileAlert" class="alert alert--error" hidden role="alert"></div>
@@ -44,14 +45,14 @@ export function renderProfilePage(container) {
             <label class="form-field">
               <span class="form-field__label">Email</span>
               <input class="form-field__input" type="email"
-                     value="${user?.email ?? ''}" disabled>
+                     value="${esc(user?.email ?? '')}" disabled>
               <span class="form-field__hint">L'email ne peut pas être modifié ici.</span>
             </label>
 
             <label class="form-field">
               <span class="form-field__label">Nom affiché</span>
               <input class="form-field__input" type="text" id="displayName"
-                     value="${profile?.display_name ?? ''}"
+                     value="${esc(profile?.display_name ?? '')}"
                      placeholder="Ton prénom ou pseudo" maxlength="60">
             </label>
 
@@ -59,13 +60,13 @@ export function renderProfilePage(container) {
               <span class="form-field__label">Bio <small>(facultatif)</small></span>
               <textarea class="form-field__input form-field__textarea" id="bio"
                         placeholder="Quelques mots sur toi…"
-                        rows="3" maxlength="200">${profile?.bio ?? ''}</textarea>
+                        rows="3" maxlength="200">${esc(profile?.bio ?? '')}</textarea>
             </label>
 
             <label class="form-field">
               <span class="form-field__label">URL d'avatar <small>(facultatif)</small></span>
               <input class="form-field__input" type="url" id="avatarUrl"
-                     value="${profile?.avatar_url ?? ''}"
+                     value="${esc(profile?.avatar_url ?? '')}"
                      placeholder="https://…">
             </label>
 
@@ -98,14 +99,20 @@ export function renderProfilePage(container) {
 
   // Prévisualisation avatar à la saisie de l'URL
   container.querySelector('#avatarUrl').addEventListener('input', e => {
-    const url = e.target.value.trim();
     const avatarEl = container.querySelector('#profileAvatar');
-    if (url) {
-      avatarEl.innerHTML = `<img src="${url}" alt="Avatar" class="profile-avatar__img"
-        onerror="this.parentElement.innerHTML='<span class=profile-avatar__initials>${initials}</span>'">`;
-    } else {
-      avatarEl.innerHTML = `<span class="profile-avatar__initials">${initials}</span>`;
-    }
+    const showInitials = () => {
+      avatarEl.innerHTML = `<span class="profile-avatar__initials">${esc(initials)}</span>`;
+    };
+    const url = safeUrl(e.target.value.trim());
+    if (!url) { showInitials(); return; }
+    // img construit via DOM : l'URL saisie ne passe jamais dans du HTML,
+    // et le fallback n'utilise plus de handler onerror inline
+    const img = document.createElement('img');
+    img.alt = 'Avatar';
+    img.className = 'profile-avatar__img';
+    img.addEventListener('error', showInitials, { once: true });
+    img.src = e.target.value.trim();
+    avatarEl.replaceChildren(img);
   });
 
   container.querySelector('#profileForm').addEventListener('submit', async e => {

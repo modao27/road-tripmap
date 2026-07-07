@@ -4,6 +4,8 @@
  * @typedef {import('../pins/pinService.js').RoadtripPin} RoadtripPin
  */
 
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
+
 const TYPE_EMOJI = { start: '🏁', stop: '🛑', custom: '📍', poi: '⭐' };
 const TYPE_LABEL = { start: 'Départ', stop: 'Étape', custom: 'Pin', poi: 'Intérêt' };
 
@@ -31,11 +33,11 @@ export function renderPinList(container, { pins, selectedId, onSelect }) {
         <li class="pin-item ${pin.id === selectedId ? 'pin-item--selected' : ''}"
             role="option"
             aria-selected="${pin.id === selectedId}"
-            data-pin-id="${pin.id}"
+            data-pin-id="${esc(pin.id)}"
             tabindex="0">
           <span class="pin-item__emoji">${TYPE_EMOJI[pin.type] ?? '📍'}</span>
           <span class="pin-item__body">
-            <span class="pin-item__title">${pin.title}</span>
+            <span class="pin-item__title">${esc(pin.title)}</span>
             <span class="pin-item__type">${TYPE_LABEL[pin.type] ?? 'Pin'}</span>
           </span>
           <span class="pin-item__coords">

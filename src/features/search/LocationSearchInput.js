@@ -12,6 +12,7 @@
  */
 
 import { NOMINATIM_URL } from '../../config/index.js';
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
 
 /**
  * @typedef {Object} LocationResult
@@ -140,8 +141,8 @@ export class LocationSearchInput {
     this._results.innerHTML = this._candidates.map((r, i) => {
       const parts = r.display_name.split(', ');
       return `<li class="lsi__item" role="option" data-idx="${i}" tabindex="-1">
-        <span class="lsi__item-name">${parts[0]}</span>
-        <span class="lsi__item-detail">${parts.slice(1, 4).join(', ')}</span>
+        <span class="lsi__item-name">${esc(parts[0])}</span>
+        <span class="lsi__item-detail">${esc(parts.slice(1, 4).join(', '))}</span>
       </li>`;
     }).join('');
     this._results.hidden = false;

@@ -8,6 +8,7 @@ import { listRoadtrips, createRoadtrip, deleteRoadtrip, updateRoadtrip, inviteMe
 import { renderList, renderListLoading, renderListError } from '../../features/dashboard/RoadtripList.js';
 import { toast }                                      from '../../shared/ui/toast.js';
 import { router }                                     from '../router.js';
+import { escapeHtml as esc }                          from '../../shared/utils/escape.js';
 
 export function renderDashboardPage(container) {
   const { user } = authStore.getState();
@@ -39,7 +40,7 @@ export function renderDashboardPage(container) {
         <div class="dash-welcome">
           <h1 class="dash-welcome__title">Mes road trips</h1>
           <p class="dash-welcome__sub">
-            ${user?.email ? `Connecté en tant que <strong>${user.email}</strong>` : ''}
+            ${user?.email ? `Connecté en tant que <strong>${esc(user.email)}</strong>` : ''}
           </p>
         </div>
 

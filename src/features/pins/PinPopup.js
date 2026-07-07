@@ -8,6 +8,8 @@
  * @typedef {import('../../shared/types/index.js').PlaceOverrides} PlaceOverrides
  */
 
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
+
 /**
  * Construit l'URL OpenStreetMap pour un lieu.
  * @param {number} lat
@@ -32,28 +34,31 @@ export function renderPinPopup(pin, categories, overrides, isInRoute = false) {
   const category    = categories[pin.category] ?? categories.water;
   const isOverridden = !pin.userCreated && !!overrides[pin.id];
 
+  // Champs libres (nom, description…) : données utilisateur → échappement
+  const id = esc(pin.id);
+
   const actions = `
     <div class="popup-user-actions">
-      <button class="popup-edit"   data-edit-id="${pin.id}"   type="button">Modifier</button>
+      <button class="popup-edit"   data-edit-id="${id}"   type="button">Modifier</button>
       ${pin.userCreated
-        ? `<button class="popup-delete" data-delete-id="${pin.id}" type="button">Supprimer</button>`
+        ? `<button class="popup-delete" data-delete-id="${id}" type="button">Supprimer</button>`
         : isOverridden
-          ? `<button class="popup-reset"  data-reset-id="${pin.id}"  type="button">Réinitialiser</button>`
+          ? `<button class="popup-reset"  data-reset-id="${id}"  type="button">Réinitialiser</button>`
           : ''}
     </div>`;
 
   return `
     <article class="popup" style="--color:${category.color}">
-      <h2>${pin.name}</h2>
+      <h2>${esc(pin.name)}</h2>
       <div class="popup-category"><span>${category.icon}</span>${category.label}</div>
-      ${pin.description ? `<p>${pin.description}</p>` : ''}
-      ${pin.interest    ? `<p><b>Intérêt :</b> ${pin.interest}</p>` : ''}
-      ${pin.tip         ? `<p><b>Conseil :</b> ${pin.tip}</p>` : ''}
-      ${pin.mood        ? `<p><b>Ambiance :</b> ${pin.mood}</p>` : ''}
-      <a class="osm-link" href="${osmUrl(pin.lat, pin.lng)}"
+      ${pin.description ? `<p>${esc(pin.description)}</p>` : ''}
+      ${pin.interest    ? `<p><b>Intérêt :</b> ${esc(pin.interest)}</p>` : ''}
+      ${pin.tip         ? `<p><b>Conseil :</b> ${esc(pin.tip)}</p>` : ''}
+      ${pin.mood        ? `<p><b>Ambiance :</b> ${esc(pin.mood)}</p>` : ''}
+      <a class="osm-link" href="${esc(osmUrl(pin.lat, pin.lng))}"
          target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
       <button class="popup-add-route${isInRoute ? ' in-route' : ''}"
-              data-add-route-id="${pin.id}" type="button">
+              data-add-route-id="${id}" type="button">
         ${isInRoute ? "✓ Dans l'itinéraire" : "➕ Ajouter à l'itinéraire"}
       </button>
       ${actions}
