@@ -1,6 +1,7 @@
 import { saveUserPins, saveOverrides } from './storage.js';
 import { addMarker, refreshMarker } from './map.js';
 import { trapFocus } from './ui.js';
+import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
 
 function openInOSM(lat, lng, zoom = 14) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
@@ -22,15 +23,16 @@ function renderDescription(desc) {
     // Ligne de stats emoji (via ferrata enrichie) — séparées par double espace
     if (/^[🎯⏱📏⬆🏔💰🏠🛏🚻💧✅🔒❄🧭🚿]/.test(line)) {
       const chips = line.split(/\s{2,}/).filter(Boolean);
-      chipsHtml += `<div class="popup-chips">${chips.map(c => `<span class="popup-chip">${c}</span>`).join('')}</div>`;
+      chipsHtml += `<div class="popup-chips">${chips.map(c => `<span class="popup-chip">${esc(c)}</span>`).join('')}</div>`;
     } else {
       textLines.push(line);
     }
   }
 
   let out = chipsHtml;
-  if (textLines.length) out += `<p class="popup-desc-text">${textLines.join(' ')}</p>`;
-  if (vfUrl) out += `<a class="osm-link popup-vf-link" href="${vfUrl}" target="_blank" rel="noopener">📋 Fiche complète — viaferrata-fr.net</a>`;
+  if (textLines.length) out += `<p class="popup-desc-text">${textLines.map(esc).join(' ')}</p>`;
+  const vfHref = safeUrl(vfUrl);
+  if (vfHref) out += `<a class="osm-link popup-vf-link" href="${vfHref}" target="_blank" rel="noopener">📋 Fiche complète — viaferrata-fr.net</a>`;
   return out;
 }
 
@@ -38,31 +40,37 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
   const category    = categories[place.category] || categories.water;
   const isOverridden = !place.userCreated && !!placeOverrides[place.id];
 
+  // Les pins d'une carte partagée sont créés par d'autres utilisateurs :
+  // tout champ libre (nom, description, id…) doit être échappé.
+  const id  = esc(place.id);
+  const lat = esc(place.lat);
+  const lng = esc(place.lng);
+
   const actions = `<div class="popup-user-actions">
-      <button class="popup-edit"   data-edit-id="${place.id}"   type="button">Modifier</button>
+      <button class="popup-edit"   data-edit-id="${id}"   type="button">Modifier</button>
       ${place.userCreated
-        ? `<button class="popup-delete" data-delete-id="${place.id}" type="button">Supprimer</button>`
+        ? `<button class="popup-delete" data-delete-id="${id}" type="button">Supprimer</button>`
         : isOverridden
-          ? `<button class="popup-reset"  data-reset-id="${place.id}"  type="button">Réinitialiser</button>`
+          ? `<button class="popup-reset"  data-reset-id="${id}"  type="button">Réinitialiser</button>`
           : ''}
     </div>`;
 
   return `
     <article class="popup" style="--color:${category.color}">
-      <h2>${place.name}</h2>
+      <h2>${esc(place.name)}</h2>
       <div class="popup-category"><span>${category.icon}</span>${category.label}</div>
       ${renderDescription(place.description)}
       ${(place.category === 'village' || place.category === 'base') && place.lat && place.lng
-        ? `<div class="wiki-enriched" data-wiki-lat="${place.lat}" data-wiki-lng="${place.lng}"><p class="wiki-loading">⟳ Wikivoyage…</p></div>`
+        ? `<div class="wiki-enriched" data-wiki-lat="${lat}" data-wiki-lng="${lng}"><p class="wiki-loading">⟳ Wikivoyage…</p></div>`
         : ''}
-      ${place.interest ? `<div class="popup-section"><p class="popup-section-label">Intérêt</p><p class="popup-section-body">${place.interest}</p></div>` : ''}
-      ${place.tip      ? `<div class="popup-section"><p class="popup-section-label">Conseil</p><p class="popup-section-body">${place.tip}</p></div>`      : ''}
-      ${place.mood     ? `<p class="popup-mood">${place.mood}</p>`                                                                                          : ''}
+      ${place.interest ? `<div class="popup-section"><p class="popup-section-label">Intérêt</p><p class="popup-section-body">${esc(place.interest)}</p></div>` : ''}
+      ${place.tip      ? `<div class="popup-section"><p class="popup-section-label">Conseil</p><p class="popup-section-body">${esc(place.tip)}</p></div>`      : ''}
+      ${place.mood     ? `<p class="popup-mood">${esc(place.mood)}</p>`                                                                                          : ''}
       ${(place.category === 'village' || place.category === 'base') && place.lat && place.lng
-        ? `<div class="dt-nearby" data-dt-lat="${place.lat}" data-dt-lng="${place.lng}"><p class="dt-loading">⟳ Infos touristiques…</p></div>`
+        ? `<div class="dt-nearby" data-dt-lat="${lat}" data-dt-lng="${lng}"><p class="dt-loading">⟳ Infos touristiques…</p></div>`
         : ''}
-      <a class="osm-link" href="${openInOSM(place.lat, place.lng)}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
-      <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${place.id}" type="button">
+      <a class="osm-link" href="${esc(openInOSM(place.lat, place.lng))}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
+      <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${id}" type="button">
         ${isInRoute ? "✓ Dans l'itinéraire" : "➕ Ajouter à l'itinéraire"}
       </button>
       ${actions}
@@ -299,8 +307,8 @@ export function initPins({
         geocodeResultsEl.innerHTML = geocodeCandidates.map((r, i) => {
           const parts = r.display_name.split(', ');
           return `<li class="geocode-result-item" data-idx="${i}">
-            <span class="geocode-result-name">${parts[0]}</span>
-            <span class="geocode-result-detail">${parts.slice(1, 4).join(', ')}</span>
+            <span class="geocode-result-name">${esc(parts[0])}</span>
+            <span class="geocode-result-detail">${esc(parts.slice(1, 4).join(', '))}</span>
           </li>`;
         }).join('');
         geocodeResultsEl.hidden = false;
