@@ -1,45 +1,10 @@
 import { saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
 import { escapeHtml as esc } from '../src/shared/utils/escape.js';
-
-// Le serveur public OSRM ne supporte que le profil driving de façon fiable.
-// Pour vélo et marche, on récupère la géométrie (driving) mais on corrige
-// la durée avec des vitesses moyennes réalistes.
-const OSRM_BASE    = 'https://router.project-osrm.org/route/v1';
-const OSRM_PROFILE = { driving: 'driving', cycling: 'driving', walking: 'driving' };
-
-// Vitesses moyennes (km/h) pour la correction côté client
-const AVG_SPEED_KMH = { driving: null, cycling: 16, walking: 4 };
-
-function estimateDuration(distanceMeters, m) {
-  const kmh = AVG_SPEED_KMH[m];
-  if (!kmh) return null; // driving → utilise la durée OSRM
-  return Math.round((distanceMeters / 1000 / kmh) * 3600);
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDistance(m) {
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
-}
-
-function formatDuration(s) {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m} min`;
-}
-
-// Haversine straight-line distance (meters)
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371000, r = Math.PI / 180;
-  const dLat = (lat2 - lat1) * r, dLng = (lng2 - lng1) * r;
-  const a = Math.sin(dLat / 2) ** 2
-          + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function escapeXml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+// Logique pure (OSRM, distances, optimisation, GPX) :
+// src/features/routing/routingService.js. Ce module garde DOM et Leaflet.
+import { OSRM_PROFILE, formatDistance, formatDuration, haversine,
+         nearestNeighborOrder, fetchOsrmRoute, buildGpx }
+  from '../src/features/routing/routingService.js';
 
 // ── Module ────────────────────────────────────────────────────────────────────
 
@@ -132,21 +97,8 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       showToastFn(toastWrap, "3 étapes minimum pour optimiser", '');
       return;
     }
-    const places   = resolvePlaces().filter(Boolean);
-    const pool     = [...places];
-    const result   = [pool.shift()];
-
-    while (pool.length > 0) {
-      const last = result[result.length - 1];
-      let ni = 0, nd = Infinity;
-      pool.forEach((p, i) => {
-        const d = haversine(last.lat, last.lng, p.lat, p.lng);
-        if (d < nd) { nd = d; ni = i; }
-      });
-      result.push(pool.splice(ni, 1)[0]);
-    }
-
-    steps = result.map(p => p.id);
+    const places = resolvePlaces().filter(Boolean);
+    steps = nearestNeighborOrder(places).map(p => p.id);
     persist();
     renderStepList();
     updateRouteButtons();
@@ -169,22 +121,8 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     const places = resolvePlaces().filter(Boolean);
     if (places.length < 2) return;
 
-    const coords  = places.map(p => `${p.lng},${p.lat}`).join(';');
-    const profile = OSRM_PROFILE[mode] || 'driving';
-    const url     = `${OSRM_BASE}/${profile}/${coords}?overview=full&geometries=geojson`;
-
     try {
-      const res  = await fetch(url);
-      if (!res.ok) throw new Error(`OSRM ${res.status}`);
-      const data = await res.json();
-      if (!data.routes?.[0]) throw new Error('No route');
-
-      const dist = data.routes[0].distance;
-      routeData = {
-        distance: dist,
-        duration: estimateDuration(dist, mode) ?? data.routes[0].duration,
-        geometry: data.routes[0].geometry,
-      };
+      routeData = await fetchOsrmRoute(places, mode);
       drawRoute(routeData.geometry, places);
       renderStats();
     } catch (err) {
@@ -395,34 +333,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     const places = resolvePlaces().filter(Boolean);
     if (!places.length) { showToastFn(toastWrap, 'Itinéraire vide', ''); return; }
 
-    const wpts = places.map((p, i) => `  <wpt lat="${p.lat}" lon="${p.lng}">
-    <name>${escapeXml(p.name)}</name>
-    <desc>Étape ${i + 1}</desc>
-  </wpt>`).join('\n');
-
-    const rtePoints = places.map(p =>
-      `    <rtept lat="${p.lat}" lon="${p.lng}"><name>${escapeXml(p.name)}</name></rtept>`
-    ).join('\n');
-
-    // Tracé OSRM si disponible
-    const trkPoints = routeData?.geometry?.coordinates
-      ? routeData.geometry.coordinates
-          .map(([lng, lat]) => `    <trkpt lat="${lat}" lon="${lng}"/>`)
-          .join('\n')
-      : '';
-    const trk = trkPoints
-      ? `  <trk><name>Tracé Road Trip</name><trkseg>\n${trkPoints}\n  </trkseg></trk>`
-      : '';
-
-    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Road Trip Jura" xmlns="http://www.topografix.com/GPX/1/1">
-${wpts}
-  <rte>
-    <name>Road Trip Jura</name>
-${rtePoints}
-  </rte>
-${trk}
-</gpx>`;
+    const gpx = buildGpx(places, routeData?.geometry ?? null);
 
     const a = Object.assign(document.createElement('a'), {
       href:     URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' })),

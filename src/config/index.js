@@ -21,6 +21,7 @@ export const MAP_CONFIG = {
 
 export const NOMINATIM_URL    = 'https://nominatim.openstreetmap.org/search';
 export const OVERPASS_URL     = 'https://overpass-api.de/api/interpreter';
+export const OSRM_URL         = 'https://router.project-osrm.org/route/v1';
 export const CAMPTOCAMP_URL   = 'https://api.camptocamp.org/search';
 export const REFUGES_URL      = 'https://www.refuges.info/api/bbox';
 export const ENRICHMENT_TIMEOUT_MS = 6000;
