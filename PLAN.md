@@ -1,0 +1,85 @@
+# Plan d'amélioration — road-tripmap
+
+> Établi le 2026-07-07 après audit complet du projet.
+> Trois phases livrables indépendamment, commits atomiques à chaque étape.
+> Cocher les cases au fur et à mesure.
+
+## Contexte (résumé de l'audit)
+
+Le projet contient **deux codebases parallèles** : la carte legacy (`js/` + `map.html`,
+~3 300 lignes) et la SPA (`src/` + `index.html`, structure features/services propre).
+La jonction est fragile : redirection `window.location` + pont de session
+`sessionStorage['rta-session']` relu par un 3ᵉ client Supabase.
+Les deux arborescences étant des **ES modules natifs**, `js/` peut importer depuis
+`src/` — la migration peut donc être progressive, l'app restant fonctionnelle à
+chaque commit.
+
+Déjà fait (2026-07-07) :
+- [x] Favicon 1,46 Mo → 19,7 Ko (`106936b`)
+- [x] CDN épinglés (supabase-js 2.110.1) + hash SRI (`f2ca504`)
+- [x] Logs de diagnostic retirés des Edge Functions + redéploiement (`9756007`)
+
+---
+
+## Phase A — Sécurité : échappement HTML (~1 séance)
+
+**Objectif** : éliminer le XSS stocké livré via les cartes partagées (`?map=slug`)
+et durcir tous les rendus de données externes. Les ~50 `innerHTML` du projet ne sont
+pas tous vulnérables : seuls ceux qui interpolent des données utilisateur ou d'API
+sont à traiter.
+
+- [ ] **A1** — Helper `escapeHtml()` dans `src/shared/utils/escape.js`, importé
+      aussi par les modules `js/` (pas de duplication : import cross-arborescence)
+- [ ] **A2** — `popupHtml` (`js/pins.js`) : échapper `name`, `description`,
+      `interest`, `tip`, `mood` — vecteur principal du XSS stocké
+- [ ] **A3** — Rendus de données externes : résultats Nominatim (geocode pin +
+      onboarding), Overpass (`js/overpass.js`), DATAtourisme (`js/datatourisme.js`),
+      Wikivoyage, liste des lieux (`js/filters.js`), itinéraire (`js/routePlanner.js`),
+      bannière partage (`js/share.js`)
+- [ ] **A4** — Côté SPA : `RoadtripCard`, `PinPopup`, `PinList`, `PinDetailsPanel`,
+      `LocationSearchInput`, `RoadtripHeader`
+- [ ] **A5** — Vérification : pin nommé `<img src=x onerror=alert(1)>` → partage →
+      ouverture du lien en navigation privée → le texte s'affiche littéralement
+
+## Phase B — Architecture : fusionner `js/` dans la SPA (~3-5 séances)
+
+| # | Étape | Risque |
+|---|---|---|
+| B1 | Dédupliquer les modules purs : `js/` importe config, storage, categories, service Overpass depuis `src/` ; supprimer les copies legacy (`CONFIG` de `js/app.js` ← `MAP_CONFIG` de `src/config/`) | Faible |
+| B2 | Un seul client Supabase : remplacer les 2 clients de `js/supabase.js` + cache de token manuel par `src/shared/lib/supabaseClient.js` ; les CRUD déménagent dans `src/features/` | Moyen — retester le flux auth mobile (race condition JWT connue) |
+| B3 | Extraire la logique pure restante vers `src/features/` : datatourisme, routePlanner (séparer OSRM/GPX du DOM), share | Faible |
+| B4 | Découper `js/app.js` (901 lignes) : état / wiring onglets / rendu | Moyen |
+| B5 | Porter la carte dans la SPA : page `MapPage` avec le markup de `map.html`, route `#/roadtrips/:id` rendue directement (fin de la redirection), route `#/map` pour la carte libre | Élevé — dernière étape |
+| B6 | Nettoyage : supprimer `js/`, réduire `map.html` à une redirection (compat anciens liens `map.html?map=slug`), supprimer le pont `sessionStorage` | Faible |
+
+- [ ] B1 — Dédupliquer les modules purs
+- [ ] B2 — Client Supabase unique
+- [ ] B3 — Extraire datatourisme / routePlanner / share
+- [ ] B4 — Découper js/app.js
+- [ ] B5 — MapPage dans la SPA
+- [ ] B6 — Suppression de js/ + compat liens
+
+**Gains** : plus de double codebase, un seul client Supabase (fin des bugs de
+session inter-onglets), chaque évolution ne se code qu'une fois.
+
+## Phase C — Hygiène et outillage (~1-2 séances, parallélisable avec B)
+
+- [ ] **C1** — `package.json` en devDependencies uniquement (déploiement toujours
+      sans build) : ESLint + Vitest, scripts `lint` / `test` / `serve`
+- [ ] **C2** — Tests unitaires sur la logique pure : `router.resolve`, `escapeHtml`,
+      `isUUID`, requêtes Overpass, export GPX — filet de sécurité pour B4/B5,
+      idéalement **avant** ces étapes
+- [ ] **C3** — Supabase CLI : `supabase link` + `config.toml` committé, fin du
+      copier-coller Dashboard pour déployer les Edge Functions
+- [ ] **C4** — BDD : migration baseline consolidée (nouveaux environnements ;
+      la prod garde son historique) + job `pg_cron` de purge des 3 tables de cache
+
+## Ordre recommandé
+
+**A → C1-C2 → B → C3-C4.**
+
+Notes :
+- La philosophie « zéro build » est conservée. Si TypeScript ou des imports npm
+  côté front deviennent nécessaires un jour, Vite s'insérera après la phase B.
+- Chaque étape de B laisse l'app fonctionnelle — on peut s'arrêter n'importe où
+  sans dette supplémentaire.
