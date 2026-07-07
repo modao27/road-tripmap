@@ -1,0 +1,20 @@
+{
+  "name": "road-tripmap",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Planification de road trip outdoor — carte Leaflet + Supabase, sans build",
+  "type": "module",
+  "scripts": {
+    "serve": "npx -y serve .",
+    "lint": "eslint js src",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0",
+    "happy-dom": "^20.10.6",
+    "vitest": "^4.1.10"
+  }
+}

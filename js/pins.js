@@ -21,7 +21,7 @@ function renderDescription(desc) {
     if (urlMatch) { vfUrl = urlMatch[1]; continue; }
 
     // Ligne de stats emoji (via ferrata enrichie) — séparées par double espace
-    if (/^[🎯⏱📏⬆🏔💰🏠🛏🚻💧✅🔒❄🧭🚿]/.test(line)) {
+    if (/^[🎯⏱📏⬆🏔💰🏠🛏🚻💧✅🔒❄🧭🚿]/u.test(line)) {
       const chips = line.split(/\s{2,}/).filter(Boolean);
       chipsHtml += `<div class="popup-chips">${chips.map(c => `<span class="popup-chip">${esc(c)}</span>`).join('')}</div>`;
     } else {
