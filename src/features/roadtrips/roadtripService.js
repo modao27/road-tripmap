@@ -143,7 +143,47 @@ export async function createRoadtrip({
   return data;
 }
 
+/**
+ * Infos d'en-tête pour l'éditeur carte (map.html) — sélection légère,
+ * null si introuvable ou non autorisé, sans miroir localStorage.
+ * @param {string} id
+ * @returns {Promise<Pick<Roadtrip,'title'|'owner_id'|'center_lat'|'center_lng'|'default_zoom'|'start_lat'|'start_lng'|'start_label'>|null>}
+ */
+export async function fetchRoadtripInfo(id) {
+  try {
+    const { data, error } = await supabase
+      .from('roadtrips')
+      .select('title,owner_id,center_lat,center_lng,default_zoom,start_lat,start_lng,start_label')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Mise à jour ───────────────────────────────────────────────────────────────
+
+/**
+ * Centre + point de départ du roadtrip (onboarding de l'éditeur carte).
+ * @param {string} id
+ * @param {{ lat: number, lng: number, zoom?: number, label?: string }} params
+ */
+export async function updateRoadtripCenter(id, { lat, lng, zoom = 12, label = '' }) {
+  const { error } = await supabase
+    .from('roadtrips')
+    .update({
+      center_lat:   lat,
+      center_lng:   lng,
+      default_zoom: zoom,
+      start_lat:    lat,
+      start_lng:    lng,
+      start_label:  label,
+    })
+    .eq('id', id);
+  if (error) throw error;
+}
 
 /**
  * @param {string}           id

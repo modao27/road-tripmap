@@ -183,12 +183,16 @@ export function deleteLocalPin(id, pinsRef) {
 
 // ── Sync Supabase legacy (table `user_pins`) ──────────────────────────────────
 
-/** @param {string} mapId @returns {Promise<Pin[]>} */
+/**
+ * @param {string} mapId
+ * @returns {Promise<Pin[]>} Pins avec le flag UI `userCreated` normalisé
+ *   depuis la colonne `user_created` (l'UI teste le camelCase).
+ */
 export async function fetchPinsRemote(mapId) {
   const { data, error } = await supabase
     .from('user_pins').select('*').eq('map_id', mapId);
   if (error) throw error;
-  return data;
+  return data.map(row => ({ ...row, userCreated: row.user_created ?? true }));
 }
 
 /** @param {string} mapId @param {Pin} pin */
@@ -198,6 +202,7 @@ export async function upsertPinRemote(mapId, pin) {
     lat: pin.lat, lng: pin.lng,
     description: pin.description ?? '', tip: pin.tip ?? '',
     interest: pin.interest ?? '', mood: pin.mood ?? '',
+    user_created: pin.user_created ?? pin.userCreated ?? true,
   });
   if (error) throw error;
 }
@@ -206,6 +211,96 @@ export async function upsertPinRemote(mapId, pin) {
 export async function deletePinRemote(mapId, pinId) {
   const { error } = await supabase.from('user_pins').delete()
     .eq('id', pinId).eq('map_id', mapId);
+  if (error) throw error;
+}
+
+// ── Éditeur carte (map.html) — table `pins`, session utilisateur ─────────────
+// Variantes utilisées par la carte Leaflet : filtre status=active, création
+// via la RPC create_pin (bypasse le schema cache PostgREST pour 'category').
+
+// UUID toutes versions (les ids non-UUID sont des pins temporaires locaux)
+function isAnyUUID(str) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
+/** @param {string} roadtripId @returns {Promise<RoadtripPin[]>} */
+export async function fetchRoadtripPins(roadtripId) {
+  const { data, error } = await supabase
+    .from('pins')
+    .select('*')
+    .eq('roadtrip_id', roadtripId)
+    .eq('status', 'active')
+    .order('order_index', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+async function rpcCreatePin(roadtripId, pin, id) {
+  const { error } = await supabase.rpc('create_pin', {
+    p_id:          id,
+    p_roadtrip_id: roadtripId,
+    p_title:       pin.name,
+    p_category:    pin.category || 'base',
+    p_lat:         pin.lat,
+    p_lng:         pin.lng,
+    p_description: pin.description || '',
+    p_type:        pin.type || 'stop',
+    p_status:      'active',
+    p_order_index: pin.order_index ?? 0,
+  });
+  if (error) throw error;
+}
+
+/**
+ * @param {string} roadtripId
+ * @param {{ id?: string, name: string, category?: string, lat: number, lng: number,
+ *           description?: string, type?: string, order_index?: number }} pin
+ */
+export async function createRoadtripPin(roadtripId, pin) {
+  const id = isAnyUUID(pin.id) ? pin.id : generateUUID();
+  await rpcCreatePin(roadtripId, pin, id);
+  return { id, title: pin.name, category: pin.category || 'nature',
+           lat: pin.lat, lng: pin.lng };
+}
+
+/** pin.id UUID → mise à jour, sinon → création via RPC (fin de liste) */
+export async function upsertRoadtripPin(roadtripId, pin) {
+  if (isAnyUUID(pin.id)) {
+    const { error } = await supabase
+      .from('pins')
+      .update({
+        title:       pin.name,
+        category:    pin.category,
+        lat:         pin.lat,
+        lng:         pin.lng,
+        description: pin.description || '',
+        updated_at:  new Date().toISOString(),
+      })
+      .eq('id', pin.id);
+    if (error) throw error;
+  } else {
+    await rpcCreatePin(roadtripId, { ...pin, order_index: 999 }, generateUUID());
+  }
+}
+
+/**
+ * Met à jour l'order_index de chaque pin (parallèle, UUID seulement).
+ * Les échecs individuels sont ignorés — l'ordre sera resynchronisé au
+ * prochain drag & drop.
+ * @param {string[]} pinIds
+ */
+export async function updatePinOrder(pinIds) {
+  const uuids = pinIds.filter(isAnyUUID);
+  if (!uuids.length) return;
+  await Promise.all(uuids.map((id, i) =>
+    supabase.from('pins').update({ order_index: i }).eq('id', id)
+  ));
+}
+
+/** @param {string} _roadtripId @param {string} pinId */
+export async function deleteRoadtripPin(_roadtripId, pinId) {
+  if (!isAnyUUID(pinId)) return; // pin temporaire jamais persisté
+  const { error } = await supabase.from('pins').delete().eq('id', pinId);
   if (error) throw error;
 }
 
