@@ -69,11 +69,15 @@ session inter-onglets), chaque évolution ne se code qu'une fois.
 
 ## Phase C — Hygiène et outillage (~1-2 séances, parallélisable avec B)
 
-- [ ] **C1** — `package.json` en devDependencies uniquement (déploiement toujours
-      sans build) : ESLint + Vitest, scripts `lint` / `test` / `serve`
-- [ ] **C2** — Tests unitaires sur la logique pure : `router.resolve`, `escapeHtml`,
-      `isUUID`, requêtes Overpass, export GPX — filet de sécurité pour B4/B5,
-      idéalement **avant** ces étapes
+- [x] **C1** — `package.json` en devDependencies uniquement (déploiement toujours
+      sans build) : ESLint flat config + Vitest + happy-dom, scripts `lint` /
+      `test` / `test:watch` / `serve`. Lint à 0 erreur (10 warnings unused-vars
+      legacy, à purger en phase B) — `1717cbf`
+- [x] **C2** — 25 tests Vitest (~0,7 s) : `escapeHtml`/`safeUrl`, `isUUID`/
+      `generateUUID`/localStorage, `router.resolve`, rendus PinPopup /
+      RoadtripCard / popupHtml legacy avec payloads XSS (non-régression
+      phase A). Requêtes Overpass et export GPX : à couvrir en phase B quand
+      la logique sera extraite du DOM — `41720cc`
 - [ ] **C3** — Supabase CLI : `supabase link` + `config.toml` committé, fin du
       copier-coller Dashboard pour déployer les Edge Functions
 - [ ] **C4** — BDD : migration baseline consolidée (nouveaux environnements ;
