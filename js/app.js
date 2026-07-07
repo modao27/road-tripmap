@@ -14,8 +14,8 @@ import { fetchUserPins, fetchOverrides,
          fetchRoadtripPins, fetchRoadtripInfo,
          updateRoadtripCenter, createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin,
-         updatePinOrder, getCurrentUserId, sessionReady,
-         SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
+         updatePinOrder, getCurrentUserId, sessionReady } from './supabase.js';
+import { fetchDatatourismeNearby } from '../src/features/sources/datatourismeService.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
 import { initRoutePlanner } from './routePlanner.js';
@@ -692,7 +692,6 @@ async function init() {
   });
 
   // ── DATAtourisme — hébergements, restaurants, événements à proximité ─────
-  const DT_URL    = `${SUPABASE_URL}/functions/v1/datatourisme-nearby`;
   const dtCache   = new Map(); // cellKey → data (cache session)
 
   function dtCellKey(lat, lng) {
@@ -743,20 +742,15 @@ async function init() {
 
     if (!data) {
       try {
-        const res = await fetch(DT_URL, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-          body:    JSON.stringify({ lat, lng }),
-        });
-        data = await res.json();
-        if (!data?.error) dtCache.set(cellKey, data);
+        data = await fetchDatatourismeNearby({ lat, lng });
+        dtCache.set(cellKey, data);
       } catch {
         container.innerHTML = '';
         return;
       }
     }
 
-    container.innerHTML = data?.error ? '' : renderDtNearby(data);
+    container.innerHTML = renderDtNearby(data);
     e.popup._updatePosition?.();
   });
 

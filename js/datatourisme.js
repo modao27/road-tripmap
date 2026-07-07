@@ -1,16 +1,11 @@
 // Module de recherche DATAtourisme pour l'onglet Découvrir.
 // Interface symétrique à overpass.js : search(lat, lng, radiusKm, selectedCats) + clear().
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
+// Catégories et appel Edge Function : src/features/sources/datatourismeService.js
+// (source unique). Ce module garde le DOM et Leaflet.
 import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
+import { DT_CATEGORIES, fetchDatatourismeNearby } from '../src/features/sources/datatourismeService.js';
 
-const DT_URL = `${SUPABASE_URL}/functions/v1/datatourisme-nearby`;
-
-export const DT_CATEGORIES = {
-  hebergement: { label: 'Hébergements', icon: '🏕', color: '#2477a6' },
-  restaurant:  { label: 'Restauration', icon: '🍽', color: '#d56b1d' },
-  evenement:   { label: 'Événements',   icon: '📅', color: '#605d80' },
-  patrimoine:  { label: 'Patrimoine',   icon: '🏛', color: '#912d2d' },
-};
+export { DT_CATEGORIES };
 
 export function initDatatourisme({
   map,
@@ -44,23 +39,12 @@ export function initDatatourisme({
     if (statusEl) statusEl.textContent = '⟳ Recherche en cours…';
 
     try {
-      const res = await fetch(DT_URL, {
-        method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          lat,
-          lng,
-          radius:     radiusKm,
-          categories: [...selectedCats].join(','),
-        }),
+      const data = await fetchDatatourismeNearby({
+        lat,
+        lng,
+        radius:     radiusKm,
+        categories: [...selectedCats].join(','),
       });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data?.error) throw new Error(data.error);
 
       // Rendu markers + liste
       let total = 0;
