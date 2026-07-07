@@ -23,17 +23,8 @@ import { initOverpass } from './overpass.js';
 import { initDatatourisme, DT_CATEGORIES } from './datatourisme.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-export const CONFIG = {
-  defaultCenter:   [46.709, 5.646],
-  defaultZoom:     10,
-  focusZoom:       13,
-  clusterRadius:   50,
-  geocodeLimit:    5,
-  geocodeDebounce: 350,
-  sidebarDefault:  390,
-  sidebarMin:      240,
-  sidebarMax:      720,
-};
+// Source unique : src/config/index.js (partagée avec la SPA)
+import { MAP_CONFIG as CONFIG } from '../src/config/index.js';
 
 if (typeof L === 'undefined') {
   document.querySelector('#map').innerHTML =
