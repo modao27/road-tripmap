@@ -160,7 +160,6 @@ serve(async (req: Request) => {
   const termSlug   = toSlug(searchTerm);
   const termWords  = termSlug.split("-").filter((w) => w.length >= 3);
   const dept       = (lat != null && lng != null) ? coordsToDept(lat, lng) : null;
-  console.log("[climbing] name:", name, "→ term:", searchTerm, "dept:", dept);
 
   // ── Fetch listing FFME ───────────────────────────────────────────────────
   let listHtml: string;
@@ -189,7 +188,6 @@ serve(async (req: Request) => {
       rows.push({ url, siteName: tdTexts[0], location: tdTexts[1] ?? "" });
     }
   }
-  console.log("[climbing] listing rows:", rows.length);
 
   if (!rows.length) {
     return new Response(JSON.stringify({ error: "listing_parse_failed" }), {
@@ -201,7 +199,6 @@ serve(async (req: Request) => {
   const candidates = dept
     ? rows.filter((r) => r.location.includes(`- ${dept})`))
     : rows;
-  console.log("[climbing] candidates after dept filter:", candidates.length);
 
   // ── Matching par mots-clés ────────────────────────────────────────────────
   function bestMatch(pool: SiteRow[]): { url: string; score: number } | null {
@@ -226,14 +223,12 @@ serve(async (req: Request) => {
   }
 
   if (!match || match.score < threshold) {
-    console.warn("[climbing] no match for:", searchTerm, "score:", match?.score ?? 0);
     return new Response(JSON.stringify({ error: "not_found" }), {
       status: 404, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 
   const bestUrl = match.url;
-  console.log("[climbing] match:", bestUrl, "score:", match.score);
 
   // ── Page détail ──────────────────────────────────────────────────────────
   let detailHtml: string;

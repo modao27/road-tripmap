@@ -118,20 +118,17 @@ function coordsToDept(lat: number, lng: number): number | null {
 // ── Cherche un lien via ferrata sur la page département ───────────────────────
 async function findOnDeptPage(dept: number, searchTerm: string): Promise<string | null> {
   const url = `${SITE}/via-ferrata-departement-${dept}.html`;
-  console.log("[vf] dept page:", url);
   let html: string;
   try { html = await fetchPage(url); } catch { return null; }
 
   // Mots significatifs du terme de recherche (≥ 3 chars)
   const termSlug  = toSlug(searchTerm);
   const termWords = termSlug.split("-").filter((w) => w.length >= 3);
-  console.log("[vf] term words:", termWords);
 
   const links: { url: string; slug: string }[] = [];
   for (const m of html.matchAll(/via-ferrata-(\d+)-([^'" <>\r\n]+?)\.html/gi)) {
     links.push({ url: `${SITE}/via-ferrata-${m[1]}-${m[2]}.html`, slug: m[2].toLowerCase() });
   }
-  console.log("[vf] dept links found:", links.length, links.map((l) => l.slug).slice(0, 5));
 
   // Trouve le lien dont le slug contient le plus de mots du terme
   let bestUrl: string | null = null;
@@ -177,21 +174,18 @@ serve(async (req: Request) => {
   }
 
   const searchTerm = cleanSearchName(name);
-  console.log("[vf]", searchTerm, lat, lng);
 
   let pageUrl: string | null = null;
 
   // ── 1. Page département (fiable) ─────────────────────────────────────────
   if (lat != null && lng != null) {
     const dept = coordsToDept(lat, lng);
-    console.log("[vf] dept:", dept);
     if (dept) pageUrl = await findOnDeptPage(dept, searchTerm);
   }
 
   // ── 2. Fallback : page de recherche ──────────────────────────────────────
   if (!pageUrl) {
     const searchUrl = `${SITE}/rechercher.php?action=chercher&search=${encodeURIComponent(searchTerm)}`;
-    console.log("[vf] search fallback:", searchUrl);
     try {
       const searchHtml = await fetchPage(searchUrl);
       const m = searchHtml.match(/via-ferrata-(\d+)-([^'" <>\r\n]+?)\.html/i);
@@ -200,13 +194,10 @@ serve(async (req: Request) => {
   }
 
   if (!pageUrl) {
-    console.warn("[vf] not found:", searchTerm);
     return new Response(JSON.stringify({ error: "not_found" }), {
       status: 404, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
-
-  console.log("[vf] page URL:", pageUrl);
 
   // ── Page détail ──────────────────────────────────────────────────────────
   let detailHtml: string;
