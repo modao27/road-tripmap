@@ -1,36 +1,28 @@
 // ── localStorage (sync, immédiat) ────────────────────────────────────────────
+// Clés métier de la carte. Primitives et UUID : src/shared/utils/storage.js
+// (source unique, partagée avec la SPA).
+
+import { storageGet, storageSet, generateUUID, isUUID } from '../src/shared/utils/storage.js';
+
+export { isUUID };
 
 export function loadUserPins() {
-  return JSON.parse(localStorage.getItem('userPins') || '[]');
+  return storageGet('userPins', []);
 }
 
 export function saveUserPins(pins) {
-  localStorage.setItem('userPins', JSON.stringify(pins));
+  storageSet('userPins', pins);
 }
 
 export function loadOverrides() {
-  return JSON.parse(localStorage.getItem('placeOverrides') || '{}');
+  return storageGet('placeOverrides', {});
 }
 
 export function saveOverrides(overrides) {
-  localStorage.setItem('placeOverrides', JSON.stringify(overrides));
-}
-
-// ── Utilitaire UUID ───────────────────────────────────────────────────────────
-
-export function isUUID(str) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+  storageSet('placeOverrides', overrides);
 }
 
 // ── Identifiant de carte personnel (UUID) ─────────────────────────────────────
-
-function generateId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
 
 export function getMapIdFromUrl() {
   return new URLSearchParams(window.location.search).get('map') || null;
@@ -39,23 +31,25 @@ export function getMapIdFromUrl() {
 // ── Vue carte (centre + zoom) ─────────────────────────────────────────────────
 
 export function saveMapView(lat, lng, zoom) {
-  localStorage.setItem('mapView', JSON.stringify({ lat, lng, zoom }));
+  storageSet('mapView', { lat, lng, zoom });
 }
 
 export function loadMapView() {
-  try { return JSON.parse(localStorage.getItem('mapView')); }
-  catch { return null; }
+  return storageGet('mapView', null);
 }
 
 // ── Itinéraire ────────────────────────────────────────────────────────────────
 
 export function loadRouteSteps() {
-  return JSON.parse(localStorage.getItem('routeSteps') || '[]');
+  return storageGet('routeSteps', []);
 }
 
 export function saveRouteSteps(steps) {
-  localStorage.setItem('routeSteps', JSON.stringify(steps));
+  storageSet('routeSteps', steps);
 }
+
+// routeMode et mapId sont stockés en chaîne brute (pas JSON) — ne pas
+// migrer vers storageGet/Set sans convertir les valeurs existantes.
 
 export function loadRouteMode() {
   return localStorage.getItem('routeMode') || 'driving';
@@ -74,7 +68,7 @@ export function getOrCreateMapId() {
   }
   let id = localStorage.getItem('mapId');
   if (!id) {
-    id = generateId();
+    id = generateUUID();
     localStorage.setItem('mapId', id);
   }
   return id;

@@ -1,4 +1,4 @@
-import { loadRouteSteps, saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
+import { saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
 import { escapeHtml as esc } from '../src/shared/utils/escape.js';
 
 // Le serveur public OSRM ne supporte que le profil driving de façon fiable.
