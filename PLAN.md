@@ -28,18 +28,23 @@ et durcir tous les rendus de données externes. Les ~50 `innerHTML` du projet ne
 pas tous vulnérables : seuls ceux qui interpolent des données utilisateur ou d'API
 sont à traiter.
 
-- [ ] **A1** — Helper `escapeHtml()` dans `src/shared/utils/escape.js`, importé
-      aussi par les modules `js/` (pas de duplication : import cross-arborescence)
-- [ ] **A2** — `popupHtml` (`js/pins.js`) : échapper `name`, `description`,
-      `interest`, `tip`, `mood` — vecteur principal du XSS stocké
-- [ ] **A3** — Rendus de données externes : résultats Nominatim (geocode pin +
-      onboarding), Overpass (`js/overpass.js`), DATAtourisme (`js/datatourisme.js`),
-      Wikivoyage, liste des lieux (`js/filters.js`), itinéraire (`js/routePlanner.js`),
-      bannière partage (`js/share.js`)
-- [ ] **A4** — Côté SPA : `RoadtripCard`, `PinPopup`, `PinList`, `PinDetailsPanel`,
-      `LocationSearchInput`, `RoadtripHeader`
-- [ ] **A5** — Vérification : pin nommé `<img src=x onerror=alert(1)>` → partage →
-      ouverture du lien en navigation privée → le texte s'affiche littéralement
+- [x] **A1** — Helper `escapeHtml()` + `safeUrl()` dans `src/shared/utils/escape.js`,
+      importé aussi par les modules `js/` (import cross-arborescence) — `7efed0f`
+- [x] **A2** — `popupHtml` (`js/pins.js`) : `name`, `description`, `interest`,
+      `tip`, `mood`, `id` échappés — vecteur principal du XSS stocké — `41cf305`
+- [x] **A3** — Rendus de données externes : Nominatim (geocode pin + onboarding),
+      Overpass (`safeUrl` sur le tag `website`), DATAtourisme (popup + nearby),
+      Wikivoyage, liste des lieux + highlight (`filters.js`), itinéraire
+      (`routePlanner.js`) — `b5fe46f`, `43ae36d`, `96e9420`
+      (`share.js` utilisait déjà textContent — rien à faire)
+- [x] **A4** — Côté SPA : `RoadtripCard`, `PinPopup`, `PinList`, `PinDetailsPanel`,
+      `LocationSearchInput`, `RoadtripHeader`, `DashboardPage`, `ProfilePage`
+      (aperçu avatar reconstruit via DOM, sans onerror inline) — `1881686`
+- [x] **A5** — Vérification : 12 assertions Node sur les fonctions de rendu pures
+      (escapeHtml/safeUrl, popupHtml legacy, PinPopup, RoadtripCard) avec payloads
+      `<img onerror>`, sortie d'attribut et `javascript:` — toutes passent.
+      Reste à valider en navigateur : pin nommé `<img src=x onerror=alert(1)>` →
+      partage → ouverture du lien en navigation privée
 
 ## Phase B — Architecture : fusionner `js/` dans la SPA (~3-5 séances)
 
