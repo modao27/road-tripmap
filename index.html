@@ -8,7 +8,8 @@
   <link rel="apple-touch-icon" href="favicon.png">
   <link rel="preconnect" href="https://unpkg.com">
   <!-- Leaflet (requis par l'éditeur de carte dans la SPA) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
   <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/editor.css">
@@ -17,8 +18,10 @@
   <div id="app" aria-live="polite"></div>
 
   <!-- Librairies globales chargées avant les modules ES -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.1/dist/umd/supabase.js"
+          integrity="sha384-cP+QrKcaFzs7aIG1IzHGLKC5cjjlA05fYF2E7C0hqeDvsLKzwgYAS1cYhsDQB+L1" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
   <script type="module" src="src/app/main.js"></script>
 </body>
 </html>
