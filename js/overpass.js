@@ -1,5 +1,6 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
+import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
 
 const OVERPASS_URL      = 'https://overpass-api.de/api/interpreter';
 const VF_INFO_URL       = `${SUPABASE_URL}/functions/v1/via-ferrata-info`;
@@ -72,13 +73,6 @@ const OSM_TO_APP_CAT = {
   escalade:    'escalade',
   trailhead:   'hike',
 };
-
-// ── Sécurité HTML ─────────────────────────────────────────────────────────────
-function esc(str) {
-  return String(str ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 // ── Tags enrichis selon la catégorie ─────────────────────────────────────────
 function buildDetails(tags, catKey) {
@@ -263,7 +257,7 @@ function renderVfEnriched(data) {
         </div>` : data.difficulty ? `<p class="vf-grade-plain">${esc(data.difficulty)}</p>` : ''}
       ${stats.length ? `<div class="vf-stats">${stats.map(s => `<span class="vf-stat">${s}</span>`).join('')}</div>` : ''}
       ${desc ? `<p class="vf-desc">${esc(desc.length > 320 ? desc.slice(0, 320) + '…' : desc)}</p>` : ''}
-      <a class="vf-site-link" href="${esc(data.url)}" target="_blank" rel="noopener noreferrer">📋 Fiche complète — viaferrata-fr.net</a>
+      ${safeUrl(data.url) ? `<a class="vf-site-link" href="${safeUrl(data.url)}" target="_blank" rel="noopener noreferrer">📋 Fiche complète — viaferrata-fr.net</a>` : ''}
     </div>`;
 }
 
@@ -289,7 +283,7 @@ function renderClimbingEnriched(data) {
       ${stats.length ? `<div class="vf-stats">${stats.map(s => `<span class="vf-stat">${s}</span>`).join('')}</div>` : ''}
       ${desc  ? `<p class="vf-desc">${esc(desc.length > 300 ? desc.slice(0, 300) + '…' : desc)}</p>` : ''}
       ${regul ? `<p class="vf-desc" style="color:#c0392b">⚠ ${esc(regul.length > 200 ? regul.slice(0, 200) + '…' : regul)}</p>` : ''}
-      <a class="vf-site-link" href="${esc(data.url)}" target="_blank" rel="noopener noreferrer">📋 Fiche FFME</a>
+      ${safeUrl(data.url) ? `<a class="vf-site-link" href="${safeUrl(data.url)}" target="_blank" rel="noopener noreferrer">📋 Fiche FFME</a>` : ''}
     </div>`;
 }
 
@@ -487,7 +481,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
               ${name !== cat.label && (tags.description || tags.note) ? `<p class="op-osm-name">${esc(name)}</p>` : ''}
               ${detailsHtml}
               ${hasEnriched ? `<div class="vf-enriched"><p class="vf-loading">⟳ Chargement des détails…</p></div>` : ''}
-              ${website ? `<a class="osm-link" href="${encodeURI(website)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
+              ${safeUrl(website) ? `<a class="osm-link" href="${safeUrl(website)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
               ${googleLink ? `<a class="osm-link" href="${esc(googleLink)}" target="_blank" rel="noopener noreferrer">🔍 Chercher sur ${isVf ? 'viaferrata-fr.net' : 'ffme.fr'}</a>` : ''}
               ${theCragUrl ? `<a class="osm-link" href="${esc(theCragUrl)}" target="_blank" rel="noopener noreferrer">🧗 Voir sur theCrag</a>` : ''}
               <a class="osm-link" href="https://www.openstreetmap.org/node/${el.id}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>

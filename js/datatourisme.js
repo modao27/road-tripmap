@@ -1,6 +1,7 @@
 // Module de recherche DATAtourisme pour l'onglet Découvrir.
 // Interface symétrique à overpass.js : search(lat, lng, radiusKm, selectedCats) + clear().
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
+import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
 
 const DT_URL = `${SUPABASE_URL}/functions/v1/datatourisme-nearby`;
 
@@ -10,10 +11,6 @@ export const DT_CATEGORIES = {
   evenement:   { label: 'Événements',   icon: '📅', color: '#605d80' },
   patrimoine:  { label: 'Patrimoine',   icon: '🏛', color: '#912d2d' },
 };
-
-function esc(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 export function initDatatourisme({
   map,
@@ -85,7 +82,7 @@ export function initDatatourisme({
           if (item.lat && item.lng) {
             const icon = L.divIcon({
               className:   '',
-              html:        `<div class="overpass-marker" style="--color:${catDef.color}">${item.icon}</div>`,
+              html:        `<div class="overpass-marker" style="--color:${catDef.color}">${esc(item.icon)}</div>`,
               iconSize:    [30, 30],
               iconAnchor:  [15, 15],
               popupAnchor: [0, -16],
@@ -93,12 +90,12 @@ export function initDatatourisme({
             const popup = `
               <article class="popup" style="--color:${catDef.color}">
                 <h2>${esc(item.label)}</h2>
-                <div class="popup-category"><span>${item.icon}</span>${esc(catDef.label)}</div>
-                ${item.address ? `<p class="op-result-meta">📍 ${esc(item.address)}${item.dist != null ? ` · ${item.dist} km` : ''}</p>` : item.dist != null ? `<p class="op-result-meta">${item.dist} km</p>` : ''}
+                <div class="popup-category"><span>${esc(item.icon)}</span>${esc(catDef.label)}</div>
+                ${item.address ? `<p class="op-result-meta">📍 ${esc(item.address)}${item.dist != null ? ` · ${esc(item.dist)} km` : ''}</p>` : item.dist != null ? `<p class="op-result-meta">${esc(item.dist)} km</p>` : ''}
                 ${item.description ? `<p class="popup-desc-text">${esc(item.description)}</p>` : ''}
                 ${item.phone ? `<a class="osm-link" href="tel:${esc(item.phone)}">📞 ${esc(item.phone)}</a>` : ''}
                 ${item.email ? `<a class="osm-link" href="mailto:${esc(item.email)}">✉️ ${esc(item.email)}</a>` : ''}
-                ${item.url ? `<a class="osm-link" href="${esc(item.url)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
+                ${safeUrl(item.url) ? `<a class="osm-link" href="${safeUrl(item.url)}" target="_blank" rel="noopener">🌐 Site web</a>` : ''}
               </article>`;
             L.marker([item.lat, item.lng], { icon, title: item.label })
               .bindPopup(popup)
@@ -108,12 +105,12 @@ export function initDatatourisme({
           listHtml.push(`
             <li class="place-item">
               <div class="place-meta">
-                <span class="place-icon" style="background:${catDef.color}">${item.icon}</span>
+                <span class="place-icon" style="background:${catDef.color}">${esc(item.icon)}</span>
                 <div class="op-result-info">
-                  ${item.url
-                    ? `<a class="place-item-name" href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.label)}</a>`
+                  ${safeUrl(item.url)
+                    ? `<a class="place-item-name" href="${safeUrl(item.url)}" target="_blank" rel="noopener">${esc(item.label)}</a>`
                     : `<strong>${esc(item.label)}</strong>`}
-                  <span class="op-result-meta">${esc(catDef.label)}${item.dist != null ? ` · ${item.dist} km` : ''}</span>
+                  <span class="op-result-meta">${esc(catDef.label)}${item.dist != null ? ` · ${esc(item.dist)} km` : ''}</span>
                 </div>
               </div>
             </li>`);
