@@ -57,7 +57,9 @@ sont à traiter.
 | B5 | Porter la carte dans la SPA : page `MapPage` avec le markup de `map.html`, route `#/roadtrips/:id` rendue directement (fin de la redirection), route `#/map` pour la carte libre | Élevé — dernière étape |
 | B6 | Nettoyage : supprimer `js/`, réduire `map.html` à une redirection (compat anciens liens `map.html?map=slug`), supprimer le pont `sessionStorage` | Faible |
 
-- [ ] B1 — Dédupliquer les modules purs
+- [x] B1 — Dédupliquer les modules purs — `9f9d2bb` (config), `7394274` (storage),
+      `058c0d6` (categories → src/config, fin de la dépendance src → js de
+      bootstrap.js), `3a58aaa` (service Overpass canonique + 11 tests, −115 lignes)
 - [ ] B2 — Client Supabase unique
 - [ ] B3 — Extraire datatourisme / routePlanner / share
 - [ ] B4 — Découper js/app.js
