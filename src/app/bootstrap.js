@@ -19,6 +19,7 @@
  */
 
 import { MAP_CONFIG }               from '../config/index.js';
+import { categories }               from '../config/categories.js';
 import { initMap, initLayerSwitcher,
          makePinIcon, addMarker,
          renderMarkers, focusPin }  from '../features/maps/mapService.js';
@@ -77,7 +78,6 @@ export async function bootstrap() {
 
   // ── 2. Initialisation carte ───────────────────────────────────────────────
   const { map, markerLayer, baseLayers } = initMap(MAP_CONFIG);
-  const categories = (await import('../../js/data/categories.js')).categories;
 
   if (isSharedMap && sharedData) {
     map.setView([sharedData.center_lat, sharedData.center_lng], sharedData.zoom, { animate: false });

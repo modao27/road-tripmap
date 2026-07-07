@@ -1,5 +1,5 @@
 import { places as staticPlaces } from './data/places.js';
-import { categories } from './data/categories.js';
+import { categories } from '../src/config/categories.js';
 import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
          getOrCreateMapId, getMapIdFromUrl, isUUID,
          saveMapView, loadMapView } from './storage.js';

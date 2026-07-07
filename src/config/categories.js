@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Catégories de lieux de l'application (source unique).
+ * Utilisées par la carte legacy (js/) et la SPA (src/).
+ */
+
 export const categories = {
   base:     { label: "Point d'ancrage",       color: "#912d2d", icon: "★"  },
   bivouac:  { label: "Bivouac",               color: "#2f6f36", icon: "⛺" },
