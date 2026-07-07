@@ -1,3 +1,5 @@
+import { escapeHtml as esc } from '../src/shared/utils/escape.js';
+
 export function renderFilters(filtersEl, categories, getAllPlaces, activeCategories) {
   filtersEl.innerHTML = Object.entries(categories).map(([key, category]) => {
     const count  = getAllPlaces().filter(p => p.category === key).length;
@@ -24,13 +26,15 @@ export function renderLegend(legendEl, categories) {
   }).join('');
 }
 
+// L'index du match est calculé sur le texte brut, puis chaque tranche est
+// échappée séparément (échapper avant fausserait les indices).
 function highlight(text, query) {
-  if (!query) return text;
+  if (!query) return esc(text);
   const i = text.toLowerCase().indexOf(query.toLowerCase());
-  if (i === -1) return text;
-  return text.slice(0, i)
-    + `<mark class="search-highlight">${text.slice(i, i + query.length)}</mark>`
-    + text.slice(i + query.length);
+  if (i === -1) return esc(text);
+  return esc(text.slice(0, i))
+    + `<mark class="search-highlight">${esc(text.slice(i, i + query.length))}</mark>`
+    + esc(text.slice(i + query.length));
 }
 
 export function renderPlaces(visibleList, placeListEl, visibleCountEl, categories, searchQuery = '') {
@@ -44,11 +48,11 @@ export function renderPlaces(visibleList, placeListEl, visibleCountEl, categorie
       const cardClass = place.userCreated ? 'place-card user-pin' : 'place-card';
       return `
         <li class="place-item">
-          <button class="${cardClass}" type="button" data-place-id="${place.id}" style="--color:${category.color}" draggable="true">
+          <button class="${cardClass}" type="button" data-place-id="${esc(place.id)}" style="--color:${category.color}" draggable="true">
             <strong>${highlight(place.name, searchQuery)}</strong>
             <span class="place-meta"><span class="place-icon">${category.icon}</span>${category.label}</span>
           </button>
-          <button class="place-route-add" type="button" data-add-route-id="${place.id}" title="Ajouter à l'itinéraire">＋</button>
+          <button class="place-route-add" type="button" data-add-route-id="${esc(place.id)}" title="Ajouter à l'itinéraire">＋</button>
         </li>
       `;
     }).join('');

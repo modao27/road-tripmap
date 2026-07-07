@@ -1,4 +1,5 @@
 import { loadRouteSteps, saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
+import { escapeHtml as esc } from '../src/shared/utils/escape.js';
 
 // Le serveur public OSRM ne supporte que le profil driving de façon fiable.
 // Pour vélo et marche, on récupère la géométrie (driving) mais on corrige
@@ -324,7 +325,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
           <span class="route-step-num">${i + 1}</span>
           <span class="route-step-cat">${icon}</span>
           <span class="route-step-label">
-            <span class="route-step-name">${name}</span>
+            <span class="route-step-name">${esc(name)}</span>
             ${partialHtml}
           </span>
           <button class="route-step-remove" data-remove-step="${i}"
