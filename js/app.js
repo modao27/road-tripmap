@@ -17,6 +17,7 @@ import { fetchUserPins, fetchOverrides,
          updatePinOrder, getCurrentUserId, sessionReady,
          SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
+import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
 import { initDatatourisme, DT_CATEGORIES } from './datatourisme.js';
@@ -614,19 +615,6 @@ async function init() {
     return WIKI_CATS.find(c => c.keys.some(k => low.includes(k)));
   }
 
-  function wikiExtractItems(html, max = 7) {
-    const d = document.createElement('div');
-    d.innerHTML = html;
-    const items = [];
-    for (const li of d.querySelectorAll('li')) {
-      // Préfère le nom en gras (ex. <b>Château d'Annecy</b> - description…)
-      const bold = li.querySelector('b, strong');
-      const text = (bold ? bold.textContent : li.textContent).trim().split(/\s*[-–—]\s*/)[0].trim();
-      if (text.length >= 3 && !items.includes(text)) items.push(text);
-      if (items.length >= max) break;
-    }
-    return items;
-  }
 
   map.on('popupopen', async (e) => {
     const container = e.popup.getElement()?.querySelector('.wiki-enriched');
@@ -690,15 +678,15 @@ async function init() {
 
       container.innerHTML = `
         <div class="wiki-sections">
-          <p class="wiki-heading">📖 ${title}</p>
+          <p class="wiki-heading">📖 ${esc(title)}</p>
           ${sections.map(s => `
             <details class="wiki-item">
               <summary class="wiki-item-hd">${s.icon} ${s.label}</summary>
               <ul class="wiki-item-list">
-                ${s.items.map(it => `<li>${it}</li>`).join('')}
+                ${s.items.map(it => `<li>${esc(it)}</li>`).join('')}
               </ul>
             </details>`).join('')}
-          <a class="wiki-more" href="${pageUrl}" target="_blank" rel="noopener">Article complet sur Wikivoyage →</a>
+          <a class="wiki-more" href="${esc(pageUrl)}" target="_blank" rel="noopener">Article complet sur Wikivoyage →</a>
         </div>`;
 
       // Accordion exclusif : ferme les autres sections à l'ouverture d'une
@@ -735,13 +723,16 @@ async function init() {
         <div class="dt-group">
           <p class="dt-group-label">${g.defaultIcon} ${g.label}</p>
           <ul class="dt-list">
-            ${data[g.key].map(item => `
+            ${data[g.key].map(item => {
+              const href = safeUrl(item.url);
+              return `
               <li class="dt-item">
-                ${item.url
-                  ? `<a class="dt-name" href="${item.url}" target="_blank" rel="noopener">${item.icon} ${item.label}</a>`
-                  : `<span class="dt-name">${item.icon} ${item.label}</span>`}
-                ${item.dist != null ? `<span class="dt-dist">${item.dist} km</span>` : ''}
-              </li>`).join('')}
+                ${href
+                  ? `<a class="dt-name" href="${href}" target="_blank" rel="noopener">${esc(item.icon)} ${esc(item.label)}</a>`
+                  : `<span class="dt-name">${esc(item.icon)} ${esc(item.label)}</span>`}
+                ${item.dist != null ? `<span class="dt-dist">${esc(item.dist)} km</span>` : ''}
+              </li>`;
+            }).join('')}
           </ul>
         </div>`).join('')}
     </div>`;
@@ -849,8 +840,8 @@ async function init() {
           onboardRes.innerHTML = obCandidates.map((_, i) => {
             const parts = obCandidates[i].display_name.split(', ');
             return `<li class="geocode-result-item">
-              <span class="geocode-result-name">${parts[0]}</span>
-              <span class="geocode-result-detail">${parts.slice(1, 4).join(', ')}</span>
+              <span class="geocode-result-name">${esc(parts[0])}</span>
+              <span class="geocode-result-detail">${esc(parts.slice(1, 4).join(', '))}</span>
             </li>`;
           }).join('');
           // Handlers directs sur chaque <li> (mousedown = avant blur)
