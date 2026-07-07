@@ -60,7 +60,12 @@ sont à traiter.
 - [x] B1 — Dédupliquer les modules purs — `9f9d2bb` (config), `7394274` (storage),
       `058c0d6` (categories → src/config, fin de la dépendance src → js de
       bootstrap.js), `3a58aaa` (service Overpass canonique + 11 tests, −115 lignes)
-- [ ] B2 — Client Supabase unique
+- [x] B2 — Client Supabase unique — `34f2073` (CRUD éditeur carte dans
+      pinService/roadtripService + fix persistance user_created), `48353f1`
+      (js/supabase.js : 267 → ~55 lignes, adaptateur de ré-exports ; fin des
+      2 clients supplémentaires et du cache de token manuel).
+      ⚠ RLS des tables legacy (user_pins, place_overrides, shared_maps) non
+      versionnées — à valider en navigateur connecté (sync pin perso)
 - [ ] B3 — Extraire datatourisme / routePlanner / share
 - [ ] B4 — Découper js/app.js
 - [ ] B5 — MapPage dans la SPA
