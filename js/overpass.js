@@ -1,78 +1,17 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
+// Catégories, détection et requêtes : src/features/sources/overpassService.js
+// (source unique, partagée avec la SPA). Ce module garde le DOM et Leaflet.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
 import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
+import { OVERPASS_CATEGORIES, OSM_TO_APP_CAT,
+         detectOsmCategory, runOverpassQuery } from '../src/features/sources/overpassService.js';
 
-const OVERPASS_URL      = 'https://overpass-api.de/api/interpreter';
 const VF_INFO_URL       = `${SUPABASE_URL}/functions/v1/via-ferrata-info`;
 const CLIMBING_INFO_URL = `${SUPABASE_URL}/functions/v1/climbing-info`;
 
 const RADIUS_DEFAULT_KM = 10;
 const RADIUS_MIN_KM     = 1;
 const RADIUS_MAX_KM     = 50;
-
-// ── Catégories et leurs tags OSM ──────────────────────────────────────────────
-export const OVERPASS_CATEGORIES = {
-  bivouac: {
-    label: 'Bivouac',
-    icon:  '⛺',
-    color: '#2f6f36',
-    tags:  ['["tourism"="camp_site"]', '["tourism"="camp_pitch"]'],
-  },
-  shelter: {
-    label: 'Refuge',
-    icon:  '🏠',
-    color: '#6f513f',
-    tags:  ['["amenity"="shelter"]', '["tourism"="alpine_hut"]', '["tourism"="wilderness_hut"]'],
-  },
-  water: {
-    label: 'Source',
-    icon:  '💧',
-    color: '#2477a6',
-    tags:  ['["natural"="spring"]', '["amenity"="drinking_water"]'],
-  },
-  waterfall: {
-    label: 'Cascade',
-    icon:  '🌊',
-    color: '#2477a6',
-    tags:  ['["waterway"="waterfall"]'],
-  },
-  viewpoint: {
-    label: 'Panorama',
-    icon:  '🔭',
-    color: '#d56b1d',
-    tags:  ['["tourism"="viewpoint"]'],
-  },
-  via_ferrata: {
-    label: 'Via ferrata',
-    icon:  '🧗',
-    color: '#912d2d',
-    tags:  ['["climbing"="via_ferrata"]', '["sport"="via_ferrata"]'],
-  },
-  escalade: {
-    label: 'Escalade',
-    icon:  '🪨',
-    color: '#7b4b2a',
-    tags:  ['["leisure"="climbing"]', '["climbing"="crag"]'],
-  },
-  trailhead: {
-    label: 'Départ rando',
-    icon:  '🥾',
-    color: '#6f513f',
-    tags:  ['["tourism"="trailhead"]', '["hiking"="trailhead"]'],
-  },
-};
-
-// ── Mapping catégorie OSM → catégorie de l'app ───────────────────────────────
-const OSM_TO_APP_CAT = {
-  bivouac:     'bivouac',
-  shelter:     'bivouac',
-  water:       'water',
-  waterfall:   'water',
-  viewpoint:   'hike',
-  via_ferrata: 'via',
-  escalade:    'escalade',
-  trailhead:   'hike',
-};
 
 // ── Tags enrichis selon la catégorie ─────────────────────────────────────────
 function buildDetails(tags, catKey) {
@@ -134,35 +73,6 @@ function buildPinDescription(tags, details) {
   const parts = [tags.description, tags.note].filter(Boolean);
   if (!parts.length && details.length) parts.push(details.slice(0, 3).join(' · '));
   return parts.join(' — ');
-}
-
-// ── Détection de catégorie depuis les tags OSM ────────────────────────────────
-function detectCategory(tags) {
-  if (tags.waterway === 'waterfall')  return 'waterfall';
-  if (tags.natural === 'spring' || tags.amenity === 'drinking_water') return 'water';
-  if (tags.tourism === 'viewpoint')   return 'viewpoint';
-  if (tags.amenity === 'shelter' || tags.tourism === 'alpine_hut' || tags.tourism === 'wilderness_hut') return 'shelter';
-  if (tags.climbing === 'via_ferrata' || tags.sport === 'via_ferrata') return 'via_ferrata';
-  if (tags.leisure === 'climbing' || tags.climbing === 'crag') return 'escalade';
-  if (tags.tourism === 'trailhead' || tags.hiking === 'trailhead') return 'trailhead';
-  return 'bivouac';
-}
-
-// ── Requête Overpass avec filtre `around` ─────────────────────────────────────
-async function runQuery(selectedCats, center, radiusMeters) {
-  const around = `around:${Math.round(radiusMeters)},${center.lat.toFixed(5)},${center.lng.toFixed(5)}`;
-  const lines = selectedCats.flatMap(cat =>
-    (OVERPASS_CATEGORIES[cat]?.tags ?? []).map(tag => `  node${tag}(${around});`)
-  ).join('\n');
-
-  const ql = `[out:json][timeout:30];\n(\n${lines}\n);\nout body;`;
-  const res = await fetch(OVERPASS_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body:    'data=' + encodeURIComponent(ql),
-  });
-  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
-  return res.json();
 }
 
 // ── Cotations via ferrata ─────────────────────────────────────────────────────
@@ -399,13 +309,13 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     if (statusEl)  statusEl.textContent = '⟳ Recherche en cours…';
 
     try {
-      const data  = await runQuery([...selected], circleCenter, radiusMeters);
+      const data  = await runOverpassQuery([...selected], circleCenter, radiusMeters);
       const nodes = (data.elements ?? []).filter(e => e.lat && e.lon);
 
       // Badges par catégorie
       const countByCat = {};
       nodes.forEach(el => {
-        const key = detectCategory(el.tags ?? {});
+        const key = detectOsmCategory(el.tags ?? {});
         countByCat[key] = (countByCat[key] ?? 0) + 1;
       });
       catBtns.forEach(btn => {
@@ -425,7 +335,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
       const listHtml = [];
       nodes.forEach(el => {
         const tags    = el.tags ?? {};
-        const catKey  = detectCategory(tags);
+        const catKey  = detectOsmCategory(tags);
         const cat     = OVERPASS_CATEGORIES[catKey];
         const appCat  = OSM_TO_APP_CAT[catKey] ?? 'hike';
         const name    = tags.name || tags['name:fr'] || cat.label;

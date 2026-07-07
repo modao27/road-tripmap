@@ -1,9 +1,11 @@
 /**
  * @fileoverview Service Overpass OSM — recherche de POI géographiques.
- * Responsabilité : construire et exécuter des requêtes Overpass QL.
+ * Responsabilité : catégories/tags OSM, détection de catégorie,
+ * construction et exécution des requêtes Overpass QL.
  * Ne touche pas au DOM ni à Leaflet.
  *
- * @typedef {import('../../shared/types/index.js').Pin} Pin
+ * Source unique — consommé par la carte legacy (js/overpass.js)
+ * et, à terme, par la page carte de la SPA.
  */
 
 import { OVERPASS_URL } from '../../config/index.js';
@@ -12,36 +14,56 @@ import { OVERPASS_URL } from '../../config/index.js';
 
 export const OVERPASS_CATEGORIES = {
   bivouac: {
-    label: 'Bivouac',   icon: '⛺', color: '#2f6f36',
+    label: 'Bivouac',
+    icon:  '⛺',
+    color: '#2f6f36',
     tags:  ['["tourism"="camp_site"]', '["tourism"="camp_pitch"]'],
   },
   shelter: {
-    label: 'Refuges',   icon: '🏠', color: '#6f513f',
+    label: 'Refuge',
+    icon:  '🏠',
+    color: '#6f513f',
     tags:  ['["amenity"="shelter"]', '["tourism"="alpine_hut"]', '["tourism"="wilderness_hut"]'],
   },
   water: {
-    label: 'Sources',   icon: '💧', color: '#2477a6',
+    label: 'Source',
+    icon:  '💧',
+    color: '#2477a6',
     tags:  ['["natural"="spring"]', '["amenity"="drinking_water"]'],
   },
   waterfall: {
-    label: 'Cascades',  icon: '🌊', color: '#2477a6',
+    label: 'Cascade',
+    icon:  '🌊',
+    color: '#2477a6',
     tags:  ['["waterway"="waterfall"]'],
   },
   viewpoint: {
-    label: 'Panoramas', icon: '🔭', color: '#d56b1d',
+    label: 'Panorama',
+    icon:  '🔭',
+    color: '#d56b1d',
     tags:  ['["tourism"="viewpoint"]'],
   },
   via_ferrata: {
-    label: 'Via ferrata', icon: '🧗', color: '#912d2d',
+    label: 'Via ferrata',
+    icon:  '🧗',
+    color: '#912d2d',
     tags:  ['["climbing"="via_ferrata"]', '["sport"="via_ferrata"]'],
   },
+  escalade: {
+    label: 'Escalade',
+    icon:  '🪨',
+    color: '#7b4b2a',
+    tags:  ['["leisure"="climbing"]', '["climbing"="crag"]'],
+  },
   trailhead: {
-    label: 'Départs rando', icon: '🥾', color: '#6f513f',
+    label: 'Départ rando',
+    icon:  '🥾',
+    color: '#6f513f',
     tags:  ['["tourism"="trailhead"]', '["hiking"="trailhead"]'],
   },
 };
 
-/** Mapping catégorie OSM → catégorie app */
+/** Mapping catégorie OSM → catégorie de l'app */
 export const OSM_TO_APP_CAT = {
   bivouac:     'bivouac',
   shelter:     'bivouac',
@@ -49,37 +71,52 @@ export const OSM_TO_APP_CAT = {
   waterfall:   'water',
   viewpoint:   'hike',
   via_ferrata: 'via',
+  escalade:    'escalade',
   trailhead:   'hike',
 };
 
-// ── Géométrie ─────────────────────────────────────────────────────────────────
+// ── Détection de catégorie depuis les tags OSM ────────────────────────────────
 
 /**
- * Calcule la bbox autour d'un point.
- * @param {number} lat
- * @param {number} lng
- * @param {number} radiusKm
- * @returns {string} "lat_sw,lng_sw,lat_ne,lng_ne"
+ * @param {Record<string,string>} tags - Tags OSM du nœud
+ * @returns {string} Clé de OVERPASS_CATEGORIES
  */
-export function bboxFromRadius(lat, lng, radiusKm) {
-  const dLat = radiusKm / 111.32;
-  const dLng = radiusKm / (111.32 * Math.cos(lat * Math.PI / 180));
-  return [lat - dLat, lng - dLng, lat + dLat, lng + dLng].map(n => n.toFixed(4)).join(',');
+export function detectOsmCategory(tags) {
+  if (tags.waterway === 'waterfall')  return 'waterfall';
+  if (tags.natural === 'spring' || tags.amenity === 'drinking_water') return 'water';
+  if (tags.tourism === 'viewpoint')   return 'viewpoint';
+  if (tags.amenity === 'shelter' || tags.tourism === 'alpine_hut' || tags.tourism === 'wilderness_hut') return 'shelter';
+  if (tags.climbing === 'via_ferrata' || tags.sport === 'via_ferrata') return 'via_ferrata';
+  if (tags.leisure === 'climbing' || tags.climbing === 'crag') return 'escalade';
+  if (tags.tourism === 'trailhead' || tags.hiking === 'trailhead') return 'trailhead';
+  return 'bivouac';
 }
 
-// ── Requête ───────────────────────────────────────────────────────────────────
+// ── Requête Overpass QL avec filtre `around` ─────────────────────────────────
 
 /**
- * @param {string[]}  selectedCats - Clés de OVERPASS_CATEGORIES
- * @param {string}    bbox
+ * Construit la requête Overpass QL (pure — testable sans réseau).
+ * @param {string[]} selectedCats - Clés de OVERPASS_CATEGORIES
+ * @param {{ lat: number, lng: number }} center
+ * @param {number}   radiusMeters
+ * @returns {string}
+ */
+export function buildOverpassQL(selectedCats, center, radiusMeters) {
+  const around = `around:${Math.round(radiusMeters)},${center.lat.toFixed(5)},${center.lng.toFixed(5)}`;
+  const lines = selectedCats.flatMap(cat =>
+    (OVERPASS_CATEGORIES[cat]?.tags ?? []).map(tag => `  node${tag}(${around});`)
+  ).join('\n');
+  return `[out:json][timeout:30];\n(\n${lines}\n);\nout body;`;
+}
+
+/**
+ * @param {string[]} selectedCats
+ * @param {{ lat: number, lng: number }} center
+ * @param {number}   radiusMeters
  * @returns {Promise<{ elements: any[] }>}
  */
-export async function runOverpassQuery(selectedCats, bbox) {
-  const lines = selectedCats.flatMap(cat =>
-    (OVERPASS_CATEGORIES[cat]?.tags ?? []).map(tag => `  node${tag}(${bbox});`)
-  ).join('\n');
-
-  const ql  = `[out:json][timeout:25];\n(\n${lines}\n);\nout body;`;
+export async function runOverpassQuery(selectedCats, center, radiusMeters) {
+  const ql  = buildOverpassQL(selectedCats, center, radiusMeters);
   const res = await fetch(OVERPASS_URL, {
     method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -87,32 +124,4 @@ export async function runOverpassQuery(selectedCats, bbox) {
   });
   if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
   return res.json();
-}
-
-// ── Détection de catégorie ────────────────────────────────────────────────────
-
-/**
- * @param {Record<string,string>} tags - Tags OSM du nœud
- * @returns {string} Clé de OVERPASS_CATEGORIES
- */
-export function detectOsmCategory(tags) {
-  if (tags.waterway === 'waterfall')                                           return 'waterfall';
-  if (tags.natural === 'spring' || tags.amenity === 'drinking_water')         return 'water';
-  if (tags.tourism === 'viewpoint')                                            return 'viewpoint';
-  if (tags.amenity === 'shelter' || tags.tourism === 'alpine_hut'
-      || tags.tourism === 'wilderness_hut')                                    return 'shelter';
-  if (tags.climbing || tags.sport === 'via_ferrata')                          return 'via_ferrata';
-  if (tags.tourism === 'trailhead' || tags.hiking === 'trailhead')            return 'trailhead';
-  return 'bivouac';
-}
-
-/**
- * Résout le nom d'un nœud OSM (priorité : name, name:fr, official_name, note, label catégorie).
- * @param {Record<string,string>} tags
- * @param {string}                catLabel - Label de fallback
- * @returns {string}
- */
-export function resolveOsmName(tags, catLabel) {
-  return tags.name ?? tags['name:fr'] ?? tags.official_name
-      ?? tags.alt_name ?? tags.loc_name ?? tags.note ?? catLabel;
 }
