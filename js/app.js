@@ -18,9 +18,10 @@ import { fetchUserPins, fetchOverrides,
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
-import { initDatatourisme, initDtNearbyPopups, DT_CATEGORIES } from './datatourisme.js';
+import { initDatatourisme, initDtNearbyPopups } from './datatourisme.js';
 import { initWikivoyagePopups } from './wikivoyage.js';
 import { initOnboarding } from './onboarding.js';
+import { initDiscoverSourceSwitch } from './discover.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 // Source unique : src/config/index.js (partagée avec la SPA)
@@ -435,51 +436,7 @@ async function init() {
   });
 
   // ── Switch source OSM / Tourisme officiel ─────────────────────────────────
-  let discoverMode       = 'osm';
-  const sourceOsmBtn     = document.getElementById('sourceOsm');
-  const sourceTourismeBtn = document.getElementById('sourceTourisme');
-  const osmCatsEl        = document.getElementById('osmCats');
-  const tourismeCatsEl   = document.getElementById('tourismeCats');
-  const dtCatBtns        = document.querySelectorAll('[data-dt-cat]');
-  const selectedDtCats   = new Set(Object.keys(DT_CATEGORIES));
-
-  dtCatBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cat = btn.dataset.dtCat;
-      if (selectedDtCats.has(cat)) {
-        if (selectedDtCats.size > 1) { selectedDtCats.delete(cat); btn.classList.remove('active'); }
-      } else {
-        selectedDtCats.add(cat); btn.classList.add('active');
-      }
-    });
-  });
-
-  function setDiscoverMode(mode) {
-    discoverMode = mode;
-    sourceOsmBtn?.classList.toggle('active', mode === 'osm');
-    sourceTourismeBtn?.classList.toggle('active', mode === 'tourisme');
-    if (osmCatsEl)      osmCatsEl.hidden      = mode !== 'osm';
-    if (tourismeCatsEl) tourismeCatsEl.hidden = mode !== 'tourisme';
-    if (mode === 'osm') dtModule.clear();
-    else overpassModule.clearResults();
-  }
-
-  sourceOsmBtn?.addEventListener('click',      () => setDiscoverMode('osm'));
-  sourceTourismeBtn?.addEventListener('click', () => setDiscoverMode('tourisme'));
-
-  document.getElementById('overpassSearch')?.addEventListener('click', () => {
-    if (discoverMode === 'osm') {
-      overpassModule.doSearch();
-    } else {
-      const { lat, lng, radiusKm } = overpassModule.getCircleState();
-      dtModule.search(lat, lng, radiusKm, selectedDtCats);
-    }
-  });
-
-  document.getElementById('overpassClear')?.addEventListener('click', () => {
-    overpassModule.clearResults();
-    dtModule.clear();
-  });
+  initDiscoverSourceSwitch({ overpassModule, dtModule });
 
   // ── Itinéraire ────────────────────────────────────────────────────────────
   // Déclaré en let pour que onRefresh() y ait accès via la closure
