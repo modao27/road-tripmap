@@ -21,6 +21,7 @@ import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
 import { initDatatourisme, DT_CATEGORIES } from './datatourisme.js';
+import { initWikivoyagePopups } from './wikivoyage.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 // Source unique : src/config/index.js (partagée avec la SPA)
@@ -585,111 +586,7 @@ async function init() {
   updateRouteBadge();
 
   // ── Wikivoyage — enrichissement popup villages/points d'ancrage ──────────
-  const wikiCache = new Map(); // title → sections parsées (cache session)
-
-  // Mapping sections Wikivoyage FR → catégories UX
-  // Ordre = priorité de matching (premier match gagne)
-  const WIKI_CATS = [
-    { keys: ['voir'],                          icon: '👁️',  label: 'À voir'        },
-    { keys: ['faire', 'activit'],              icon: '🎯',  label: 'À faire'       },
-    { keys: ['acheter'],                       icon: '🛍️', label: 'Acheter'       },
-    { keys: ['manger', 'restau'],              icon: '🍽️', label: 'Manger'        },
-    { keys: ['boire', 'sortir'],               icon: '🍺',  label: 'Boire / Sortir'},
-    { keys: ['loger', 'heberg'],               icon: '🛏️', label: 'Se loger'      },
-    { keys: ['aller', 'circuler'],             icon: '🚗',  label: 'Y aller'       },
-    { keys: ['comprendre', 'quotidien'],       icon: '💡',  label: 'Comprendre'    },
-    { keys: ['environ', 'voisin', 'alentour'], icon: '🗺️', label: 'Aux environs'  },
-  ];
-
-  function wikiCatFor(sectionTitle) {
-    const low = sectionTitle.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    return WIKI_CATS.find(c => c.keys.some(k => low.includes(k)));
-  }
-
-
-  map.on('popupopen', async (e) => {
-    const container = e.popup.getElement()?.querySelector('.wiki-enriched');
-    if (!container || container.dataset.loading) return;
-    container.dataset.loading = 'true';
-
-    const lat = +container.dataset.wikiLat;
-    const lng = +container.dataset.wikiLng;
-    if (!lat || !lng) { container.innerHTML = ''; return; }
-
-    try {
-      // 1. Geosearch
-      const gsUrl = `https://fr.wikivoyage.org/w/api.php?action=query&list=geosearch`
-        + `&gscoord=${lat}|${lng}&gsradius=10000&gslimit=3&format=json&origin=*`;
-      const hits = (await fetch(gsUrl).then(r => r.json())).query?.geosearch ?? [];
-      if (!hits.length) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
-
-      const title = hits[0].title;
-
-      // 2. Sections via MediaWiki action=parse (CORS natif avec origin=*)
-      //    Remplace mobile-sections (décommissionnée T328036)
-      let grouped = wikiCache.get(title);
-      if (!grouped) {
-        const parseUrl = `https://fr.wikivoyage.org/w/api.php?action=parse`
-          + `&page=${encodeURIComponent(title)}&prop=text|sections&format=json&origin=*`;
-        const parsed = await fetch(parseUrl).then(r => r.json());
-
-        const fullHtml  = parsed.parse?.text?.['*'] ?? '';
-        const doc       = new DOMParser().parseFromString(fullHtml, 'text/html');
-        grouped = {};
-
-        // Parcourt les <h2> du HTML rendu et extrait le contenu jusqu'au h2 suivant
-        for (const h2 of doc.querySelectorAll('h2')) {
-          const sectionTitle = (h2.querySelector('.mw-headline') ?? h2).textContent?.trim() ?? '';
-          const cat = wikiCatFor(sectionTitle);
-          if (!cat || grouped[cat.label]) continue;
-
-          const items = [];
-          // MediaWiki récent encapsule le <h2> dans <div class="mw-heading">
-          // → le contenu de la section est frère du div, pas du h2
-          const headingBlock = h2.closest('.mw-heading') ?? h2;
-          let el = headingBlock.nextElementSibling;
-          while (el && el.tagName !== 'H2' && !el.classList.contains('mw-heading')) {
-            for (const li of el.querySelectorAll('li')) {
-              const bold = li.querySelector('b, strong');
-              const text = (bold ? bold.textContent : li.textContent)
-                .trim().split(/\s*[-–—:]\s*/)[0].trim();
-              if (text.length >= 3 && !items.includes(text) && items.length < 7 && !/^\d/.test(text)) items.push(text);
-            }
-            el = el.nextElementSibling;
-          }
-          if (items.length) grouped[cat.label] = { ...cat, items };
-        }
-        wikiCache.set(title, grouped);
-      }
-
-      const pageUrl = `https://fr.wikivoyage.org/wiki/${encodeURIComponent(title)}`;
-      const sections = Object.values(grouped).filter(s => s.items.length > 0);
-
-      if (!sections.length) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
-
-      container.innerHTML = `
-        <div class="wiki-sections">
-          <p class="wiki-heading">📖 ${esc(title)}</p>
-          ${sections.map(s => `
-            <details class="wiki-item">
-              <summary class="wiki-item-hd">${s.icon} ${s.label}</summary>
-              <ul class="wiki-item-list">
-                ${s.items.map(it => `<li>${esc(it)}</li>`).join('')}
-              </ul>
-            </details>`).join('')}
-          <a class="wiki-more" href="${esc(pageUrl)}" target="_blank" rel="noopener">Article complet sur Wikivoyage →</a>
-        </div>`;
-
-      // Accordion exclusif : ferme les autres sections à l'ouverture d'une
-      const details = container.querySelectorAll('.wiki-item');
-      details.forEach(d => d.addEventListener('toggle', () => {
-        if (d.open) details.forEach(other => { if (other !== d) other.open = false; });
-      }));
-    } catch {
-      container.innerHTML = '';
-    }
-    e.popup._updatePosition?.();
-  });
+  initWikivoyagePopups(map);
 
   // ── DATAtourisme — hébergements, restaurants, événements à proximité ─────
   const dtCache   = new Map(); // cellKey → data (cache session)
