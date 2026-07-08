@@ -12,15 +12,15 @@ import { fetchUserPins, fetchOverrides,
          upsertOverride, deleteOverrideRemote,
          loadSharedMap,
          fetchRoadtripPins, fetchRoadtripInfo,
-         updateRoadtripCenter, createRoadtripPin,
+         createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin,
          updatePinOrder, getCurrentUserId, sessionReady } from './supabase.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
-import { escapeHtml as esc } from '../src/shared/utils/escape.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
 import { initDatatourisme, initDtNearbyPopups, DT_CATEGORIES } from './datatourisme.js';
 import { initWikivoyagePopups } from './wikivoyage.js';
+import { initOnboarding } from './onboarding.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 // Source unique : src/config/index.js (partagée avec la SPA)
@@ -591,101 +591,19 @@ async function init() {
   initDtNearbyPopups(map);
 
   // ── Onboard : première ouverture d'un roadtrip vide ───────────────────────
-  const onboardParam = new URLSearchParams(window.location.search).get('onboard');
-  if (isRoadtripUUID && onboardParam === 'true' && roadtripPinIds.length === 0) {
-    const overlay    = document.getElementById('onboardOverlay');
-    const onboardIn  = document.getElementById('onboardSearch');
-    const onboardRes = document.getElementById('onboardResults');
-    const skipBtn    = document.getElementById('onboardSkip');
-
-    overlay.hidden = false;
-
-    let obDebounce = null;
-    let obCtrl = null;
-    let obCandidates = [];
-
-    function closeOnboard() {
-      overlay.hidden = true;
-      const p = new URLSearchParams(window.location.search);
-      p.delete('onboard');
-      history.replaceState(null, '',
-        window.location.pathname + (p.toString() ? '?' + p : ''));
-    }
-
-    async function confirmOnboardPlace(r) {
-      const lat   = parseFloat(r.lat);
-      const lng   = parseFloat(r.lon);
-      const label = r.display_name.split(', ').slice(0, 3).join(', ');
-
-      closeOnboard();
-      map.flyTo([lat, lng], 12, { animate: true, duration: 1.2 });
-
-      try {
-        const created = await createRoadtripPin(mapParam, {
-          name: r.display_name.split(', ')[0],
-          lat, lng, category: 'base', type: 'start', order_index: 0,
-        });
-        if (created) {
-          const place = {
-            id: created.id, name: created.title,
-            category: created.category || 'nature',
-            lat, lng, description: '',
-            interest: '', tip: '', mood: '',
-            userCreated: true, user_created: true,
-          };
-          userPlaces.push(place);
-          roadtripPinIds.push(created.id);
-          addMarker(place, markers, makePopupHtml, makeIconFn);
-          setupMarkerHover(place);
-          onRefresh();
-        }
-      } catch { /* pin optionnel, pas bloquant */ }
-
-      try { await updateRoadtripCenter(mapParam, { lat, lng, zoom: 12, label }); }
-      catch { /* pas bloquant */ }
-    }
-
-    onboardIn.addEventListener('input', () => {
-      clearTimeout(obDebounce);
-      const q = onboardIn.value.trim();
-      if (q.length < 3) { onboardRes.hidden = true; return; }
-      obDebounce = setTimeout(async () => {
-        if (obCtrl) obCtrl.abort();
-        obCtrl = new AbortController();
-        try {
-          const url = `https://nominatim.openstreetmap.org/search` +
-            `?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=fr`;
-          const res = await fetch(url, { signal: obCtrl.signal });
-          obCandidates = await res.json();
-          if (!obCandidates.length) { onboardRes.hidden = true; return; }
-          onboardRes.innerHTML = obCandidates.map((_, i) => {
-            const parts = obCandidates[i].display_name.split(', ');
-            return `<li class="geocode-result-item">
-              <span class="geocode-result-name">${esc(parts[0])}</span>
-              <span class="geocode-result-detail">${esc(parts.slice(1, 4).join(', '))}</span>
-            </li>`;
-          }).join('');
-          // Handlers directs sur chaque <li> (mousedown = avant blur)
-          onboardRes.querySelectorAll('.geocode-result-item').forEach((li, i) => {
-            li.addEventListener('mousedown', () => confirmOnboardPlace(obCandidates[i]));
-          });
-          onboardRes.hidden = false;
-        } catch (e) {
-          if (e.name !== 'AbortError') onboardRes.hidden = true;
-        }
-      }, 350);
-    });
-
-    skipBtn.addEventListener('click', () => {
-      closeOnboard();
-      if (roadtripInfo?.center_lat) {
-        map.flyTo([roadtripInfo.center_lat, roadtripInfo.center_lng],
-                  roadtripInfo.default_zoom ?? 10);
-      }
-    });
-
-    setTimeout(() => onboardIn.focus(), 150);
-  }
+  initOnboarding({
+    map,
+    roadtripId:   isRoadtripUUID ? mapParam : null,
+    roadtripInfo,
+    hasPins:      roadtripPinIds.length > 0,
+    onPlaceCreated(place) {
+      userPlaces.push(place);
+      roadtripPinIds.push(place.id);
+      addMarker(place, markers, makePopupHtml, makeIconFn);
+      setupMarkerHover(place);
+      onRefresh();
+    },
+  });
 
   requestAnimationFrame(() => {
     map.invalidateSize();
