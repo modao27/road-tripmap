@@ -59,8 +59,7 @@ export function saveRouteMode(mode) {
   localStorage.setItem('routeMode', mode);
 }
 
-export function getOrCreateMapId() {
-  const fromUrl = getMapIdFromUrl();
+export function getOrCreateMapId(fromUrl = getMapIdFromUrl()) {
   // Mémorise uniquement si c'est bien un UUID personnel (pas un slug partagé)
   if (fromUrl && isUUID(fromUrl)) {
     localStorage.setItem('mapId', fromUrl);

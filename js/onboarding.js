@@ -33,8 +33,9 @@ export function initOnboarding({ map, roadtripId, roadtripInfo, hasPins, onPlace
     overlay.hidden = true;
     const p = new URLSearchParams(window.location.search);
     p.delete('onboard');
+    // Préserve le hash — en contexte SPA la route y vit (#/roadtrips/:id)
     history.replaceState(null, '',
-      window.location.pathname + (p.toString() ? '?' + p : ''));
+      window.location.pathname + (p.toString() ? '?' + p : '') + window.location.hash);
   }
 
   async function confirmOnboardPlace(r) {

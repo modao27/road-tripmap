@@ -1,7 +1,7 @@
 import { places as staticPlaces } from './data/places.js';
 import { categories } from '../src/config/categories.js';
 import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
-         getOrCreateMapId, getMapIdFromUrl, isUUID,
+         getOrCreateMapId, isUUID,
          saveMapView, loadMapView } from './storage.js';
 import { initMap, makeIcon, addMarker, focusPlace, renderMap, initLayerSwitcher } from './map.js';
 import { renderFilters, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
@@ -27,17 +27,22 @@ import { initDiscoverSourceSwitch } from './discover.js';
 // Source unique : src/config/index.js (partagée avec la SPA)
 import { MAP_CONFIG as CONFIG } from '../src/config/index.js';
 
-if (typeof L === 'undefined') {
-  document.querySelector('#map').innerHTML =
-    "<p style='margin:24px;font:16px system-ui;color:#143f31'>Leaflet n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
-  throw new Error('Leaflet is not available');
-}
-
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
-async function init() {
-  const mapParam       = getMapIdFromUrl();
+/**
+ * Monte l'application carte sur le markup déjà présent dans le DOM.
+ * @param {{ mapParam?: string|null }} params
+ *   mapParam : UUID de roadtrip, slug de carte partagée, ou null (carte
+ *   personnelle). Fourni par map.html (?map=) ou par la route SPA.
+ */
+export async function initMapApp({ mapParam = null } = {}) {
+  if (typeof L === 'undefined') {
+    document.querySelector('#map').innerHTML =
+      "<p style='margin:24px;font:16px system-ui;color:#143f31'>Leaflet n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
+    throw new Error('Leaflet is not available');
+  }
+
   const isRoadtripUUID = !!mapParam && isUUID(mapParam);
-  // Un slug (non UUID) dans ?map= indique une carte partagée
+  // Un slug (non UUID) indique une carte partagée
   let isSharedMap = !!mapParam && !isUUID(mapParam);
 
   // ── 1. Tentative de chargement de la carte partagée ──────────────────────
@@ -48,7 +53,7 @@ async function init() {
     } catch {
       // Slug introuvable ou hors ligne → on retombe sur la carte personnelle
       isSharedMap = false;
-      history.replaceState(null, '', window.location.pathname);
+      history.replaceState(null, '', window.location.pathname + window.location.hash);
     }
   }
 
@@ -64,12 +69,12 @@ async function init() {
         // L'utilisateur refuse → on reste sur sa carte perso, on nettoie l'URL
         isSharedMap = false;
         sharedData  = null;
-        history.replaceState(null, '', window.location.pathname);
+        history.replaceState(null, '', window.location.pathname + window.location.hash);
       }
     }
   }
 
-  const mapId = isSharedMap ? null : getOrCreateMapId();
+  const mapId = isSharedMap ? null : getOrCreateMapId(mapParam);
 
   // ── 3. Chargement effectif des données ───────────────────────────────────
   let userPlaces, placeOverrides;
@@ -584,5 +589,3 @@ async function init() {
     }
   });
 }
-
-init();
