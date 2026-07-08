@@ -78,7 +78,13 @@ sont à traiter.
       ('Aux alentours' → js/datatourisme.js), `c7ee3b6` (onboarding →
       js/onboarding.js, callback onPlaceCreated), `19f0722` (switch
       OSM/Tourisme → js/discover.js)
-- [ ] B5 — MapPage dans la SPA
+- [x] B5 — MapPage dans la SPA — `7f36998` (initMapApp(mapParam) exporté,
+      entrée map.html séparée, hash préservé dans les replaceState), `7e37ed2`
+      (markup → src/features/map/mapPageTemplate.js, map.html devient une
+      coquille), `d432338` (MapPage + routes #/roadtrips/:id, #/map,
+      #/map/:slug ; assets chargés à la demande ; sémantique reload-on-exit
+      conservée pour éviter le double-wiring des listeners document ;
+      liens dashboard et buildShareUrl au format SPA)
 - [ ] B6 — Suppression de js/ + compat liens
 
 **Gains** : plus de double codebase, un seul client Supabase (fin des bugs de
