@@ -1,8 +1,8 @@
 // Enrichissement Wikivoyage des popups villages / points d'ancrage.
 // Données et parsing : src/features/sources/wikivoyageService.js.
 // Ce module ne gère que le rendu dans les popups Leaflet.
-import { escapeHtml as esc } from '../src/shared/utils/escape.js';
-import { fetchWikivoyageSections } from '../src/features/sources/wikivoyageService.js';
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
+import { fetchWikivoyageSections } from '../sources/wikivoyageService.js';
 
 export function initWikivoyagePopups(map) {
   map.on('popupopen', async (e) => {

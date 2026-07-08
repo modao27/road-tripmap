@@ -2,7 +2,7 @@
 // Clés métier de la carte. Primitives et UUID : src/shared/utils/storage.js
 // (source unique, partagée avec la SPA).
 
-import { storageGet, storageSet, generateUUID, isUUID } from '../src/shared/utils/storage.js';
+import { storageGet, storageSet, generateUUID, isUUID } from '../../shared/utils/storage.js';
 
 export { isUUID };
 

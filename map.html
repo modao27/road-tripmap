@@ -3,30 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Road trip outdoor dans le Jura</title>
+  <title>Redirection — Road Trip Map</title>
   <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="favicon.png">
-  <!-- ES modules requièrent un serveur HTTP. Lancer avec : npx serve . ou python -m http.server -->
-  <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
-        integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous">
-  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Compatibilité des anciens liens : map.html?map=<uuid|slug>[&onboard=true]
+    // La carte vit désormais dans la SPA (index.html) :
+    //   UUID → #/roadtrips/:id · slug partagé → #/map/:slug · rien → #/map
+    (function () {
+      var params  = new URLSearchParams(window.location.search);
+      var map     = params.get('map');
+      var onboard = params.get('onboard') === 'true' ? '?onboard=true' : '';
+      var isUUID  = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(map || '');
+      var route   = !map ? '#/map'
+        : isUUID  ? '#/roadtrips/' + map
+        : '#/map/' + encodeURIComponent(map);
+      window.location.replace('index.html' + onboard + route);
+    })();
+  </script>
 </head>
 <body>
-  <!-- Le markup de la page vit dans src/features/map/mapPageTemplate.js
-       (source unique, partagée avec la MapPage de la SPA) —
-       injecté par js/mapEntry.js -->
-  <div id="app"></div>
-
-  <!-- Scripts classiques (globaux) chargés avant les modules ES -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
-          integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.1/dist/umd/supabase.js"
-          integrity="sha384-cP+QrKcaFzs7aIG1IzHGLKC5cjjlA05fYF2E7C0hqeDvsLKzwgYAS1cYhsDQB+L1" crossorigin="anonymous"></script>
-  <script type="module" src="js/mapEntry.js"></script>
+  <p>Redirection… <a href="index.html#/map">Ouvrir la carte</a></p>
 </body>
 </html>

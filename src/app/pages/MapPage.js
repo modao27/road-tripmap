@@ -77,7 +77,7 @@ export function renderMapPage(container, params = {}) {
   container.innerHTML = MAP_PAGE_HTML;
 
   ensureMapAssets()
-    .then(() => import('../../../js/app.js'))
+    .then(() => import('../../features/map/mapApp.js'))
     .then(({ initMapApp }) => initMapApp({ mapParam }))
     .catch(() => {
       const mapEl = container.querySelector('#map');

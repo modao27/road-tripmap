@@ -1,10 +1,10 @@
 import { saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
-import { escapeHtml as esc } from '../src/shared/utils/escape.js';
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
 // Logique pure (OSRM, distances, optimisation, GPX) :
 // src/features/routing/routingService.js. Ce module garde DOM et Leaflet.
 import { OSRM_PROFILE, formatDistance, formatDuration, haversine,
          nearestNeighborOrder, fetchOsrmRoute, buildGpx }
-  from '../src/features/routing/routingService.js';
+  from '../routing/routingService.js';
 
 // ── Module ────────────────────────────────────────────────────────────────────
 

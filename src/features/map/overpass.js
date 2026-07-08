@@ -1,10 +1,10 @@
 // Recherche de lieux via l'API Overpass (données OpenStreetMap)
 // Catégories, détection et requêtes : src/features/sources/overpassService.js
 // (source unique, partagée avec la SPA). Ce module garde le DOM et Leaflet.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
-import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../shared/lib/supabaseClient.js';
+import { escapeHtml as esc, safeUrl } from '../../shared/utils/escape.js';
 import { OVERPASS_CATEGORIES, OSM_TO_APP_CAT,
-         detectOsmCategory, runOverpassQuery } from '../src/features/sources/overpassService.js';
+         detectOsmCategory, runOverpassQuery } from '../sources/overpassService.js';
 
 const VF_INFO_URL       = `${SUPABASE_URL}/functions/v1/via-ferrata-info`;
 const CLIMBING_INFO_URL = `${SUPABASE_URL}/functions/v1/climbing-info`;

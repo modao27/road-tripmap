@@ -2,8 +2,8 @@
 // Interface symétrique à overpass.js : search(lat, lng, radiusKm, selectedCats) + clear().
 // Catégories et appel Edge Function : src/features/sources/datatourismeService.js
 // (source unique). Ce module garde le DOM et Leaflet.
-import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
-import { DT_CATEGORIES, fetchDatatourismeNearby } from '../src/features/sources/datatourismeService.js';
+import { escapeHtml as esc, safeUrl } from '../../shared/utils/escape.js';
+import { DT_CATEGORIES, fetchDatatourismeNearby } from '../sources/datatourismeService.js';
 
 export { DT_CATEGORIES };
 

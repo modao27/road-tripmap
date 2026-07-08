@@ -1,9 +1,9 @@
 // Overlay d'onboarding : première ouverture d'un roadtrip vide
 // (?onboard=true). Recherche Nominatim de la destination, création du
 // point de départ et centrage du roadtrip.
-import { escapeHtml as esc } from '../src/shared/utils/escape.js';
-import { createRoadtripPin } from '../src/features/pins/pinService.js';
-import { updateRoadtripCenter } from '../src/features/roadtrips/roadtripService.js';
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
+import { createRoadtripPin } from '../pins/pinService.js';
+import { updateRoadtripCenter } from '../roadtrips/roadtripService.js';
 
 /**
  * @param {{

@@ -1,7 +1,7 @@
 import { saveUserPins, saveOverrides } from './storage.js';
 import { addMarker, refreshMarker } from './map.js';
 import { trapFocus } from './ui.js';
-import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
+import { escapeHtml as esc, safeUrl } from '../../shared/utils/escape.js';
 
 function openInOSM(lat, lng, zoom = 14) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;

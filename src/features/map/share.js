@@ -1,6 +1,6 @@
 // Slug et URL de partage : src/features/sharing/sharingService.js
 // (source unique). Ce module garde la modale, la bannière et le DOM.
-import { saveSharedMap, titleToSlug, buildShareUrl } from '../src/features/sharing/sharingService.js';
+import { saveSharedMap, titleToSlug, buildShareUrl } from '../sharing/sharingService.js';
 
 // ── Modale de partage ─────────────────────────────────────────────────────────
 

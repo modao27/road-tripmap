@@ -1,6 +1,6 @@
 /**
  * ESLint flat config — lint uniquement, le déploiement reste sans build.
- * Périmètre : js/ (carte legacy) et src/ (SPA).
+ * Périmètre : src/ (SPA, carte incluse).
  * supabase/functions/ est du TypeScript Deno — hors périmètre.
  */
 import js from '@eslint/js';
@@ -9,7 +9,7 @@ import globals from 'globals';
 export default [
   js.configs.recommended,
   {
-    files: ['js/**/*.js', 'src/**/*.js'],
+    files: ['src/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

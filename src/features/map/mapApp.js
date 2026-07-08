@@ -1,5 +1,5 @@
-import { places as staticPlaces } from './data/places.js';
-import { categories } from '../src/config/categories.js';
+import { places as staticPlaces } from './places.js';
+import { categories } from '../../config/categories.js';
 import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
          getOrCreateMapId, isUUID,
          saveMapView, loadMapView } from './storage.js';
@@ -7,14 +7,15 @@ import { initMap, makeIcon, addMarker, focusPlace, renderMap, initLayerSwitcher 
 import { renderFilters, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
 import { showToast, setSyncStatus, initSidebar, initResizer } from './ui.js';
 import { popupHtml, initPins } from './pins.js';
-import { fetchUserPins, fetchOverrides,
-         upsertUserPin, deleteUserPinRemote,
-         upsertOverride, deleteOverrideRemote,
-         loadSharedMap,
-         fetchRoadtripPins, fetchRoadtripInfo,
-         createRoadtripPin,
+import { fetchPinsRemote, fetchOverridesRemote,
+         upsertPinRemote, deletePinRemote,
+         upsertOverrideRemote, deleteOverrideRemote,
+         fetchRoadtripPins, createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin,
-         updatePinOrder, getCurrentUserId, sessionReady } from './supabase.js';
+         updatePinOrder } from '../pins/pinService.js';
+import { fetchRoadtripInfo } from '../roadtrips/roadtripService.js';
+import { loadSharedMap } from '../sharing/sharingService.js';
+import { getCurrentUserId, sessionReady } from '../../shared/lib/session.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -25,7 +26,7 @@ import { initDiscoverSourceSwitch } from './discover.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 // Source unique : src/config/index.js (partagée avec la SPA)
-import { MAP_CONFIG as CONFIG } from '../src/config/index.js';
+import { MAP_CONFIG as CONFIG } from '../../config/index.js';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 /**
@@ -85,8 +86,8 @@ export async function initMapApp({ mapParam = null } = {}) {
   } else {
     try {
       [userPlaces, placeOverrides] = await Promise.all([
-        fetchUserPins(mapId),
-        fetchOverrides(mapId),
+        fetchPinsRemote(mapId),
+        fetchOverridesRemote(mapId),
       ]);
       saveUserPins(userPlaces);
       saveOverrides(placeOverrides);
@@ -398,10 +399,10 @@ export async function initMapApp({ mapParam = null } = {}) {
     onMarkerAdded:    setupMarkerHover,
     config:           CONFIG,
     mapId,
-    createUserPinFn:  isSharedMap ? null : (isRoadtripMode ? (_ignored, pin) => createRoadtripPin(mapParam, pin) : upsertUserPin),
-    upsertUserPinFn:  isSharedMap ? null : (isRoadtripMode ? upsertRoadtripPin : upsertUserPin),
-    deleteUserPinFn:  isSharedMap ? null : (isRoadtripMode ? deleteRoadtripPin : deleteUserPinRemote),
-    upsertOverrideFn: isSharedMap ? null : upsertOverride,
+    createUserPinFn:  isSharedMap ? null : (isRoadtripMode ? (_ignored, pin) => createRoadtripPin(mapParam, pin) : upsertPinRemote),
+    upsertUserPinFn:  isSharedMap ? null : (isRoadtripMode ? upsertRoadtripPin : upsertPinRemote),
+    deleteUserPinFn:  isSharedMap ? null : (isRoadtripMode ? deleteRoadtripPin : deletePinRemote),
+    upsertOverrideFn: isSharedMap ? null : upsertOverrideRemote,
     deleteOverrideFn: isSharedMap ? null : deleteOverrideRemote,
     onMapClick: () => {
       if (mobileQuery.matches) {

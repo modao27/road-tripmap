@@ -1,4 +1,4 @@
-import { escapeHtml as esc } from '../src/shared/utils/escape.js';
+import { escapeHtml as esc } from '../../shared/utils/escape.js';
 
 export function renderFilters(filtersEl, categories, getAllPlaces, activeCategories) {
   filtersEl.innerHTML = Object.entries(categories).map(([key, category]) => {
