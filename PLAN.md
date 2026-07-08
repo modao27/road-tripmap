@@ -73,7 +73,11 @@ sont à traiter.
       buildShareUrl dans sharingService + 4 tests).
       Note : src/features/sources/enrichmentService.js (CamptoCamp /
       refuges.info) est du code mort jamais importé — à supprimer en B6
-- [ ] B4 — Découper js/app.js
+- [x] B4 — Découper js/app.js : 877 → 588 lignes — `2028fcc` (Wikivoyage :
+      service src/features/sources + js/wikivoyage.js + 4 tests), `a86abd4`
+      ('Aux alentours' → js/datatourisme.js), `c7ee3b6` (onboarding →
+      js/onboarding.js, callback onPlaceCreated), `19f0722` (switch
+      OSM/Tourisme → js/discover.js)
 - [ ] B5 — MapPage dans la SPA
 - [ ] B6 — Suppression de js/ + compat liens
 
