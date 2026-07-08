@@ -15,12 +15,11 @@ import { fetchUserPins, fetchOverrides,
          updateRoadtripCenter, createRoadtripPin,
          upsertRoadtripPin, deleteRoadtripPin,
          updatePinOrder, getCurrentUserId, sessionReady } from './supabase.js';
-import { fetchDatatourismeNearby } from '../src/features/sources/datatourismeService.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
-import { escapeHtml as esc, safeUrl } from '../src/shared/utils/escape.js';
+import { escapeHtml as esc } from '../src/shared/utils/escape.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
-import { initDatatourisme, DT_CATEGORIES } from './datatourisme.js';
+import { initDatatourisme, initDtNearbyPopups, DT_CATEGORIES } from './datatourisme.js';
 import { initWikivoyagePopups } from './wikivoyage.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
@@ -589,67 +588,7 @@ async function init() {
   initWikivoyagePopups(map);
 
   // ── DATAtourisme — hébergements, restaurants, événements à proximité ─────
-  const dtCache   = new Map(); // cellKey → data (cache session)
-
-  function dtCellKey(lat, lng) {
-    return `${Math.round(lat * 10) / 10}_${Math.round(lng * 10) / 10}`;
-  }
-
-  function renderDtNearby(data) {
-    const GROUPS = [
-      { key: 'hebergement', label: 'Hébergements', defaultIcon: '🏕' },
-      { key: 'restaurant',  label: 'Restauration', defaultIcon: '🍽' },
-      { key: 'evenement',   label: 'Événements',   defaultIcon: '📅' },
-    ];
-    const filled = GROUPS.filter(g => data[g.key]?.length);
-    if (!filled.length) return '';
-
-    return `<div class="dt-section">
-      <p class="dt-heading">Aux alentours</p>
-      ${filled.map(g => `
-        <div class="dt-group">
-          <p class="dt-group-label">${g.defaultIcon} ${g.label}</p>
-          <ul class="dt-list">
-            ${data[g.key].map(item => {
-              const href = safeUrl(item.url);
-              return `
-              <li class="dt-item">
-                ${href
-                  ? `<a class="dt-name" href="${href}" target="_blank" rel="noopener">${esc(item.icon)} ${esc(item.label)}</a>`
-                  : `<span class="dt-name">${esc(item.icon)} ${esc(item.label)}</span>`}
-                ${item.dist != null ? `<span class="dt-dist">${esc(item.dist)} km</span>` : ''}
-              </li>`;
-            }).join('')}
-          </ul>
-        </div>`).join('')}
-    </div>`;
-  }
-
-  map.on('popupopen', async (e) => {
-    const container = e.popup.getElement()?.querySelector('.dt-nearby');
-    if (!container || container.dataset.loading) return;
-    container.dataset.loading = 'true';
-
-    const lat = +container.dataset.dtLat;
-    const lng = +container.dataset.dtLng;
-    if (!lat || !lng) { container.innerHTML = ''; return; }
-
-    const cellKey = dtCellKey(lat, lng);
-    let data = dtCache.get(cellKey);
-
-    if (!data) {
-      try {
-        data = await fetchDatatourismeNearby({ lat, lng });
-        dtCache.set(cellKey, data);
-      } catch {
-        container.innerHTML = '';
-        return;
-      }
-    }
-
-    container.innerHTML = renderDtNearby(data);
-    e.popup._updatePosition?.();
-  });
+  initDtNearbyPopups(map);
 
   // ── Onboard : première ouverture d'un roadtrip vide ───────────────────────
   const onboardParam = new URLSearchParams(window.location.search).get('onboard');
