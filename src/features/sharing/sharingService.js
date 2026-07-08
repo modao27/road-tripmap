@@ -27,15 +27,21 @@ export function titleToSlug(title) {
 }
 
 /**
- * URL de partage de la page courante (?map=slug, hash retiré).
+ * URL de partage d'une carte.
+ * - Depuis map.html (legacy) : format historique ?map=slug
+ * - Depuis la SPA : route #/map/:slug
  * @param {string} slug
  * @returns {string}
  */
 export function buildShareUrl(slug) {
-  const url = new URL(window.location.href);
-  url.searchParams.set('map', slug);
-  url.hash = '';
-  return url.toString();
+  const { origin, pathname } = window.location;
+  if (pathname.endsWith('/map.html')) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('map', slug);
+    url.hash = '';
+    return url.toString();
+  }
+  return `${origin}${pathname}#/map/${encodeURIComponent(slug)}`;
 }
 
 /**

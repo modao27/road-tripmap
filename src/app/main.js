@@ -29,7 +29,7 @@ import { renderDashboardPage }      from './pages/DashboardPage.js';
 import { renderProfilePage }         from './pages/ProfilePage.js';
 import { renderForgotPasswordPage }  from './pages/ForgotPasswordPage.js';
 import { renderResetPasswordPage }   from './pages/ResetPasswordPage.js';
-import { renderRoadtripEditorPage }  from './pages/RoadtripEditorPage.js';
+import { renderMapPage }             from './pages/MapPage.js';
 
 const app = document.getElementById('app');
 
@@ -42,8 +42,14 @@ const PAGES = {
   'profile':         renderProfilePage,
   'forgot-password': renderForgotPasswordPage,
   'reset-password':  renderResetPasswordPage,
-  'roadtrip':        renderRoadtripEditorPage,
+  'roadtrip':        renderMapPage,   // #/roadtrips/:id — éditeur carte
+  'map':             renderMapPage,   // #/map, #/map/:slug
 };
+
+// La carte attache des listeners au document sans cleanup (héritage
+// map.html où quitter = reload). Une fois la carte montée, toute
+// navigation recharge la page — même UX que dashboard ↔ map.html.
+let mapMounted = false;
 
 function renderLoadingScreen() {
   app.innerHTML = `
@@ -55,6 +61,8 @@ function renderLoadingScreen() {
 // ── Routing avec garde auth ───────────────────────────────────────────────────
 
 router.onNavigate(({ path, component, params, needsAuth }) => {
+  if (mapMounted) { window.location.reload(); return; }
+
   const { user, loading } = authStore.getState();
 
   if (loading) { renderLoadingScreen(); return; }
@@ -70,6 +78,7 @@ router.onNavigate(({ path, component, params, needsAuth }) => {
 
   const renderFn = PAGES[component] ?? PAGES['home'];
   renderFn(app, params);
+  if (component === 'map' || component === 'roadtrip') mapMounted = true;
 });
 
 // ── Re-route quand l'état auth change ────────────────────────────────────────
@@ -77,7 +86,17 @@ router.onNavigate(({ path, component, params, needsAuth }) => {
 
 let previousLoading = true;
 
+/** La route active est-elle une page carte ? */
+function onMapRoute() {
+  const p = router.currentPath();
+  return p === 'map' || p.startsWith('map/') || p.startsWith('roadtrips/');
+}
+
 authStore.subscribe(({ user, loading, needsPasswordReset }) => {
+  // La carte gère sa session (refresh JWT via le client partagé) ;
+  // toute navigation après montage recharge la page de toute façon.
+  if (mapMounted) return;
+
   if (loading) { renderLoadingScreen(); return; }
 
   // Après réception du lien de réinitialisation → page dédiée
@@ -94,7 +113,8 @@ authStore.subscribe(({ user, loading, needsPasswordReset }) => {
             `${count} invitation${count > 1 ? 's' : ''} acceptée${count > 1 ? 's' : ''} — `
             + `de nouveau${count > 1 ? 'x' : ''} road trip${count > 1 ? 's' : ''} dans ton dashboard.`
           );
-          router.navigate('dashboard');
+          // Ne pas arracher l'utilisateur à la carte qu'il vient d'ouvrir
+          if (!onMapRoute()) router.navigate('dashboard');
         }
       }).catch(() => { /* silencieux */ });
     }

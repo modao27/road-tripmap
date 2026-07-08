@@ -205,7 +205,10 @@ export function renderDashboardPage(container) {
     try {
       const trip = await createRoadtrip({ title, description: desc, userId: u?.id ?? null });
       newTripBackdrop.hidden = true;
-      window.location.href = `map.html?map=${trip.id}&onboard=true`;
+      // ?onboard= vit dans le search (lu par js/onboarding.js) — avant le hash.
+      // Rechargement complet : la MapPage monte sur un document frais.
+      window.location.href =
+        `${window.location.pathname}?onboard=true#/roadtrips/${trip.id}`;
     } catch {
       submitBtn.disabled = false;
       const alert = container.querySelector('#newTripAlert');
@@ -326,7 +329,7 @@ export function renderDashboardPage(container) {
     try {
       await updateRoadtrip(id, { visibility: 'shared' });
     } catch { /* ne bloque pas si déjà partagé */ }
-    const url = `${window.location.origin}/map.html?map=${id}`;
+    const url = `${window.location.origin}${window.location.pathname}#/roadtrips/${id}`;
     navigator.clipboard.writeText(url)
       .then(() => toast.success('Lien copié ! La carte est accessible sans compte.'))
       .catch(() => prompt('Copie ce lien :', url));

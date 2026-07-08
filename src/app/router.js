@@ -27,17 +27,28 @@ const STATIC = {
   'profile':         { component: 'profile',         needsAuth: true  },
   'forgot-password': { component: 'forgot-password', needsAuth: false },
   'reset-password':  { component: 'reset-password',  needsAuth: true  },
+  'map':             { component: 'map',             needsAuth: false }, // carte libre
 };
 
 // ── Routes dynamiques (ordre de priorité décroissant) ─────────────────────────
 
 const DYNAMIC = [
   {
+    // Public : les roadtrips 'public' sont consultables sans compte
+    // (lecture seule) — les droits réels sont tranchés par les RLS.
     pattern:   /^roadtrips\/(?!new$)(.+)$/,
     component: 'roadtrip',
-    needsAuth: true,
+    needsAuth: false,
     /** @param {RegExpMatchArray} m */
     params:    (m) => ({ id: m[1] }),
+  },
+  {
+    // Carte partagée (snapshot public par slug)
+    pattern:   /^map\/(.+)$/,
+    component: 'map',
+    needsAuth: false,
+    /** @param {RegExpMatchArray} m */
+    params:    (m) => ({ slug: decodeURIComponent(m[1]) }),
   },
 ];
 

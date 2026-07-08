@@ -55,7 +55,7 @@ export function renderRoadtripCard(trip, index) {
         <p class="rt-card__meta">${meta}</p>
       </div>
       <div class="rt-card__actions">
-        <a class="btn btn--primary btn--sm" href="map.html?map=${id}">
+        <a class="btn btn--primary btn--sm" href="#/roadtrips/${id}">
           Ouvrir →
         </a>
         <button class="btn btn--icon" data-action="invite" data-id="${id}"

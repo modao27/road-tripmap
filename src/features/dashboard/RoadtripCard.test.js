@@ -15,7 +15,7 @@ describe('renderRoadtripCard', () => {
     expect(html).toContain('Jura été 2026');
     expect(html).toContain('Cascades &amp; belvédères');
     expect(html).toContain('3 pins');
-    expect(html).toContain(`map.html?map=${trip.id}`);
+    expect(html).toContain(`#/roadtrips/${trip.id}`);
   });
 
   it('neutralise titre et description malveillants (XSS)', () => {
