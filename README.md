@@ -114,8 +114,17 @@ python -m http.server 8000
 ## Configuration Supabase
 
 1. Créer un projet sur [supabase.com](https://supabase.com)
-2. Exécuter les migrations dans **SQL Editor** (dossier `supabase/migrations/` — dans l'ordre numérique)
-3. Déployer les trois Edge Functions (dossier `supabase/functions/`) via l'éditeur Supabase Dashboard
+2. Exécuter les migrations dans **SQL Editor** (dossier `supabase/migrations/` — dans l'ordre numérique). La 016 versionne les tables de la carte libre, la 017 planifie la purge `pg_cron` des caches.
+3. Déployer les trois Edge Functions avec le CLI (installé en devDependency) :
+
+```bash
+npx supabase login                                  # une fois
+npx supabase link --project-ref VOTRE_REF           # une fois
+npx supabase functions deploy via-ferrata-info
+npx supabase functions deploy climbing-info
+npx supabase functions deploy datatourisme-nearby
+```
+
 4. Configurer les secrets dans **Dashboard → Project Settings → Edge Functions → Secrets** :
 
 | Secret | Description |
