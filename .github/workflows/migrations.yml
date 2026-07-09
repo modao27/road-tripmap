@@ -1,0 +1,41 @@
+# Applique supabase/migrations/ en production (supabase db push) à chaque
+# push sur main qui touche une migration. db push n'exécute que les
+# migrations absentes de l'historique remote — no-op sinon.
+#
+# Secrets requis (repo → Settings → Secrets and variables → Actions) :
+#   SUPABASE_ACCESS_TOKEN — dashboard → Account → Access Tokens
+#   SUPABASE_DB_PASSWORD  — dashboard → Project Settings → Database
+name: Migrations
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/migrations/**']
+
+# Jamais deux db push en parallèle ; on ne coupe pas un push en cours
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+jobs:
+  db-push:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD:  ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # Le CLI Supabase vient des devDependencies — même version qu'en local
+      - run: npm ci
+
+      - name: Lier le projet
+        run: npx supabase link --project-ref cmgrszuyzdrmnddyetfq
+
+      - name: Appliquer les migrations
+        run: npx supabase db push

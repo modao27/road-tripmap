@@ -114,12 +114,25 @@ python -m http.server 8000
 ## Configuration Supabase
 
 1. Créer un projet sur [supabase.com](https://supabase.com)
-2. Exécuter les migrations dans **SQL Editor** (dossier `supabase/migrations/` — dans l'ordre numérique). La 016 versionne les tables de la carte libre, la 017 planifie la purge `pg_cron` des caches.
-3. Déployer les trois Edge Functions avec le CLI (installé en devDependency) :
+2. Appliquer les migrations (`supabase/migrations/`, ordre numérique) :
 
 ```bash
 npx supabase login                                  # une fois
 npx supabase link --project-ref VOTRE_REF           # une fois
+npx supabase db push
+```
+
+   En production, le workflow `.github/workflows/migrations.yml` exécute
+   `db push` automatiquement à chaque push sur `main` qui touche une
+   migration. Renseigner deux secrets GitHub (Settings → Secrets → Actions) :
+   `SUPABASE_ACCESS_TOKEN` (Account → Access Tokens) et
+   `SUPABASE_DB_PASSWORD` (Project Settings → Database).
+   Le SQL Editor reste une alternative manuelle — les migrations sont
+   idempotentes, mais `db push` tient l'historique à jour.
+
+3. Déployer les trois Edge Functions avec le CLI :
+
+```bash
 npx supabase functions deploy via-ferrata-info
 npx supabase functions deploy climbing-info
 npx supabase functions deploy datatourisme-nearby

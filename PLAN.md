@@ -150,7 +150,7 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
 Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
 
 - [x] **E1** — Planning par jour — `84ec493` (migration 018 : colonne
-      `pins.day`, ⚠ à exécuter dans le SQL Editor), `4a96e9f`
+      `pins.day`, appliquée en prod ✅ — vérifiée par REST), `4a96e9f`
       (legs OSRM par tronçon + 3 tests), `53cf875` (updatePinOrder
       persiste la journée), `0c11111` (UI : bouton 📅 + Jour, en-têtes
       Jour N avec distance/durée du jour, drag & drop inter-jours,
@@ -181,6 +181,9 @@ Dette technique au fil de l'eau :
       `npx supabase functions deploy <nom>`
 - [ ] Lundi 2026-07-13 : vérifier la purge —
       `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 3;`
+- [ ] Créer les 2 secrets GitHub du workflow migrations
+      (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) — l'historique
+      CLI est déjà synchronisé (001→018), `db push` no-op vérifié
 
 ## Ordre recommandé
 
