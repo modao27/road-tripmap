@@ -12,8 +12,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   // ── État ──────────────────────────────────────────────────────────────────
   let steps         = [];                 // toujours vide au démarrage — restauré uniquement via ?route=
+  let stepDays      = [];                 // parallèle à steps — journée (1..dayCount), toujours groupé
+  let dayCount      = 1;                  // nombre de jours affichés (≥ max(stepDays))
   let mode          = loadRouteMode();    // 'driving' | 'cycling' | 'walking'
-  let routeData     = null;               // {distance, duration, geometry} OSRM
+  let routeData     = null;               // {distance, duration, geometry, legs} OSRM
   let fetchDebounce = null;
   let dragSrcIndex  = null;
   let stepMarkers   = [];                 // markers numérotés sur la carte
@@ -33,6 +35,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   const optimizeBtn = document.getElementById('routeOptimize');
   const shareBtn    = document.getElementById('routeShare');
   const gpxBtn      = document.getElementById('routeGpx');
+  const addDayBtn   = document.getElementById('routeAddDay');
 
   // ── Résolution des IDs en objets lieu ─────────────────────────────────────
   function resolvePlaces() {
@@ -54,22 +57,60 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     });
   }
 
-  // ── Ajout / suppression d'étapes ─────────────────────────────────────────
-  function addStep(placeId) {
-    if (steps.includes(placeId)) {
-      showToastFn(toastWrap, "Déjà dans l'itinéraire", '');
-      return;
-    }
-    steps.push(placeId);
+  // ── Jours ─────────────────────────────────────────────────────────────────
+  // Position d'insertion en fin de journée `day` (steps reste groupé par jour)
+  function insertIndexForDay(day) {
+    let idx = 0;
+    for (let i = 0; i < steps.length; i++) if (stepDays[i] <= day) idx = i + 1;
+    return idx;
+  }
+
+  function addDay() {
+    dayCount++;
+    renderStepList();
+  }
+
+  // Supprime la journée d : ses étapes rejoignent la journée précédente
+  function removeDay(d) {
+    if (dayCount <= 1) return;
+    stepDays = stepDays.map(x => (x === d ? Math.max(1, d - 1) : (x > d ? x - 1 : x)));
+    dayCount--;
+    persist();
+    renderStepList();
+    scheduleFetch();
+  }
+
+  function moveStepToDay(from, day) {
+    const id = steps.splice(from, 1)[0];
+    stepDays.splice(from, 1);
+    const idx = insertIndexForDay(day);
+    steps.splice(idx, 0, id);
+    stepDays.splice(idx, 0, day);
     persist();
     renderStepList();
     updateRouteButtons();
     scheduleFetch();
-    showToastFn(toastWrap, 'Étape ajoutée', 'success');
+  }
+
+  // ── Ajout / suppression d'étapes ─────────────────────────────────────────
+  function addStep(placeId, day = dayCount) {
+    if (steps.includes(placeId)) {
+      showToastFn(toastWrap, "Déjà dans l'itinéraire", '');
+      return;
+    }
+    const idx = insertIndexForDay(day);
+    steps.splice(idx, 0, placeId);
+    stepDays.splice(idx, 0, day);
+    persist();
+    renderStepList();
+    updateRouteButtons();
+    scheduleFetch();
+    showToastFn(toastWrap, dayCount > 1 ? `Étape ajoutée au jour ${day}` : 'Étape ajoutée', 'success');
   }
 
   function removeStep(index) {
     steps.splice(index, 1);
+    stepDays.splice(index, 1);
     persist();
     renderStepList();
     updateRouteButtons();
@@ -78,6 +119,8 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   function clearRoute() {
     steps = [];
+    stepDays = [];
+    dayCount = 1;
     routeData = null;
     persist();
     renderStepList();
@@ -88,17 +131,34 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   function persist() {
     saveRouteSteps(steps);
-    onStepsChange?.(steps);
+    onStepsChange?.(steps, [...stepDays]);
   }
 
   // ── Optimisation (plus proche voisin) ─────────────────────────────────────
+  // Multi-jours : chaque journée est optimisée séparément, en partant de la
+  // dernière étape du jour précédent (chaînage réaliste des matinées).
   function optimizeOrder() {
     if (steps.length < 3) {
       showToastFn(toastWrap, "3 étapes minimum pour optimiser", '');
       return;
     }
-    const places = resolvePlaces().filter(Boolean);
-    steps = nearestNeighborOrder(places).map(p => p.id);
+    const places = resolvePlaces();
+    const newSteps = [], newDays = [];
+    let prevLast = null;
+    for (let d = 1; d <= dayCount; d++) {
+      const group = [];
+      steps.forEach((_, i) => {
+        if (stepDays[i] === d && places[i]) group.push(places[i]);
+      });
+      if (!group.length) continue;
+      const ordered = prevLast
+        ? nearestNeighborOrder([prevLast, ...group]).slice(1)
+        : nearestNeighborOrder(group);
+      ordered.forEach(p => { newSteps.push(p.id); newDays.push(d); });
+      prevLast = ordered[ordered.length - 1];
+    }
+    steps    = newSteps;
+    stepDays = newDays;
     persist();
     renderStepList();
     updateRouteButtons();
@@ -109,7 +169,12 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // ── OSRM ──────────────────────────────────────────────────────────────────
   function scheduleFetch() {
     clearTimeout(fetchDebounce);
-    if (steps.length < 2) { clearMapLayers(); renderStats(); return; }
+    if (steps.length < 2) {
+      routeData = null; // stats de legs obsolètes
+      clearMapLayers();
+      if (dayCount > 1) renderStepList(); else renderStats();
+      return;
+    }
     // Spinner : affichage immédiat en attendant la réponse
     distEl.textContent = '…';
     durEl.textContent  = '…';
@@ -118,19 +183,28 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   async function fetchRoute() {
-    const places = resolvePlaces().filter(Boolean);
+    // Liste filtrée (lieux supprimés exclus) + jour de chaque point, pour
+    // apparier les legs OSRM aux journées
+    const resolved = resolvePlaces();
+    const places = [], placeDays = [];
+    resolved.forEach((p, i) => {
+      if (p) { places.push(p); placeDays.push(stepDays[i]); }
+    });
     if (places.length < 2) return;
 
     try {
       routeData = await fetchOsrmRoute(places, mode);
+      // legs[j] relie places[j] → places[j+1] : le trajet appartient à la
+      // journée de l'étape d'arrivée (liaison du matin)
+      routeData.legDays = placeDays.slice(1);
       drawRoute(routeData.geometry, places);
-      renderStats();
+      if (dayCount > 1) renderStepList(); else renderStats();
     } catch (err) {
       console.warn('[routePlanner]', err);
       // Fallback : tracé ligne droite entre étapes
       drawStraightLine(places);
       routeData = null;
-      renderStats();
+      if (dayCount > 1) renderStepList(); else renderStats();
       showToastFn(toastWrap, 'Tracé approximatif (routage indisponible)', '');
     }
   }
@@ -223,7 +297,8 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // ── Statistiques ──────────────────────────────────────────────────────────
   function renderStats() {
     const n = steps.length;
-    countEl.textContent = `${n} étape${n > 1 ? 's' : ''}`;
+    const base = `${n} étape${n > 1 ? 's' : ''}`;
+    countEl.textContent = dayCount > 1 ? `${base} · ${dayCount} jours` : base;
 
     if (routeData && n >= 2) {
       distEl.textContent = formatDistance(routeData.distance);
@@ -234,44 +309,88 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     }
   }
 
-  // ── Liste des étapes ──────────────────────────────────────────────────────
-  function renderStepList() {
-    emptyEl.hidden  = steps.length > 0;
-    stepsEl.hidden  = steps.length === 0;
+  // Cumul des legs OSRM de la journée d (null tant que le tracé n'est pas là,
+  // ou si les legs ne correspondent plus aux étapes — recalcul en cours)
+  function dayLegStats(d) {
+    if (!routeData?.legs?.length || !routeData.legDays) return null;
+    const current = resolvePlaces().filter(Boolean).length;
+    if (routeData.legs.length !== current - 1) return null;
+    let dist = 0, dur = 0, count = 0;
+    routeData.legs.forEach((leg, j) => {
+      if (routeData.legDays[j] === d) { dist += leg.distance; dur += leg.duration; count++; }
+    });
+    return count ? { dist, dur } : null;
+  }
 
-    if (steps.length === 0) { stepsEl.innerHTML = ''; renderStats(); return; }
+  // ── Liste des étapes (groupée par jour quand dayCount > 1) ───────────────
+  function stepHtml(places, i) {
+    const place    = places[i];
+    const name     = place ? place.name : '[Lieu supprimé]';
+    const icon     = place ? (categories[place.category]?.icon ?? '📍') : '?';
+    const deleted  = !place ? ' route-step--deleted' : '';
+
+    // Distance partielle (ligne droite avec lieu précédent)
+    let partialHtml = '';
+    if (i > 0 && place && places[i - 1]) {
+      const prev = places[i - 1];
+      partialHtml = `<span class="route-step-dist">${formatDistance(
+        haversine(prev.lat, prev.lng, place.lat, place.lng)
+      )}</span>`;
+    }
+
+    return `
+      <li class="route-step${deleted}" draggable="true" data-step-index="${i}">
+        <span class="route-step-handle" aria-hidden="true">⠿</span>
+        <span class="route-step-num">${i + 1}</span>
+        <span class="route-step-cat">${icon}</span>
+        <span class="route-step-label">
+          <span class="route-step-name">${esc(name)}</span>
+          ${partialHtml}
+        </span>
+        <button class="route-step-remove" data-remove-step="${i}"
+                type="button" title="Retirer de l'itinéraire">✕</button>
+      </li>`;
+  }
+
+  function dayHeaderHtml(d, stepCount) {
+    const s = dayLegStats(d);
+    const stats = s
+      ? `${formatDistance(s.dist)} · ${formatDuration(s.dur)}`
+      : `${stepCount} étape${stepCount > 1 ? 's' : ''}`;
+    return `
+      <li class="route-day" data-day="${d}">
+        <span class="route-day-label">Jour ${d}</span>
+        <span class="route-day-stats">${stats}</span>
+        <button class="route-day-remove" data-remove-day="${d}" type="button"
+                title="Supprimer ce jour (ses étapes rejoignent le jour précédent)">✕</button>
+      </li>`;
+  }
+
+  function renderStepList() {
+    // dayCount > 1 : la liste reste visible même vide (jours à remplir)
+    const showList  = steps.length > 0 || dayCount > 1;
+    emptyEl.hidden  = showList;
+    stepsEl.hidden  = !showList;
+
+    if (!showList) { stepsEl.innerHTML = ''; renderStats(); return; }
 
     const places = resolvePlaces();
 
-    stepsEl.innerHTML = places.map((place, i) => {
-      const name     = place ? place.name : '[Lieu supprimé]';
-      const icon     = place ? (categories[place.category]?.icon ?? '📍') : '?';
-      const deleted  = !place ? ' route-step--deleted' : '';
-
-      // Distance partielle (ligne droite avec lieu précédent)
-      let partialHtml = '';
-      if (i > 0 && place && places[i - 1]) {
-        const prev = places[i - 1];
-        partialHtml = `<span class="route-step-dist">${formatDistance(
-          haversine(prev.lat, prev.lng, place.lat, place.lng)
-        )}</span>`;
+    let html = '';
+    for (let d = 1; d <= dayCount; d++) {
+      const idxs = [];
+      for (let i = 0; i < steps.length; i++) if (stepDays[i] === d) idxs.push(i);
+      if (dayCount > 1) {
+        html += dayHeaderHtml(d, idxs.length);
+        if (!idxs.length) {
+          html += `<li class="route-day-empty" data-day="${d}">Glisse des étapes ici</li>`;
+        }
       }
+      idxs.forEach(i => { html += stepHtml(places, i); });
+    }
+    stepsEl.innerHTML = html;
 
-      return `
-        <li class="route-step${deleted}" draggable="true" data-step-index="${i}">
-          <span class="route-step-handle" aria-hidden="true">⠿</span>
-          <span class="route-step-num">${i + 1}</span>
-          <span class="route-step-cat">${icon}</span>
-          <span class="route-step-label">
-            <span class="route-step-name">${esc(name)}</span>
-            ${partialHtml}
-          </span>
-          <button class="route-step-remove" data-remove-step="${i}"
-                  type="button" title="Retirer de l'itinéraire">✕</button>
-        </li>`;
-    }).join('');
-
-    // Drag & drop
+    // Drag & drop — étapes
     stepsEl.querySelectorAll('[data-step-index]').forEach(el => {
       el.addEventListener('dragstart', e => {
         dragSrcIndex = +e.currentTarget.dataset.stepIndex;
@@ -293,21 +412,46 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       });
       el.addEventListener('drop', e => {
         e.preventDefault();
+        e.stopPropagation(); // la drop zone du panneau ne doit pas re-traiter
         e.currentTarget.classList.remove('drag-over');
-        // Drop d'une carte de lieu → ajout (priorité sur le réordonnancement)
-        const placeId = e.dataTransfer.getData('text/place-id');
-        if (placeId) { dragSrcIndex = null; addStep(placeId); return; }
-        // Réordonnancement d'une étape existante
         const target = +e.currentTarget.dataset.stepIndex;
+        // Drop d'une carte de lieu → ajout dans la journée de la cible
+        const placeId = e.dataTransfer.getData('text/place-id');
+        if (placeId) { dragSrcIndex = null; addStep(placeId, stepDays[target] ?? dayCount); return; }
+        // Réordonnancement d'une étape existante — elle prend le jour de la cible
         if (dragSrcIndex === null || dragSrcIndex === target) return;
+        const targetDay = stepDays[target];
         const moved = steps.splice(dragSrcIndex, 1)[0];
+        stepDays.splice(dragSrcIndex, 1);
         steps.splice(target, 0, moved);
+        stepDays.splice(target, 0, targetDay);
         dragSrcIndex = null;
         persist();
         renderStepList();
         scheduleFetch();
       });
+    });
 
+    // Drag & drop — en-têtes de jour et jours vides (dépose en fin de journée)
+    stepsEl.querySelectorAll('[data-day]').forEach(el => {
+      el.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        el.classList.add('drag-over');
+      });
+      el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+      el.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.remove('drag-over');
+        const d = +el.dataset.day;
+        const placeId = e.dataTransfer.getData('text/place-id');
+        if (placeId) { dragSrcIndex = null; addStep(placeId, d); return; }
+        if (dragSrcIndex === null) return;
+        const from = dragSrcIndex;
+        dragSrcIndex = null;
+        moveStepToDay(from, d);
+      });
     });
 
     renderStats();
@@ -315,7 +459,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   // ── Partage ───────────────────────────────────────────────────────────────
   function serializeRoute() {
-    return { steps: [...steps], mode, version: 1 };
+    return { steps: [...steps], days: [...stepDays], mode, version: 2 };
   }
 
   function shareRoute() {
@@ -323,6 +467,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     const url = new URL(window.location.href);
     url.searchParams.set('route', steps.join(','));
     url.searchParams.set('rmode', mode);
+    if (dayCount > 1) url.searchParams.set('rdays', stepDays.join(','));
     navigator.clipboard.writeText(url.toString())
       .then(() => showToastFn(toastWrap, '🔗 Lien itinéraire copié !', 'success'))
       .catch(() => prompt('Copie ce lien :', url.toString()));
@@ -346,11 +491,25 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     showToastFn(toastWrap, 'GPX exporté', 'success');
   }
 
+  // ── Chargement d'un itinéraire complet ────────────────────────────────────
+  // Normalise ids + jours : jours entiers ≥ 1, étapes regroupées par jour
+  // (tri stable — l'ordre est conservé au sein d'une même journée).
+  function setStepsAndDays(ids, days) {
+    const pairs = ids
+      .map((id, i) => ({ id, day: Math.max(1, Math.trunc(days?.[i]) || 1) }))
+      .filter(p => p.id);
+    pairs.sort((a, b) => a.day - b.day);
+    steps    = pairs.map(p => p.id);
+    stepDays = pairs.map(p => p.day);
+    dayCount = steps.length ? Math.max(...stepDays) : 1;
+  }
+
   // ── Restauration depuis URL ───────────────────────────────────────────────
   function restoreFromUrl() {
     const params     = new URLSearchParams(window.location.search);
     const routeParam = params.get('route');
     const modeParam  = params.get('rmode');
+    const daysParam  = params.get('rdays');
     if (!routeParam) return;
 
     if (modeParam && OSRM_PROFILE[modeParam]) {
@@ -358,11 +517,13 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       if (modeEl) modeEl.value = mode;
       saveRouteMode(mode);
     }
-    steps = routeParam.split(',').filter(Boolean);
+    const ids  = routeParam.split(',').filter(Boolean);
+    const days = daysParam ? daysParam.split(',').map(Number) : null;
+    setStepsAndDays(ids, days?.length === ids.length ? days : null);
     persist();
 
     // Nettoie l'URL
-    params.delete('route'); params.delete('rmode');
+    params.delete('route'); params.delete('rmode'); params.delete('rdays');
     history.replaceState(null, '',
       window.location.pathname + (params.toString() ? '?' + params.toString() : '')
     );
@@ -371,7 +532,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // ── Listeners ─────────────────────────────────────────────────────────────
   stepsEl.addEventListener('click', e => {
     const btn = e.target.closest('[data-remove-step]');
-    if (btn) removeStep(+btn.dataset.removeStep);
+    if (btn) { removeStep(+btn.dataset.removeStep); return; }
+    const dayBtn = e.target.closest('[data-remove-day]');
+    if (dayBtn) removeDay(+dayBtn.dataset.removeDay);
   });
 
   // Délégation globale : bouton "Ajouter à l'itinéraire" dans popups + cartes
@@ -392,6 +555,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   optimizeBtn?.addEventListener('click', optimizeOrder);
   shareBtn?.addEventListener('click',    shareRoute);
   gpxBtn?.addEventListener('click',      exportGPX);
+  addDayBtn?.addEventListener('click',   addDay);
 
   // ── Drop zone : accepte les cartes de lieu glissées depuis la sidebar ─────
   function isPlaceCardDrag(e) {
@@ -445,8 +609,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     serializeRoute,
     refresh:              () => { renderStepList(); updateRouteButtons(); },
     updateRouteButtons,
-    loadSteps(ids) {
-      steps = ids.filter(Boolean);
+    /** @param {string[]} ids @param {number[]|null} [days] parallèle à ids */
+    loadSteps(ids, days = null) {
+      setStepsAndDays(ids, days);
       persist();
       renderStepList();
       updateRouteButtons();

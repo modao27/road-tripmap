@@ -143,6 +143,8 @@ export const MAP_PAGE_HTML = `
             <ul class="route-steps" id="routeSteps" aria-label="Étapes de l'itinéraire"></ul>
             <p class="route-empty" id="routeEmpty">Ajoute des lieux depuis leurs popups ou les cartes.</p>
             <div class="route-actions">
+              <button class="secondary" id="routeAddDay"   type="button"
+                      title="Découper l'itinéraire en journées">📅 + Jour</button>
               <button class="secondary" id="routeOptimize" type="button">⚡ Optimiser</button>
               <button class="secondary" id="routeShare"    type="button">🔗 Partager</button>
               <button class="secondary" id="routeGpx"      type="button">📥 GPX</button>

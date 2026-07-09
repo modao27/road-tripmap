@@ -1868,7 +1868,8 @@ mark.search-highlight {
   color: var(--muted);
 }
 
-.route-step-remove {
+.route-step-remove,
+.route-day-remove {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
@@ -1883,9 +1884,57 @@ mark.search-highlight {
   transition: background 120ms ease, color 120ms ease;
 }
 
-.route-step-remove:hover {
+.route-step-remove:hover,
+.route-day-remove:hover {
   background: rgba(139, 30, 30, 0.14);
   color: #8b1e1e;
+}
+
+/* ── Planning par jour ──────────────────────────────────────────────── */
+.route-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(31, 95, 67, 0.08);
+  user-select: none;
+}
+
+.route-day:first-child { margin-top: 0; }
+
+.route-day-label {
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--forest);
+  flex-shrink: 0;
+}
+
+.route-day-stats {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: right;
+}
+
+.route-day-empty {
+  padding: 10px 8px;
+  border: 1.5px dashed rgba(31, 95, 67, 0.35);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.route-day.drag-over,
+.route-day-empty.drag-over {
+  box-shadow: 0 0 0 2px var(--forest);
+  background: rgba(31, 95, 67, 0.12);
 }
 
 .route-drop-target {
@@ -2291,6 +2340,9 @@ mark.search-highlight {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.09);
   }
+
+  .route-day       { background: rgba(78, 168, 118, 0.12); }
+  .route-day-empty { border-color: rgba(78, 168, 118, 0.3); }
 
   .place-route-add {
     background: rgba(255, 255, 255, 0.07);

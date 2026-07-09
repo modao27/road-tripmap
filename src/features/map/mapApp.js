@@ -107,8 +107,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // (évite la race condition sur mobile : JWT expiré lu en cache sync au démarrage)
   if (isRoadtripUUID) await sessionReady;
 
-  let roadtripPinIds = [];
-  let roadtripInfo   = null;
+  let roadtripPinIds  = [];
+  let roadtripPinDays = [];
+  let roadtripInfo    = null;
   if (!isSharedMap && mapParam && isUUID(mapParam)) {
     try {
       const rawPins = await fetchRoadtripPins(mapParam);
@@ -125,7 +126,8 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
           user_created: true,
         });
       });
-      roadtripPinIds = rawPins.map(p => p.id);
+      roadtripPinIds  = rawPins.map(p => p.id);
+      roadtripPinDays = rawPins.map(p => p.day ?? 1); // colonne absente → Jour 1
 
       // Met à jour le titre et mémorise les infos du roadtrip
       roadtripInfo = await fetchRoadtripInfo(mapParam);
@@ -463,16 +465,16 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
     focusPlaceFn: doFocusPlace,
-    onStepsChange: isRoadtripMode ? (steps) => {
+    onStepsChange: isRoadtripMode ? (steps, days) => {
       clearTimeout(orderSaveTimer);
-      orderSaveTimer = setTimeout(() => updatePinOrder(steps), 1000);
+      orderSaveTimer = setTimeout(() => updatePinOrder(steps, days), 1000);
     } : null,
     signal,
   });
 
   // Charge les étapes du roadtrip si des pins ont été récupérés
   if (roadtripPinIds.length >= 2) {
-    routePlanner.loadSteps(roadtripPinIds);
+    routePlanner.loadSteps(roadtripPinIds, roadtripPinDays);
   }
 
   // ── Cross-highlight sidebar ↔ carte ──────────────────────────────────────
