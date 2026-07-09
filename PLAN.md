@@ -107,10 +107,15 @@ session inter-onglets), chaque évolution ne se code qu'une fois.
       RoadtripCard / popupHtml legacy avec payloads XSS (non-régression
       phase A). Requêtes Overpass et export GPX : à couvrir en phase B quand
       la logique sera extraite du DOM — `41720cc`
-- [ ] **C3** — Supabase CLI : `supabase link` + `config.toml` committé, fin du
-      copier-coller Dashboard pour déployer les Edge Functions
-- [ ] **C4** — BDD : migration baseline consolidée (nouveaux environnements ;
-      la prod garde son historique) + job `pg_cron` de purge des 3 tables de cache
+- [x] **C3** — Supabase CLI en devDependency + `config.toml` committé — `e36e9a1`.
+      Reste côté compte : `npx supabase login` puis
+      `npx supabase link --project-ref cmgrszuyzdrmnddyetfq` (une fois)
+- [x] **C4** — Migration 016 : tables legacy (user_pins, place_overrides,
+      shared_maps) versionnées avec RLS — un nouvel environnement se
+      reconstruit en rejouant 001→017, l'objectif de la baseline est atteint
+      sans squash. Migration 017 : purge pg_cron hebdo des 3 caches — `e36e9a1`.
+      Reste côté compte : exécuter 016 et 017 dans le SQL Editor (ou
+      `supabase db push` après repair de l'historique)
 
 ## Ordre recommandé
 
