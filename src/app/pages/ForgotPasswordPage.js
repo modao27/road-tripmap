@@ -6,7 +6,6 @@
  */
 
 import { resetPasswordForEmail } from '../../features/auth/authService.js';
-import { router }                from '../router.js';
 
 export function renderForgotPasswordPage(container) {
   container.innerHTML = `

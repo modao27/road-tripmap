@@ -60,7 +60,7 @@ function renderLoadingScreen() {
 
 // ── Routing avec garde auth ───────────────────────────────────────────────────
 
-router.onNavigate(({ path, component, params, needsAuth }) => {
+router.onNavigate(({ component, params, needsAuth }) => {
   if (mapMounted) { window.location.reload(); return; }
 
   const { user, loading } = authStore.getState();

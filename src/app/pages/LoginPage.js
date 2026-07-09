@@ -4,7 +4,6 @@
 
 import { signIn }    from '../../features/auth/authService.js';
 import { authStore } from '../../features/auth/AuthStore.js';
-import { router }    from '../router.js';
 
 export function renderLoginPage(container) {
   container.innerHTML = `

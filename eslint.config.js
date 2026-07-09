@@ -21,7 +21,8 @@ export default [
     rules: {
       // Le code utilise des catch vides volontaires (fallback local/offline)
       'no-empty': ['error', { allowEmptyCatch: true }],
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
+      // ignoreRestSiblings : exclure des champs via { a, b, ...rest } est volontaire
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none', ignoreRestSiblings: true }],
     },
   },
   {

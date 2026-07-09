@@ -3,8 +3,6 @@
  */
 
 import { signUp }    from '../../features/auth/authService.js';
-import { authStore } from '../../features/auth/AuthStore.js';
-import { router }    from '../router.js';
 
 export function renderRegisterPage(container) {
   container.innerHTML = `

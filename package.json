@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "serve": "npx -y serve .",
-    "lint": "eslint src",
+    "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest"
   },
