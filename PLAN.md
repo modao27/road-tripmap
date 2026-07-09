@@ -145,6 +145,28 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
       La partie DOM de routePlanner/pins nécessite un stub Leaflet —
       reportée, le cœur (routingService, popupHtml) est déjà couvert
 
+## Phase E — Produit (établie le 2026-07-09)
+
+Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
+
+- [ ] **E1** — Planning par jour : organiser les étapes d'un roadtrip en
+      journées (Jour 1, Jour 2…), distance/durée par jour (les legs OSRM
+      existent déjà), affectation par drag & drop. Modèle : colonne `day`
+      sur la table `pins` (migration 018)
+- [ ] **E2** — Météo outdoor : Open-Meteo (gratuit, sans clé) dans la
+      popup des pins — prévisions 7 jours, pertinent bivouac/via ferrata
+- [ ] **E3** — Temps réel : Supabase Realtime (`postgres_changes` sur
+      `pins`) pour voir les pins des co-éditeurs sans recharger
+- [ ] **E4** — Import GPX (l'export existe déjà)
+
+Dette technique au fil de l'eau :
+- [ ] Leaflet chargé à la demande (index.html le charge même pour le
+      dashboard) — à déplacer dans `ensureMapAssets`
+- [ ] Convertir la carte libre (`user_pins`/localStorage) en roadtrip à
+      la connexion — réconcilier les deux modèles de pins
+- [ ] Tests E2E Playwright (login → roadtrip → pin → partage)
+- [ ] Remonter les erreurs front (table Supabase ou Sentry)
+
 ### Reste côté compte Supabase (hors code)
 
 - [x] Exécuter `016_legacy_tables.sql` dans le SQL Editor — fait le 2026-07-09
