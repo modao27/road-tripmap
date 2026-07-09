@@ -124,10 +124,15 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
       push / pull request — `849397a` (workflow Node 24, cache npm),
       `0d29e72` (purge des 7 warnings no-unused-vars + `--max-warnings 0` :
       la CI échoue au moindre warning). Badge CI dans le README
-- [ ] **D2** — Vraie navigation SPA sur la carte : écrire un `destroy()`
-      dans chaque module carte (listeners `document` non nettoyés) pour
-      supprimer la sémantique reload-on-exit de main.js.
-      Risque moyen, ~2-3 séances
+- [x] **D2** — Vraie navigation SPA sur la carte — `921ba4f` (AbortSignal
+      optionnel dans les 6 modules qui posent des listeners document),
+      `511f739` (mapApp propage le signal + destroy()), `72bfc4e`
+      (MapPage possède l'AbortController et retourne le démontage :
+      abort + map.remove() + style.css désactivé + document.title
+      restauré ; main.js appelle pageCleanup au lieu de location.reload).
+      ⚠ À valider en navigateur : aller-retours dashboard ↔ carte ↔
+      roadtrip, pas de doublons (popups, toasts, Ctrl+F, Escape),
+      scroll du dashboard intact après visite de la carte
 - [ ] **D3** — Mode hors-ligne (PWA) : service worker, cache des tuiles
       consultées, pins disponibles en local — le gain d'usage terrain le
       plus concret. Chantier conséquent
