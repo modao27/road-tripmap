@@ -33,7 +33,7 @@ import { renderMapPage }             from './pages/MapPage.js';
 
 const app = document.getElementById('app');
 
-/** @type {Record<string, (container: HTMLElement, params?: Record<string,string>) => void>} */
+/** @type {Record<string, (container: HTMLElement, params?: Record<string,string>) => void | (() => void)>} */
 const PAGES = {
   'home':      renderHomePage,
   'login':     renderLoginPage,
@@ -46,12 +46,23 @@ const PAGES = {
   'map':             renderMapPage,   // #/map, #/map/:slug
 };
 
-// La carte attache des listeners au document sans cleanup (héritage
-// map.html où quitter = reload). Une fois la carte montée, toute
-// navigation recharge la page — même UX que dashboard ↔ map.html.
+// Démontage de la page courante — MapPage retourne une fonction de cleanup
+// (listeners document/window, instance Leaflet, style.css) appelée avant
+// chaque nouveau rendu ; les autres pages ne retournent rien.
+let pageCleanup = null;
+
+// Vrai tant que la carte est montée — gate authStore.subscribe : les
+// événements auth (TOKEN_REFRESHED…) ne doivent pas arracher la carte.
 let mapMounted = false;
 
+function unmountCurrentPage() {
+  pageCleanup?.();
+  pageCleanup = null;
+  mapMounted  = false;
+}
+
 function renderLoadingScreen() {
+  unmountCurrentPage();
   app.innerHTML = `
     <div class="page page--loading" aria-live="polite">
       <span class="spinner" aria-label="Chargement…"></span>
@@ -61,8 +72,6 @@ function renderLoadingScreen() {
 // ── Routing avec garde auth ───────────────────────────────────────────────────
 
 router.onNavigate(({ component, params, needsAuth }) => {
-  if (mapMounted) { window.location.reload(); return; }
-
   const { user, loading } = authStore.getState();
 
   if (loading) { renderLoadingScreen(); return; }
@@ -76,9 +85,11 @@ router.onNavigate(({ component, params, needsAuth }) => {
     return;
   }
 
+  unmountCurrentPage();
   const renderFn = PAGES[component] ?? PAGES['home'];
-  renderFn(app, params);
-  if (component === 'map' || component === 'roadtrip') mapMounted = true;
+  const cleanup  = renderFn(app, params);
+  pageCleanup = typeof cleanup === 'function' ? cleanup : null;
+  mapMounted  = component === 'map' || component === 'roadtrip';
 });
 
 // ── Re-route quand l'état auth change ────────────────────────────────────────
@@ -93,8 +104,8 @@ function onMapRoute() {
 }
 
 authStore.subscribe(({ user, loading, needsPasswordReset }) => {
-  // La carte gère sa session (refresh JWT via le client partagé) ;
-  // toute navigation après montage recharge la page de toute façon.
+  // La carte gère sa session (refresh JWT via le client partagé) —
+  // ne pas la démonter sur TOKEN_REFRESHED / USER_UPDATED / SIGNED_OUT.
   if (mapMounted) return;
 
   if (loading) { renderLoadingScreen(); return; }

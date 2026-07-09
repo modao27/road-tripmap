@@ -31,24 +31,21 @@ import { MAP_CONFIG as CONFIG } from '../../config/index.js';
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 /**
  * Monte l'application carte sur le markup déjà présent dans le DOM.
- * @param {{ mapParam?: string|null }} params
+ * @param {{ mapParam?: string|null, signal?: AbortSignal }} params
  *   mapParam : UUID de roadtrip, slug de carte partagée, ou null (carte
  *   personnelle). Fourni par map.html (?map=) ou par la route SPA.
- * @returns {Promise<() => void>} destroy — démonte la carte : retire les
- *   listeners document/window (AbortController), stoppe les timers et
- *   détruit l'instance Leaflet. Appelé par MapPage à la navigation.
+ *   signal : démontage (MapPage). Tous les listeners document/window des
+ *   modules carte y sont attachés — abort() les retire d'un coup, même si
+ *   la navigation survient pendant l'init.
+ * @returns {Promise<() => void>} destroy — stoppe les timers et détruit
+ *   l'instance Leaflet. Appelé par MapPage après abort().
  */
-export async function initMapApp({ mapParam = null } = {}) {
+export async function initMapApp({ mapParam = null, signal } = {}) {
   if (typeof L === 'undefined') {
     document.querySelector('#map').innerHTML =
       "<p style='margin:24px;font:16px system-ui;color:#143f31'>Leaflet n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
     throw new Error('Leaflet is not available');
   }
-
-  // Démontage : tous les listeners document/window des modules carte sont
-  // attachés avec ce signal ; abort() les retire d'un coup.
-  const lifecycle  = new AbortController();
-  const { signal } = lifecycle;
 
   const isRoadtripUUID = !!mapParam && isUUID(mapParam);
   // Un slug (non UUID) indique une carte partagée
@@ -145,6 +142,10 @@ export async function initMapApp({ mapParam = null } = {}) {
       // Non connecté ou table inaccessible — fallback user_pins
     }
   }
+
+  // La navigation a pu quitter la carte pendant les fetches ci-dessus :
+  // le markup a été remplacé, inutile (et dangereux) de continuer.
+  if (signal?.aborted) return () => {};
 
   // ── État partagé ──────────────────────────────────────────────────────────
   const activeCategories = new Set(
@@ -604,8 +605,9 @@ export async function initMapApp({ mapParam = null } = {}) {
   }, { signal });
 
   // ── Démontage (navigation SPA) ────────────────────────────────────────────
+  // L'abort du signal (MapPage) retire les listeners document/window ;
+  // destroy() libère ce que le signal ne couvre pas.
   return function destroy() {
-    lifecycle.abort();            // listeners document/window + fetches/debounces des modules
     clearTimeout(orderSaveTimer);
     clearTimeout(viewSaveTimer);
     map.remove();                 // instance Leaflet : markers, popups, listeners carte
