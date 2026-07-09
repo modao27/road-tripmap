@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   estimateDuration, formatDistance, formatDuration,
-  haversine, nearestNeighborOrder, buildGpx,
+  haversine, nearestNeighborOrder, buildGpx, fetchOsrmRoute,
 } from './routingService.js';
 
 describe('haversine', () => {
@@ -52,6 +52,54 @@ describe('nearestNeighborOrder', () => {
     const input = [c, a];
     expect(nearestNeighborOrder(input).map(p => p.id)).toEqual(['c', 'a']);
     expect(input).toHaveLength(2);
+  });
+});
+
+describe('fetchOsrmRoute', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const osrmResponse = {
+    routes: [{
+      distance: 30_000,
+      duration: 1800,
+      geometry: { type: 'LineString', coordinates: [[5.6, 46.7], [5.7, 46.8]] },
+      legs: [
+        { distance: 10_000, duration: 600 },
+        { distance: 20_000, duration: 1200 },
+      ],
+    }],
+  };
+  const places = [
+    { lat: 46.7, lng: 5.6 }, { lat: 46.75, lng: 5.65 }, { lat: 46.8, lng: 5.7 },
+  ];
+
+  it('expose les legs par tronçon (stats par jour)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(JSON.stringify(osrmResponse))));
+
+    const route = await fetchOsrmRoute(places, 'driving');
+    expect(route.distance).toBe(30_000);
+    expect(route.duration).toBe(1800); // driving : OSRM fait foi
+    expect(route.legs).toEqual([
+      { distance: 10_000, duration: 600 },
+      { distance: 20_000, duration: 1200 },
+    ]);
+  });
+
+  it('recalcule la durée des legs pour vélo/marche (vitesses moyennes)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(JSON.stringify(osrmResponse))));
+
+    const route = await fetchOsrmRoute(places, 'cycling'); // 16 km/h
+    expect(route.legs[0].duration).toBe(2250);  // 10 km à 16 km/h
+    expect(route.legs[1].duration).toBe(4500);  // 20 km à 16 km/h
+    expect(route.duration).toBe(6750);
+  });
+
+  it('rejette si OSRM ne trouve pas de route', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(JSON.stringify({ routes: [] }))));
+    await expect(fetchOsrmRoute(places, 'driving')).rejects.toThrow('No route');
   });
 });
 

@@ -73,9 +73,12 @@ export function nearestNeighborOrder(places) {
 
 /**
  * Calcule l'itinéraire OSRM entre les lieux (dans l'ordre donné).
+ * legs[i] relie places[i] à places[i+1] — permet les statistiques par
+ * tronçon (planning par jour).
  * @param {Array<{ lat: number, lng: number }>} places - Au moins 2 lieux
  * @param {'driving'|'cycling'|'walking'} mode
- * @returns {Promise<{ distance: number, duration: number, geometry: Object }>}
+ * @returns {Promise<{ distance: number, duration: number, geometry: Object,
+ *                     legs: Array<{ distance: number, duration: number }> }>}
  * @throws {Error} si OSRM est indisponible ou ne trouve pas de route
  */
 export async function fetchOsrmRoute(places, mode) {
@@ -88,11 +91,15 @@ export async function fetchOsrmRoute(places, mode) {
   const data = await res.json();
   if (!data.routes?.[0]) throw new Error('No route');
 
-  const dist = data.routes[0].distance;
+  const route = data.routes[0];
   return {
-    distance: dist,
-    duration: estimateDuration(dist, mode) ?? data.routes[0].duration,
-    geometry: data.routes[0].geometry,
+    distance: route.distance,
+    duration: estimateDuration(route.distance, mode) ?? route.duration,
+    geometry: route.geometry,
+    legs: (route.legs ?? []).map(leg => ({
+      distance: leg.distance,
+      duration: estimateDuration(leg.distance, mode) ?? leg.duration,
+    })),
   };
 }
 
