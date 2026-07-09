@@ -1,6 +1,6 @@
 /**
  * @fileoverview Markup de la page carte (source unique).
- * Injecté par js/mapEntry.js (map.html) et par la MapPage de la SPA.
+ * Injecté par la MapPage de la SPA (src/app/pages/MapPage.js).
  * Markup statique uniquement — aucune donnée interpolée.
  */
 

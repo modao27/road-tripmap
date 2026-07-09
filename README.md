@@ -97,7 +97,7 @@ Les ES modules nécessitent un serveur HTTP (pas `file://`).
 
 ### VS Code Live Server *(recommandé)*
 1. Installer l'extension **Live Server** (Ritwick Dey)
-2. Clic droit sur `map.html` → **Open with Live Server**
+2. Clic droit sur `index.html` → **Open with Live Server**
 
 ### npx serve
 ```bash
@@ -122,11 +122,11 @@ python -m http.server 8000
 |---|---|
 | `DATATOURISME_API_KEY` | Clé API [DATAtourisme](https://datadocs.datatourisme.fr/) |
 
-5. Renseigner les credentials dans `js/supabase.js` :
+5. Renseigner les credentials dans `src/shared/lib/supabaseClient.js` :
 
 ```js
-const SUPABASE_URL      = 'https://VOTRE_PROJET.supabase.co';
-const SUPABASE_ANON_KEY = 'VOTRE_CLE_ANON';
+export const SUPABASE_URL      = 'https://VOTRE_PROJET.supabase.co';
+export const SUPABASE_ANON_KEY = 'VOTRE_CLE_ANON';
 ```
 
 > La clé `anon` est publique par design — la sécurité est assurée par les politiques RLS.
@@ -136,33 +136,39 @@ const SUPABASE_ANON_KEY = 'VOTRE_CLE_ANON';
 ## Structure du projet
 
 ```
-road-trip-jura/
-├── map.html                Point d'entrée principal de la carte
-├── index.html              Page d'accueil / redirection
-├── css/
-│   └── style.css           Tous les styles (dark mode inclus)
-├── js/
-│   ├── app.js              Bootstrap — état global, onglets, wiring des modules
-│   ├── map.js              Leaflet : init, layers, markers, clusters
-│   ├── ui.js               Sidebar, resizer, toasts, focus trap
-│   ├── pins.js             Pins utilisateur — CRUD + geocoding + popupHtml
-│   ├── filters.js          Filtres, légende, liste des lieux
-│   ├── overpass.js         Onglet Découvrir — recherche OSM via Overpass API
-│   ├── datatourisme.js     Onglet Découvrir — recherche Tourisme officiel (DATAtourisme)
-│   ├── routePlanner.js     Itinéraire — OSRM, GPX, drag & drop
-│   ├── share.js            Partage — modale, slug, bannière
-│   ├── storage.js          localStorage — toutes les clés
-│   ├── supabase.js         Client Supabase — CRUD + cartes partagées
-│   └── data/
-│       ├── places.js       35 lieux statiques
-│       └── categories.js   7 catégories
+road-tripmap/
+├── index.html              Point d'entrée unique (SPA)
+├── map.html                Redirection de compatibilité (anciens liens ?map=)
+├── css/                    auth / dashboard / style (carte, chargé à la demande)
+├── src/
+│   ├── app/
+│   │   ├── main.js         Bootstrap SPA — routeur + garde auth
+│   │   ├── router.js       Routes hash (#/dashboard, #/roadtrips/:id, #/map…)
+│   │   └── pages/          Home, Login, Register, Dashboard, Profile, MapPage…
+│   ├── config/             Constantes (carte, URLs externes) + catégories
+│   ├── features/
+│   │   ├── map/            La carte : mapApp (wiring), Leaflet, pins, filtres,
+│   │   │                   itinéraire, onglet Découvrir, partage, onboarding
+│   │   ├── pins/           pinService — tables user_pins + pins (Supabase)
+│   │   ├── roadtrips/      roadtripService — CRUD roadtrips + invitations
+│   │   ├── routing/        routingService — OSRM, haversine, optimisation, GPX
+│   │   ├── sharing/        sharingService — snapshots publics + slugs
+│   │   ├── sources/        Services Overpass, DATAtourisme, Wikivoyage
+│   │   ├── auth/           AuthStore + services profil
+│   │   └── dashboard/      Composants liste de roadtrips
+│   └── shared/
+│       ├── lib/            Client Supabase unique + session
+│       └── utils/          escapeHtml/safeUrl, localStorage
 └── supabase/
-    ├── migrations/         015 migrations SQL (schéma + RLS + caches)
+    ├── migrations/         15 migrations SQL (schéma + RLS + caches)
     └── functions/
-        ├── via-ferrata-info/     Enrichissement via ferrata (CamptoCamp + cache)
-        ├── climbing-info/        Enrichissement escalade (cache Supabase)
-        └── datatourisme-nearby/  POIs touristiques officiels (DATAtourisme + cache 7j)
+        ├── via-ferrata-info/     Enrichissement via ferrata (cache Supabase)
+        ├── climbing-info/        Enrichissement escalade FFME (cache Supabase)
+        └── datatourisme-nearby/  POIs touristiques officiels (cache 7j)
 ```
+
+Outillage (dev uniquement, le déploiement reste sans build) :
+`npm run lint` (ESLint) · `npm test` (Vitest, ~60 tests) · `npm run serve`
 
 ---
 
@@ -182,7 +188,7 @@ road-trip-jura/
 
 ## Ajouter des lieux statiques
 
-Éditer `js/data/places.js` :
+Éditer `src/features/map/places.js` :
 
 ```js
 {

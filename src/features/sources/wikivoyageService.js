@@ -4,7 +4,7 @@
  * par catégorie UX. Ne touche pas au DOM de la page (le HTML distant est
  * parsé via DOMParser, document inerte : ni scripts ni chargements).
  *
- * Consommé par js/wikivoyage.js (rendu popup) — et par la SPA après B5.
+ * Consommé par ../map/wikivoyage.js (rendu popup).
  */
 
 const WIKIVOYAGE_API = 'https://fr.wikivoyage.org/w/api.php';

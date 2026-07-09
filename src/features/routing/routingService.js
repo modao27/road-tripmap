@@ -2,7 +2,7 @@
  * @fileoverview Service d'itinéraire — OSRM, distances, optimisation, GPX.
  * Logique pure : pas de DOM, pas de Leaflet, pas d'état.
  * Le rendu (polylines, liste des étapes, drag & drop) reste dans
- * js/routePlanner.js.
+ * src/features/map/routePlanner.js.
  */
 
 import { OSRM_URL, AVG_SPEED_KMH } from '../../config/index.js';

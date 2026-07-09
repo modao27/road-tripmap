@@ -4,7 +4,7 @@
  * construction et exécution des requêtes Overpass QL.
  * Ne touche pas au DOM ni à Leaflet.
  *
- * Source unique — consommé par la carte legacy (js/overpass.js)
+ * Source unique — consommé par la carte (../map/overpass.js)
  * et, à terme, par la page carte de la SPA.
  */
 

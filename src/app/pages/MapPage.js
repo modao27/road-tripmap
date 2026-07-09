@@ -6,15 +6,15 @@
  *   #/map            → carte libre (carte personnelle)
  *   #/map/:slug      → carte partagée (snapshot public)
  *
- * Le markup vient de mapPageTemplate.js et la logique de js/app.js
- * (initMapApp) — les mêmes que map.html, qui reste utilisable pour la
- * compat des anciens liens.
+ * Markup : ../../features/map/mapPageTemplate.js ; logique :
+ * ../../features/map/mapApp.js (initMapApp). map.html n'est plus qu'une
+ * redirection de compatibilité vers ces routes.
  *
  * Cycle de vie : les modules de la carte attachent des listeners au
- * document sans cleanup (héritage map.html où quitter la page = reload).
- * On conserve cette sémantique : après montage de la carte, toute
- * navigation déclenche un location.reload() (géré dans main.js) —
- * exactement l'UX actuelle dashboard ↔ map.html, sans double-wiring.
+ * document sans cleanup (héritage de l'époque multi-pages où quitter la
+ * carte = rechargement). On conserve cette sémantique : après montage de
+ * la carte, toute navigation déclenche un location.reload() (géré dans
+ * main.js) — même UX qu'avant, sans double-wiring.
  */
 
 import { MAP_PAGE_HTML } from '../../features/map/mapPageTemplate.js';

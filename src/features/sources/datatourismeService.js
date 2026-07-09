@@ -3,8 +3,8 @@
  * Responsabilité : catégories et appel de l'Edge Function datatourisme-nearby
  * (proxy + cache 7 jours côté Supabase). Ne touche pas au DOM ni à Leaflet.
  *
- * Source unique — consommé par l'onglet Découvrir (js/datatourisme.js)
- * et l'enrichissement des popups village/ancrage (js/app.js).
+ * Source unique — consommé par l'onglet Découvrir (../map/datatourisme.js)
+ * et l'enrichissement des popups village/ancrage (../map/datatourisme.js).
  */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../shared/lib/supabaseClient.js';
