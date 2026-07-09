@@ -11,6 +11,9 @@ on:
   push:
     branches: [main]
     paths: ['supabase/migrations/**']
+  # Lancement manuel (onglet Actions → Migrations → Run workflow) :
+  # utile pour valider les secrets ou rejouer un push raté
+  workflow_dispatch:
 
 # Jamais deux db push en parallèle ; on ne coupe pas un push en cours
 concurrency:
