@@ -136,12 +136,13 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
 
 ### Reste côté compte Supabase (hors code)
 
-- [ ] Exécuter `016_legacy_tables.sql` dans le SQL Editor
-      (résultat attendu : `Success. No rows returned` — idempotente)
+- [x] Exécuter `016_legacy_tables.sql` dans le SQL Editor — fait le 2026-07-09
 - [x] Exécuter `017_cache_purge.sql` — fait le 2026-07-07, job n°1
-- [ ] `npx supabase login` puis
-      `npx supabase link --project-ref cmgrszuyzdrmnddyetfq` (une fois)
-- [ ] Lundi suivant la 017 : vérifier la purge —
+- [x] `npx supabase login` puis
+      `npx supabase link --project-ref cmgrszuyzdrmnddyetfq` — fait le
+      2026-07-09 ; les Edge Functions se déploient désormais via
+      `npx supabase functions deploy <nom>`
+- [ ] Lundi 2026-07-13 : vérifier la purge —
       `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 3;`
 
 ## Ordre recommandé
