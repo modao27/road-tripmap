@@ -149,10 +149,14 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
 
 Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
 
-- [ ] **E1** — Planning par jour : organiser les étapes d'un roadtrip en
-      journées (Jour 1, Jour 2…), distance/durée par jour (les legs OSRM
-      existent déjà), affectation par drag & drop. Modèle : colonne `day`
-      sur la table `pins` (migration 018)
+- [x] **E1** — Planning par jour — `84ec493` (migration 018 : colonne
+      `pins.day`, ⚠ à exécuter dans le SQL Editor), `4a96e9f`
+      (legs OSRM par tronçon + 3 tests), `53cf875` (updatePinOrder
+      persiste la journée), `0c11111` (UI : bouton 📅 + Jour, en-têtes
+      Jour N avec distance/durée du jour, drag & drop inter-jours,
+      optimisation par jour, partage ?rdays=).
+      ⚠ À valider en navigateur : + Jour → glisser des étapes entre
+      jours → recharger (persistance) → optimiser → partager le lien
 - [ ] **E2** — Météo outdoor : Open-Meteo (gratuit, sans clé) dans la
       popup des pins — prévisions 7 jours, pertinent bivouac/via ferrata
 - [ ] **E3** — Temps réel : Supabase Realtime (`postgres_changes` sur
