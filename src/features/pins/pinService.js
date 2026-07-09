@@ -284,16 +284,21 @@ export async function upsertRoadtripPin(roadtripId, pin) {
 }
 
 /**
- * Met à jour l'order_index de chaque pin (parallèle, UUID seulement).
- * Les échecs individuels sont ignorés — l'ordre sera resynchronisé au
- * prochain drag & drop.
+ * Met à jour l'order_index — et la journée si fournie — de chaque pin
+ * (parallèle, UUID seulement). Les échecs individuels sont ignorés —
+ * l'ordre sera resynchronisé au prochain drag & drop.
  * @param {string[]} pinIds
+ * @param {number[]} [days] - journée de chaque pin, parallèle à pinIds
  */
-export async function updatePinOrder(pinIds) {
-  const uuids = pinIds.filter(isAnyUUID);
-  if (!uuids.length) return;
-  await Promise.all(uuids.map((id, i) =>
-    supabase.from('pins').update({ order_index: i }).eq('id', id)
+export async function updatePinOrder(pinIds, days = null) {
+  const rows = pinIds
+    .map((id, i) => ({ id, order_index: i, day: days?.[i] ?? null }))
+    .filter(r => isAnyUUID(r.id));
+  if (!rows.length) return;
+  await Promise.all(rows.map(({ id, order_index, day }) =>
+    supabase.from('pins')
+      .update(day === null ? { order_index } : { order_index, day })
+      .eq('id', id)
   ));
 }
 
