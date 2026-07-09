@@ -114,12 +114,38 @@ session inter-onglets), chaque évolution ne se code qu'une fois.
       shared_maps) versionnées avec RLS — un nouvel environnement se
       reconstruit en rejouant 001→017, l'objectif de la baseline est atteint
       sans squash. Migration 017 : purge pg_cron hebdo des 3 caches — `e36e9a1`.
-      Reste côté compte : exécuter 016 et 017 dans le SQL Editor (ou
-      `supabase db push` après repair de l'historique)
+      017 exécutée en prod le 2026-07-07 (job pg_cron n°1 planifié ✅)
+
+## Phase D — Suite (post-audit)
+
+Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
+
+- [ ] **D1** — CI GitHub Actions : `npm run lint` + `npm test` sur chaque
+      push / pull request. Les 51 tests et le lint à 0 erreur gardent la
+      porte automatiquement ; aucun impact sur le déploiement Pages
+- [ ] **D2** — Vraie navigation SPA sur la carte : écrire un `destroy()`
+      dans chaque module carte (listeners `document` non nettoyés) pour
+      supprimer la sémantique reload-on-exit de main.js.
+      Risque moyen, ~2-3 séances
+- [ ] **D3** — Mode hors-ligne (PWA) : service worker, cache des tuiles
+      consultées, pins disponibles en local — le gain d'usage terrain le
+      plus concret. Chantier conséquent
+- [ ] **D4** — Étendre la couverture de tests : logique DOM de
+      `filters.js` / `pins.js` / `routePlanner.js` via happy-dom
+
+### Reste côté compte Supabase (hors code)
+
+- [ ] Exécuter `016_legacy_tables.sql` dans le SQL Editor
+      (résultat attendu : `Success. No rows returned` — idempotente)
+- [x] Exécuter `017_cache_purge.sql` — fait le 2026-07-07, job n°1
+- [ ] `npx supabase login` puis
+      `npx supabase link --project-ref cmgrszuyzdrmnddyetfq` (une fois)
+- [ ] Lundi suivant la 017 : vérifier la purge —
+      `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 3;`
 
 ## Ordre recommandé
 
-**A → C1-C2 → B → C3-C4.**
+**A → C1-C2 → B → C3-C4 → D1 → D2/D3/D4 au choix.**
 
 Notes :
 - La philosophie « zéro build » est conservée. Si TypeScript ou des imports npm
