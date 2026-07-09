@@ -136,8 +136,14 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
 - [ ] **D3** — Mode hors-ligne (PWA) : service worker, cache des tuiles
       consultées, pins disponibles en local — le gain d'usage terrain le
       plus concret. Chantier conséquent
-- [ ] **D4** — Étendre la couverture de tests : logique DOM de
-      `filters.js` / `pins.js` / `routePlanner.js` via happy-dom
+- [x] **D4** — Étendre la couverture de tests DOM (happy-dom) : 76 tests.
+      `0d82d56` (filters.js : pills/légende/liste, tri, highlight,
+      XSS coupé par le highlight), `a310a84` (ui.js : toasts, sync,
+      focus trap, resizer avec non-régression du démontage D2 par
+      AbortSignal), `f55bf97` (share.js : modale de confirmation de
+      carte partagée, sharingService mocké).
+      La partie DOM de routePlanner/pins nécessite un stub Leaflet —
+      reportée, le cœur (routingService, popupHtml) est déjà couvert
 
 ### Reste côté compte Supabase (hors code)
 

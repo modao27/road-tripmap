@@ -177,7 +177,8 @@ road-tripmap/
 ```
 
 Outillage (dev uniquement, le déploiement reste sans build) :
-`npm run lint` (ESLint) · `npm test` (Vitest, ~60 tests) · `npm run serve`
+`npm run lint` (ESLint) · `npm test` (Vitest, ~75 tests) · `npm run serve`
+La CI GitHub Actions rejoue lint + tests sur chaque push et pull request.
 
 ---
 
