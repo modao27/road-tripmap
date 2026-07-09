@@ -120,9 +120,10 @@ session inter-onglets), chaque évolution ne se code qu'une fois.
 
 Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
 
-- [ ] **D1** — CI GitHub Actions : `npm run lint` + `npm test` sur chaque
-      push / pull request. Les 51 tests et le lint à 0 erreur gardent la
-      porte automatiquement ; aucun impact sur le déploiement Pages
+- [x] **D1** — CI GitHub Actions : `npm run lint` + `npm test` sur chaque
+      push / pull request — `849397a` (workflow Node 24, cache npm),
+      `0d29e72` (purge des 7 warnings no-unused-vars + `--max-warnings 0` :
+      la CI échoue au moindre warning). Badge CI dans le README
 - [ ] **D2** — Vraie navigation SPA sur la carte : écrire un `destroy()`
       dans chaque module carte (listeners `document` non nettoyés) pour
       supprimer la sémantique reload-on-exit de main.js.

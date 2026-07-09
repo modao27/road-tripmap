@@ -11,7 +11,7 @@ Les popups des villes et points d'ancrage s'enrichissent automatiquement avec le
 
 Aucun outil de build — ES modules natifs, Leaflet en CDN, Supabase pour la persistence et les Edge Functions d'enrichissement.
 
-![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-brightgreen) ![ES Modules](https://img.shields.io/badge/JS-ES%20Modules-blue) ![Supabase](https://img.shields.io/badge/Supabase-cloud-3ECF8E) ![Build](https://img.shields.io/badge/build-aucun-lightgrey)
+![CI](https://github.com/modao27/road-tripmap/actions/workflows/ci.yml/badge.svg) ![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-brightgreen) ![ES Modules](https://img.shields.io/badge/JS-ES%20Modules-blue) ![Supabase](https://img.shields.io/badge/Supabase-cloud-3ECF8E) ![Build](https://img.shields.io/badge/build-aucun-lightgrey)
 
 ---
 
