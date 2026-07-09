@@ -104,6 +104,8 @@ export function initPins({
   deleteUserPinFn,
   upsertOverrideFn,
   deleteOverrideFn,
+  // AbortSignal de démontage de la carte (navigation SPA)
+  signal,
 }) {
   let pinMode = false;
   let pendingPinCoords = null;
@@ -385,7 +387,7 @@ export function initPins({
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !pinModalBackdrop.hidden) closePinModal();
-  });
+  }, { signal });
 
   // ── Popup action delegation ───────────────────────────────────────────────
   document.addEventListener('click', (e) => {
@@ -399,7 +401,12 @@ export function initPins({
     if (delBtn) { deleteUserPin(delBtn.dataset.deleteId); return; }
     const resetBtn = e.target.closest('[data-reset-id]');
     if (resetBtn) resetOverride(resetBtn.dataset.resetId);
-  });
+  }, { signal });
+
+  signal?.addEventListener('abort', () => {
+    clearTimeout(geocodeDebounce);
+    geocodeController?.abort();
+  }, { once: true });
 
   // ── Map click ─────────────────────────────────────────────────────────────
   map.on('click', (e) => {

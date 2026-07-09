@@ -12,9 +12,10 @@ import { updateRoadtripCenter } from '../roadtrips/roadtripService.js';
  *   roadtripInfo:   Object|null,   - infos du roadtrip (centre par défaut du skip)
  *   hasPins:        boolean,       - l'overlay ne s'affiche que si le roadtrip est vide
  *   onPlaceCreated: (place: Object) => void, - bookkeeping côté carte (état, marker, rendu)
+ *   signal:         AbortSignal|undefined,   - démontage de la carte (navigation SPA)
  * }} params
  */
-export function initOnboarding({ map, roadtripId, roadtripInfo, hasPins, onPlaceCreated }) {
+export function initOnboarding({ map, roadtripId, roadtripInfo, hasPins, onPlaceCreated, signal }) {
   const onboardParam = new URLSearchParams(window.location.search).get('onboard');
   if (!roadtripId || onboardParam !== 'true' || hasPins) return;
 
@@ -104,6 +105,11 @@ export function initOnboarding({ map, roadtripId, roadtripInfo, hasPins, onPlace
                 roadtripInfo.default_zoom ?? 10);
     }
   });
+
+  signal?.addEventListener('abort', () => {
+    clearTimeout(obDebounce);
+    obCtrl?.abort();
+  }, { once: true });
 
   setTimeout(() => onboardIn.focus(), 150);
 }

@@ -8,7 +8,7 @@ import { OSRM_PROFILE, formatDistance, formatDuration, haversine,
 
 // ── Module ────────────────────────────────────────────────────────────────────
 
-export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn, onStepsChange }) {
+export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn, onStepsChange, signal }) {
 
   // ── État ──────────────────────────────────────────────────────────────────
   let steps         = [];                 // toujours vide au démarrage — restauré uniquement via ?route=
@@ -378,7 +378,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-add-route-id]');
     if (btn) addStep(btn.dataset.addRouteId);
-  });
+  }, { signal });
+
+  signal?.addEventListener('abort', () => clearTimeout(fetchDebounce), { once: true });
 
   modeEl?.addEventListener('change', () => {
     mode = modeEl.value;

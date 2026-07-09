@@ -87,7 +87,7 @@ export function initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map, onTogg
 
 // ── Resizer ───────────────────────────────────────────────────────────────────
 
-export function initResizer(map, config) {
+export function initResizer(map, config, signal = undefined) {
   const resizer = document.getElementById('resizer');
   if (!resizer) return;
 
@@ -115,14 +115,14 @@ export function initResizer(map, config) {
     let newWidth = Math.round(startWidth + dx);
     newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
     document.documentElement.style.setProperty('--sidebar', newWidth + 'px');
-  });
+  }, { signal });
 
   document.addEventListener('mouseup', () => {
     if (!isResizing) return;
     isResizing = false;
     document.body.classList.remove('resizing');
     map.invalidateSize();
-  });
+  }, { signal });
 
   resizer.addEventListener('touchstart', (e) => {
     isResizing = true;
@@ -137,14 +137,14 @@ export function initResizer(map, config) {
     let newWidth = Math.round(startWidth + dx);
     newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
     document.documentElement.style.setProperty('--sidebar', newWidth + 'px');
-  }, { passive: true });
+  }, { passive: true, signal });
 
   document.addEventListener('touchend', () => {
     if (!isResizing) return;
     isResizing = false;
     document.body.classList.remove('resizing');
     map.invalidateSize();
-  });
+  }, { signal });
 
   resizer.addEventListener('dblclick', () => {
     document.documentElement.style.setProperty('--sidebar', config.sidebarDefault + 'px');

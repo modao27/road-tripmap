@@ -198,7 +198,7 @@ function renderClimbingEnriched(data) {
 }
 
 // ── Module principal ──────────────────────────────────────────────────────────
-export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCategories, onDiscoverResults }) {
+export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCategories, onDiscoverResults, signal }) {
   const resultsLayer     = L.layerGroup().addTo(map);
   const markersByNodeId  = new Map();
   const payloadsByNodeId = new Map();
@@ -504,7 +504,7 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     const finalData = { ...payload, appCategory: select?.value ?? payload.appCategory };
     map.closePopup();
     onAddToMap?.(finalData);
-  });
+  }, { signal });
 
   function getCircleState() {
     const center = circleCenter ?? map.getCenter();

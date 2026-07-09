@@ -13,6 +13,8 @@ export function initShareModal({
   toastWrap,
   showToastFn,
   setSyncStatusFn,
+  // AbortSignal de démontage de la carte (navigation SPA)
+  signal,
 }) {
   const backdrop    = document.getElementById('shareModalBackdrop');
   const titleInput  = document.getElementById('shareTitle');
@@ -85,7 +87,7 @@ export function initShareModal({
   titleInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') createShare(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !backdrop.hidden) closeModal();
-  });
+  }, { signal });
 }
 
 // ── Bannière "carte partagée chargée" ────────────────────────────────────────
@@ -103,7 +105,7 @@ export function showSharedMapBanner(title) {
 
 // ── Modale de confirmation avant chargement ───────────────────────────────────
 
-export function confirmSharedMapLoad(title) {
+export function confirmSharedMapLoad(title, signal = undefined) {
   return new Promise((resolve) => {
     const backdrop  = document.getElementById('sharedMapConfirmBackdrop');
     const nameEl    = document.getElementById('sharedMapConfirmName');
@@ -132,6 +134,6 @@ export function confirmSharedMapLoad(title) {
     loadBtn.addEventListener('click', onLoad);
     cancelBtn.addEventListener('click', onCancel);
     backdrop.addEventListener('click', onOutside);
-    document.addEventListener('keydown', onKey);
+    document.addEventListener('keydown', onKey, { signal });
   });
 }
