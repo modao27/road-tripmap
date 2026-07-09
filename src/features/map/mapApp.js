@@ -34,6 +34,9 @@ import { MAP_CONFIG as CONFIG } from '../../config/index.js';
  * @param {{ mapParam?: string|null }} params
  *   mapParam : UUID de roadtrip, slug de carte partagée, ou null (carte
  *   personnelle). Fourni par map.html (?map=) ou par la route SPA.
+ * @returns {Promise<() => void>} destroy — démonte la carte : retire les
+ *   listeners document/window (AbortController), stoppe les timers et
+ *   détruit l'instance Leaflet. Appelé par MapPage à la navigation.
  */
 export async function initMapApp({ mapParam = null } = {}) {
   if (typeof L === 'undefined') {
@@ -41,6 +44,11 @@ export async function initMapApp({ mapParam = null } = {}) {
       "<p style='margin:24px;font:16px system-ui;color:#143f31'>Leaflet n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
     throw new Error('Leaflet is not available');
   }
+
+  // Démontage : tous les listeners document/window des modules carte sont
+  // attachés avec ce signal ; abort() les retire d'un coup.
+  const lifecycle  = new AbortController();
+  const { signal } = lifecycle;
 
   const isRoadtripUUID = !!mapParam && isUUID(mapParam);
   // Un slug (non UUID) indique une carte partagée
@@ -65,7 +73,7 @@ export async function initMapApp({ mapParam = null } = {}) {
     const hasLocalData   = localPins.length > 0 || Object.keys(localOverrides).length > 0;
 
     if (hasLocalData) {
-      const confirmed = await confirmSharedMapLoad(sharedData.title);
+      const confirmed = await confirmSharedMapLoad(sharedData.title, signal);
       if (!confirmed) {
         // L'utilisateur refuse → on reste sur sa carte perso, on nettoie l'URL
         isSharedMap = false;
@@ -318,7 +326,7 @@ export async function initMapApp({ mapParam = null } = {}) {
 
   // ── UI ────────────────────────────────────────────────────────────────────
   initSidebar(sidebarEl, sidebarToggleEl, mobileQuery, map, updateRouteBadge);
-  initResizer(map, CONFIG);
+  initResizer(map, CONFIG, signal);
 
   // ── Onglets ───────────────────────────────────────────────────────────────
   const tabPlacesBtn   = document.getElementById('tabPlaces');
@@ -378,6 +386,7 @@ export async function initMapApp({ mapParam = null } = {}) {
       toastWrap,
       showToastFn:      showToast,
       setSyncStatusFn:  setSyncStatus,
+      signal,
     });
   }
 
@@ -404,6 +413,7 @@ export async function initMapApp({ mapParam = null } = {}) {
     deleteUserPinFn:  isSharedMap ? null : (isRoadtripMode ? deleteRoadtripPin : deletePinRemote),
     upsertOverrideFn: isSharedMap ? null : upsertOverrideRemote,
     deleteOverrideFn: isSharedMap ? null : deleteOverrideRemote,
+    signal,
     onMapClick: () => {
       if (mobileQuery.matches) {
         sidebarEl.classList.remove('open');
@@ -429,6 +439,7 @@ export async function initMapApp({ mapParam = null } = {}) {
     onAddToMap:        data => pinsModule?.openForOverpass(data),
     appCategories:     categories,
     onDiscoverResults,
+    signal,
   });
 
   const dtModule = initDatatourisme({
@@ -455,6 +466,7 @@ export async function initMapApp({ mapParam = null } = {}) {
       clearTimeout(orderSaveTimer);
       orderSaveTimer = setTimeout(() => updatePinOrder(steps), 1000);
     } : null,
+    signal,
   });
 
   // Charge les étapes du roadtrip si des pins ont été récupérés
@@ -559,6 +571,7 @@ export async function initMapApp({ mapParam = null } = {}) {
     roadtripId:   isRoadtripUUID ? mapParam : null,
     roadtripInfo,
     hasPins:      roadtripPinIds.length > 0,
+    signal,
     onPlaceCreated(place) {
       userPlaces.push(place);
       roadtripPinIds.push(place.id);
@@ -573,8 +586,8 @@ export async function initMapApp({ mapParam = null } = {}) {
     if (!isSharedMap && !savedView && !roadtripPinIds.length) doFocusPlace(basePlace);
   });
 
-  window.addEventListener('load',   () => map.invalidateSize());
-  window.addEventListener('resize', () => map.invalidateSize());
+  window.addEventListener('load',   () => map.invalidateSize(), { signal });
+  window.addEventListener('resize', () => map.invalidateSize(), { signal });
 
   // ── Raccourcis clavier globaux ────────────────────────────────────────────
   document.addEventListener('keydown', e => {
@@ -588,5 +601,13 @@ export async function initMapApp({ mapParam = null } = {}) {
       openSearch();
       searchInput.select();
     }
-  });
+  }, { signal });
+
+  // ── Démontage (navigation SPA) ────────────────────────────────────────────
+  return function destroy() {
+    lifecycle.abort();            // listeners document/window + fetches/debounces des modules
+    clearTimeout(orderSaveTimer);
+    clearTimeout(viewSaveTimer);
+    map.remove();                 // instance Leaflet : markers, popups, listeners carte
+  };
 }
