@@ -85,7 +85,13 @@ sont à traiter.
       #/map/:slug ; assets chargés à la demande ; sémantique reload-on-exit
       conservée pour éviter le double-wiring des listeners document ;
       liens dashboard et buildShareUrl au format SPA)
-- [ ] B6 — Suppression de js/ + compat liens
+- [x] B6 — Suppression de js/ + compat liens — `3d2d421` (les 15 modules carte
+      → src/features/map/ en git mv, adaptateur js/supabase.js remplacé par
+      les imports directs des services + src/shared/lib/session.js ; map.html
+      devient une redirection ?map= → routes SPA), `3db50da` (purge du code
+      mort : bootstrap.js, maps/, editor/ + editor.css, PinPopup,
+      LocationSearchInput, enrichmentService… ; README réécrit).
+      **La double codebase n'existe plus.**
 
 **Gains** : plus de double codebase, un seul client Supabase (fin des bugs de
 session inter-onglets), chaque évolution ne se code qu'une fois.
