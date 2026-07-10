@@ -194,16 +194,17 @@ hauteur max globale, boutons d'édition surdimensionnés — illisible et
 inadapté au mobile. Principe : 3 niveaux de lecture (identifier/agir →
 comprendre → explorer), une seule action primaire.
 
-- [ ] **P1** — Restructurer la popup :
-      a. en-tête compact + « Ajouter à l'itinéraire » seule action
-         pleine largeur, Modifier/Supprimer/OSM en barre d'icônes de pied
-      b. description clampée (3-4 lignes, tap pour déplier) ;
-         Intérêt/Conseil/Ambiance regroupés dans un repli « En savoir plus »
-      c. Wikivoyage et « Aux alentours » en accordéons uniformes,
-         **fetch au dépliage** (économise 2 requêtes/popup) ; la météo
-         reste une bande d'une ligne toujours visible
-      d. gabarit : maxWidth ~320 px, hauteur max interne avec scroll,
-         typographie hiérarchisée
+- [x] **P1** — Restructurer la popup — `d6fe25a` (a+b : en-tête compact,
+      action itinéraire unique, icônes de pied, description clampée à
+      4 lignes/tap pour déplier, Intérêt/Conseil/Ambiance dans un repli
+      « En savoir plus » ; +2 tests), `8613dc0` (c : Wikivoyage et
+      Aux alentours en `<details>` uniformes, **fetch au dépliage** —
+      2 requêtes économisées par popup non consultée), `6debfa8`
+      (d : corps scrollable ≤ 46vh, mobile 82vw/36vh, croix 32px,
+      double scroll wiki supprimé).
+      ⚠ À valider : popup d'une via ferrata enrichie (chips + desc
+      longue clampée), d'un village (replis wiki/alentours au clic),
+      actions ✏️🗑, et le tout sur mobile
 - [ ] **P2** — Mobile : bottom sheet (pattern Google Maps) au tap sur un
       pin (≤ 820 px) — aperçu ~35 % / plein ~85 %, poignée, swipe pour
       fermer, carte visible ; même HTML que la popup (source unique)
