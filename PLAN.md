@@ -137,11 +137,13 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
       192/512, app installable), `871a145` (service worker : app shell
       et CDN en stale-while-revalidate, tuiles cache-first plafonné à
       800 entrées, API données jamais interceptées).
-      Hors ligne : l'app s'ouvre, les zones de carte consultées
-      s'affichent, les pins viennent du repli localStorage existant.
-      ⚠ À valider en navigateur (après push, sur le site Pages) :
-      installer l'app, couper le réseau (DevTools → Network → Offline),
-      recharger → l'app et les tuiles déjà vues doivent s'afficher
+      Trois correctifs suite aux tests terrain : `b0a9c8b` (miroir
+      localStorage des pins/infos roadtrip — ils n'avaient aucun repli
+      local), `588e4a6` (démarrage plafonné à ~3,5 s au lieu des ~10 s
+      de retries du refresh JWT), `ce4a3b5` (session en localStorage —
+      sessionStorage mourait à la fermeture → redirection /login hors
+      ligne ; repli optimiste sur la session stockée).
+      Validée hors ligne le 2026-07-10 ✅ (app + pins + tuiles + session)
 - [x] **D4** — Étendre la couverture de tests DOM (happy-dom) : 76 tests.
       `0d82d56` (filters.js : pills/légende/liste, tri, highlight,
       XSS coupé par le highlight), `a310a84` (ui.js : toasts, sync,
