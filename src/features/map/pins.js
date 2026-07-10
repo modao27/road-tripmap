@@ -80,8 +80,14 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
             </details>`
           : ''}
         ${isEnrichable
-          ? `<div class="wiki-enriched" data-wiki-lat="${lat}" data-wiki-lng="${lng}"><p class="wiki-loading">⟳ Wikivoyage…</p></div>
-             <div class="dt-nearby" data-dt-lat="${lat}" data-dt-lng="${lng}"><p class="dt-loading">⟳ Infos touristiques…</p></div>`
+          ? `<details class="popup-fold wiki-enriched" data-wiki-lat="${lat}" data-wiki-lng="${lng}">
+               <summary>📖 Wikivoyage</summary>
+               <div class="popup-fold-body"><p class="wiki-loading">⟳ Chargement…</p></div>
+             </details>
+             <details class="popup-fold dt-nearby" data-dt-lat="${lat}" data-dt-lng="${lng}">
+               <summary>🏕 Aux alentours</summary>
+               <div class="popup-fold-body"><p class="dt-loading">⟳ Chargement…</p></div>
+             </details>`
           : ''}
       </div>
       <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${id}" type="button">

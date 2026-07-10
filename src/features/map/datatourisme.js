@@ -25,7 +25,6 @@ function renderDtNearby(data) {
   if (!filled.length) return '';
 
   return `<div class="dt-section">
-    <p class="dt-heading">Aux alentours</p>
     ${filled.map(g => `
       <div class="dt-group">
         <p class="dt-group-label">${g.defaultIcon} ${g.label}</p>
@@ -46,30 +45,40 @@ function renderDtNearby(data) {
 }
 
 export function initDtNearbyPopups(map) {
-  map.on('popupopen', async (e) => {
-    const container = e.popup.getElement()?.querySelector('.dt-nearby');
-    if (!container || container.dataset.loading) return;
-    container.dataset.loading = 'true';
+  map.on('popupopen', (e) => {
+    // Repli <details> injecté par popupHtml — fetch au premier dépliage
+    // seulement (P1c), avec cache session par cellule 0.1°.
+    const fold = e.popup.getElement()?.querySelector('details.dt-nearby');
+    if (!fold || fold.dataset.wired) return;
+    fold.dataset.wired = 'true';
 
-    const lat = +container.dataset.dtLat;
-    const lng = +container.dataset.dtLng;
-    if (!lat || !lng) { container.innerHTML = ''; return; }
+    fold.addEventListener('toggle', async () => {
+      if (!fold.open || fold.dataset.loading) return;
+      fold.dataset.loading = 'true';
+      const body = fold.querySelector('.popup-fold-body');
 
-    const cellKey = dtCellKey(lat, lng);
-    let data = dtNearbyCache.get(cellKey);
+      const lat = +fold.dataset.dtLat;
+      const lng = +fold.dataset.dtLng;
+      if (!lat || !lng) { fold.hidden = true; return; }
 
-    if (!data) {
-      try {
-        data = await fetchDatatourismeNearby({ lat, lng });
-        dtNearbyCache.set(cellKey, data);
-      } catch {
-        container.innerHTML = '';
-        return;
+      const cellKey = dtCellKey(lat, lng);
+      let data = dtNearbyCache.get(cellKey);
+
+      if (!data) {
+        try {
+          data = await fetchDatatourismeNearby({ lat, lng });
+          dtNearbyCache.set(cellKey, data);
+        } catch {
+          fold.hidden = true;
+          e.popup._updatePosition?.();
+          return;
+        }
       }
-    }
 
-    container.innerHTML = renderDtNearby(data);
-    e.popup._updatePosition?.();
+      const html = renderDtNearby(data);
+      if (!html) { fold.hidden = true; } else { body.innerHTML = html; }
+      e.popup._updatePosition?.();
+    });
   });
 }
 

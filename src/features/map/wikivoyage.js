@@ -5,42 +5,50 @@ import { escapeHtml as esc } from '../../shared/utils/escape.js';
 import { fetchWikivoyageSections } from '../sources/wikivoyageService.js';
 
 export function initWikivoyagePopups(map) {
-  map.on('popupopen', async (e) => {
-    const container = e.popup.getElement()?.querySelector('.wiki-enriched');
-    if (!container || container.dataset.loading) return;
-    container.dataset.loading = 'true';
+  map.on('popupopen', (e) => {
+    // Repli <details> injecté par popupHtml — fetch au premier dépliage
+    // seulement (P1c) : une popup ouverte ne coûte plus de requête.
+    const fold = e.popup.getElement()?.querySelector('details.wiki-enriched');
+    if (!fold || fold.dataset.wired) return;
+    fold.dataset.wired = 'true';
 
-    const lat = +container.dataset.wikiLat;
-    const lng = +container.dataset.wikiLng;
-    if (!lat || !lng) { container.innerHTML = ''; return; }
+    fold.addEventListener('toggle', async () => {
+      if (!fold.open || fold.dataset.loading) return;
+      fold.dataset.loading = 'true';
+      const body = fold.querySelector('.popup-fold-body');
 
-    try {
-      const result = await fetchWikivoyageSections(lat, lng);
-      if (!result) { container.innerHTML = ''; e.popup._updatePosition?.(); return; }
+      const lat = +fold.dataset.wikiLat;
+      const lng = +fold.dataset.wikiLng;
+      if (!lat || !lng) { fold.hidden = true; return; }
 
-      const { title, pageUrl, sections } = result;
+      try {
+        const result = await fetchWikivoyageSections(lat, lng);
+        if (!result) { fold.hidden = true; e.popup._updatePosition?.(); return; }
 
-      container.innerHTML = `
-        <div class="wiki-sections">
-          <p class="wiki-heading">📖 ${esc(title)}</p>
-          ${sections.map(s => `
-            <details class="wiki-item">
-              <summary class="wiki-item-hd">${s.icon} ${s.label}</summary>
-              <ul class="wiki-item-list">
-                ${s.items.map(it => `<li>${esc(it)}</li>`).join('')}
-              </ul>
-            </details>`).join('')}
-          <a class="wiki-more" href="${esc(pageUrl)}" target="_blank" rel="noopener">Article complet sur Wikivoyage →</a>
-        </div>`;
+        const { title, pageUrl, sections } = result;
 
-      // Accordion exclusif : ferme les autres sections à l'ouverture d'une
-      const details = container.querySelectorAll('.wiki-item');
-      details.forEach(d => d.addEventListener('toggle', () => {
-        if (d.open) details.forEach(other => { if (other !== d) other.open = false; });
-      }));
-    } catch {
-      container.innerHTML = '';
-    }
-    e.popup._updatePosition?.();
+        body.innerHTML = `
+          <div class="wiki-sections">
+            <p class="wiki-heading">${esc(title)}</p>
+            ${sections.map(s => `
+              <details class="wiki-item">
+                <summary class="wiki-item-hd">${s.icon} ${s.label}</summary>
+                <ul class="wiki-item-list">
+                  ${s.items.map(it => `<li>${esc(it)}</li>`).join('')}
+                </ul>
+              </details>`).join('')}
+            <a class="wiki-more" href="${esc(pageUrl)}" target="_blank" rel="noopener">Article complet sur Wikivoyage →</a>
+          </div>`;
+
+        // Accordion exclusif : ferme les autres sections à l'ouverture d'une
+        const details = body.querySelectorAll('.wiki-item');
+        details.forEach(d => d.addEventListener('toggle', () => {
+          if (d.open) details.forEach(other => { if (other !== d) other.open = false; });
+        }));
+      } catch {
+        fold.hidden = true;
+      }
+      e.popup._updatePosition?.();
+    });
   });
 }
