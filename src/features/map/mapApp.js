@@ -23,6 +23,7 @@ import { initOverpass } from './overpass.js';
 import { initDatatourisme, initDtNearbyPopups } from './datatourisme.js';
 import { initWikivoyagePopups } from './wikivoyage.js';
 import { initWeatherPopups } from './weather.js';
+import { initRealtimePins } from './realtime.js';
 import { initOnboarding } from './onboarding.js';
 import { initDiscoverSourceSwitch } from './discover.js';
 
@@ -132,19 +133,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     }
 
     if (rawPins) {
-      rawPins.forEach(pin => {
-        userPlaces.push({
-          id:           pin.id,
-          name:         pin.title,
-          category:     pin.category || 'nature',
-          lat:          pin.lat,
-          lng:          pin.lng,
-          description:  pin.description || '',
-          interest: '', tip: '', mood: '',
-          userCreated:  true,
-          user_created: true,
-        });
-      });
+      rawPins.forEach(pin => userPlaces.push(normalizeRoadtripPin(pin)));
       roadtripPinIds  = rawPins.map(p => p.id);
       roadtripPinDays = rawPins.map(p => p.day ?? 1); // colonne absente → Jour 1
     }
@@ -176,6 +165,23 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
   function effectivePlace(p) {
     return placeOverrides[p.id] ? { ...p, ...placeOverrides[p.id] } : p;
+  }
+  /** Ligne de la table pins → objet lieu de la carte (hissée : utilisée
+   *  par le chargement initial plus haut et par le temps réel) */
+  function normalizeRoadtripPin(pin) {
+    return {
+      id:           pin.id,
+      name:         pin.title,
+      category:     pin.category || 'nature',
+      lat:          pin.lat,
+      lng:          pin.lng,
+      description:  pin.description || '',
+      interest: '', tip: '', mood: '',
+      day:          pin.day ?? 1,
+      orderIndex:   pin.order_index ?? 0,
+      userCreated:  true,
+      user_created: true,
+    };
   }
   function getAllPlaces() {
     const base = isRoadtripUUID ? [] : staticPlaces.map(effectivePlace);
@@ -601,6 +607,78 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       onRefresh();
     },
   });
+
+  // ── Temps réel — pins des co-équipiers (Supabase Realtime) ────────────────
+  function removeRoadtripMarker(id) {
+    const m = markers.get(id);
+    if (m) { markerLayer.removeLayer(m); markers.delete(id); }
+  }
+
+  // Réaligne l'itinéraire sur (day, order_index) des pins. No-op si l'ordre
+  // est déjà le bon (écho de notre propre drag & drop) — évite la boucle
+  // persist → UPDATE → resync.
+  function resyncRouteSteps() {
+    const rtPlaces = userPlaces
+      .filter(p => roadtripPinIds.includes(p.id))
+      .sort((a, b) => ((a.day ?? 1) - (b.day ?? 1)) || ((a.orderIndex ?? 0) - (b.orderIndex ?? 0)));
+    const ids  = rtPlaces.map(p => p.id);
+    const days = rtPlaces.map(p => p.day ?? 1);
+    const cur  = routePlanner.serializeRoute();
+    if (ids.join(',') === cur.steps.join(',') && days.join(',') === cur.days.join(',')) return;
+    routePlanner.loadSteps(ids, days);
+  }
+
+  function onRealtimeInsert(row) {
+    if (row.status && row.status !== 'active') return;
+    if (userPlaces.some(p => p.id === row.id)) return; // écho local
+    const place = normalizeRoadtripPin(row);
+    userPlaces.push(place);
+    roadtripPinIds.push(place.id);
+    addMarker(place, markers, makePopupHtml, makeIconFn);
+    setupMarkerHover(place);
+    onRefresh();
+    resyncRouteSteps();
+    showToast(toastWrap, `📍 « ${place.name} » ajouté au road trip`, 'success');
+  }
+
+  function onRealtimeUpdate(row) {
+    const place = userPlaces.find(p => p.id === row.id);
+    if (!place) return;
+    if (row.status && row.status !== 'active') { onRealtimeDelete(row); return; }
+    const moved = place.lat !== row.lat || place.lng !== row.lng
+      || place.name !== row.title
+      || place.category !== (row.category || 'nature')
+      || place.description !== (row.description || '');
+    Object.assign(place, normalizeRoadtripPin(row));
+    if (moved) {
+      removeRoadtripMarker(place.id);
+      addMarker(place, markers, makePopupHtml, makeIconFn);
+      setupMarkerHover(place);
+      onRefresh();
+    }
+    resyncRouteSteps();
+  }
+
+  function onRealtimeDelete(row) {
+    const idx = userPlaces.findIndex(p => p.id === row.id);
+    if (idx === -1) return; // autre roadtrip, ou suppression déjà faite ici
+    const [removed] = userPlaces.splice(idx, 1);
+    roadtripPinIds = roadtripPinIds.filter(id => id !== row.id);
+    removeRoadtripMarker(row.id);
+    onRefresh();
+    resyncRouteSteps();
+    showToast(toastWrap, `🗑 « ${removed.name} » retiré du road trip`, '');
+  }
+
+  if (isRoadtripMode) {
+    initRealtimePins({
+      roadtripId: mapParam,
+      signal,
+      onInsert: onRealtimeInsert,
+      onUpdate: onRealtimeUpdate,
+      onDelete: onRealtimeDelete,
+    });
+  }
 
   requestAnimationFrame(() => {
     map.invalidateSize();
