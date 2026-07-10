@@ -178,7 +178,13 @@ Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
       ⚠ À valider : le même roadtrip dans 2 onglets (ou 2 comptes) —
       ajouter/déplacer/supprimer un pin d'un côté → l'autre suit, toasts
       à l'appui. Vérifier aussi le run CI Migrations (019) après push
-- [ ] **E4** — Import GPX (l'export existe déjà)
+- [x] **E4** — Import GPX — `8456c68` (gpxService : parsing pur GPX
+      1.0/1.1, waypoints + tracé + longueur, 6 tests), `92bdd0e`
+      (bouton 📂 dans l'onglet Road Trip : tracé pointillé violet sur
+      couche dédiée, waypoints → « Ajouter à ma carte », fitBounds,
+      toast récapitulatif).
+      ⚠ À valider : importer un .gpx (ex. export de l'app elle-même) →
+      tracé + waypoints visibles → ajouter un waypoint en pin
 
 Dette technique au fil de l'eau :
 - [ ] Leaflet chargé à la demande (index.html le charge même pour le

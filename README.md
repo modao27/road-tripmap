@@ -40,6 +40,8 @@ Aucun outil de build — ES modules natifs, Leaflet en CDN, Supabase pour la per
 - Distance totale + durée estimée
 - Optimisation de l'ordre (algorithme du plus proche voisin)
 - Export **GPX** (waypoints + tracé)
+- **Import GPX** — affiche un tracé et ses waypoints sur la carte,
+  chaque waypoint peut devenir un pin
 - Partage via URL (`?route=id1,id2&rmode=driving`)
 - Restauration automatique au rechargement
 
