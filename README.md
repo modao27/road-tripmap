@@ -78,6 +78,9 @@ Pour les lieux de type **Village** ou **Point d'ancrage**, les popups affichent 
 - Cache session par zone de ~11 km
 
 ### Partage & collaboration
+- **Temps réel** — sur un roadtrip, les pins des co-équipiers (ajouts,
+  déplacements, suppressions) apparaissent sans recharger (Supabase
+  Realtime, RLS respectée)
 - **Cartes partagées** — snapshot public via URL `?map=slug`
   - Inclut : pins, centre, zoom, fond de carte, filtres
 - Confirmation avant chargement si données locales existantes

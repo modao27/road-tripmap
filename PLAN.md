@@ -170,8 +170,14 @@ Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
       pluie ≥ 30 %, silencieuse hors ligne).
       ⚠ À valider en navigateur : ouvrir une popup → bande 7 jours
       sous la catégorie ; deux pins proches = une seule requête (réseau)
-- [ ] **E3** — Temps réel : Supabase Realtime (`postgres_changes` sur
-      `pins`) pour voir les pins des co-éditeurs sans recharger
+- [x] **E3** — Temps réel — `3873086` (migration 019 : pins publiée sur
+      Realtime — première migration déployée par la CI), `fe4f37a`
+      (abonnement par roadtrip, insert/update/delete des co-équipiers
+      appliqués à la carte et à l'itinéraire sans recharger, anti-boucle
+      sur les échos de nos propres écritures, désabonnement au démontage).
+      ⚠ À valider : le même roadtrip dans 2 onglets (ou 2 comptes) —
+      ajouter/déplacer/supprimer un pin d'un côté → l'autre suit, toasts
+      à l'appui. Vérifier aussi le run CI Migrations (019) après push
 - [ ] **E4** — Import GPX (l'export existe déjà)
 
 Dette technique au fil de l'eau :
