@@ -623,6 +623,16 @@ h1 {
 .popup-hd h2 { margin: 0 0 6px; font-size: 1.02rem; }
 .popup-hd .popup-category { margin-bottom: 0; }
 
+/* Corps scrollable : la popup ne dépasse plus l'écran (P1d) */
+.popup-body {
+  max-height: min(46vh, 340px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
 .popup-category {
   display: inline-flex;
   align-items: center;
@@ -835,11 +845,9 @@ h1 {
   color: var(--muted);
 }
 
+/* Le scroll vit dans .popup-body (P1d) — pas de double ascenseur */
 .wiki-sections {
   margin: 8px 0 4px;
-  max-height: 48vh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .wiki-heading {
@@ -2241,6 +2249,22 @@ mark.search-highlight {
 @media (max-width: 820px) {
   body {
     overflow: hidden;
+  }
+
+  /* Popup mobile : plus étroite que l'écran, corps plus court (la carte
+     reste visible), croix de fermeture dimensionnée pouce */
+  .leaflet-popup-content {
+    width: min(285px, 82vw) !important;
+    margin: 14px;
+  }
+
+  .popup-body { max-height: 36vh; }
+
+  .leaflet-container a.leaflet-popup-close-button {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+    line-height: 32px;
   }
 
   .app {
