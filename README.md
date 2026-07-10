@@ -73,6 +73,10 @@ Pour les lieux de type **Village** ou **Point d'ancrage**, les popups affichent 
 - Hébergements · Restauration · Événements proches (rayon 15 km)
 - Cache 7 jours côté Supabase
 
+**Météo** ([Open-Meteo](https://open-meteo.com/), sans clé) — toutes les popups :
+- Prévisions 7 jours : icône, min/max, probabilité de pluie au survol
+- Cache session par zone de ~11 km
+
 ### Partage & collaboration
 - **Cartes partagées** — snapshot public via URL `?map=slug`
   - Inclut : pins, centre, zoom, fond de carte, filtres
@@ -248,6 +252,7 @@ La CI GitHub Actions rejoue lint + tests sur chaque push et pull request.
 | [Nominatim](https://nominatim.org/) | Géocodage (OpenStreetMap) |
 | [Overpass API](https://overpass-api.de/) | Recherche POI OpenStreetMap |
 | [Wikivoyage](https://fr.wikivoyage.org/) | Enrichissement popup ville (API MediaWiki) |
+| [Open-Meteo](https://open-meteo.com/) | Prévisions météo 7 jours dans les popups |
 | [DATAtourisme](https://datadocs.datatourisme.fr/) | POIs touristiques officiels français |
 | [Supabase](https://supabase.com/) | Base de données cloud + RLS + Edge Functions |
 | [IGN Géoportail](https://geoservices.ign.fr/) | Fond de carte topographique |

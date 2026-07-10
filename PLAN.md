@@ -162,8 +162,12 @@ Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
       Jour N avec distance/durée du jour, drag & drop inter-jours,
       optimisation par jour, partage ?rdays=).
       Validée en navigateur le 2026-07-10 ✅
-- [ ] **E2** — Météo outdoor : Open-Meteo (gratuit, sans clé) dans la
-      popup des pins — prévisions 7 jours, pertinent bivouac/via ferrata
+- [x] **E2** — Météo outdoor — `afcaebc` (weatherService : Open-Meteo
+      7 jours, codes WMO, cache par cellule 0.1°, 5 tests), `f0eb9c1`
+      (bande météo compacte dans toutes les popups de lieux, tooltip
+      pluie ≥ 30 %, silencieuse hors ligne).
+      ⚠ À valider en navigateur : ouvrir une popup → bande 7 jours
+      sous la catégorie ; deux pins proches = une seule requête (réseau)
 - [ ] **E3** — Temps réel : Supabase Realtime (`postgres_changes` sur
       `pins`) pour voir les pins des co-éditeurs sans recharger
 - [ ] **E4** — Import GPX (l'export existe déjà)
