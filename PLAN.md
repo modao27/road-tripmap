@@ -185,6 +185,33 @@ Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
       ⚠ À valider : importer un .gpx (ex. export de l'app elle-même) →
       tracé + waypoints visibles → ajouter un waypoint en pin
 
+## Phase F — UX des popups de pins (établie le 2026-07-10)
+
+Constat : 12 blocs empilés au même niveau (titre, catégorie, météo,
+chips, description, Wikivoyage, intérêt, conseil, ambiance,
+DATAtourisme, OSM, boutons), tout se charge à l'ouverture, pas de
+hauteur max globale, boutons d'édition surdimensionnés — illisible et
+inadapté au mobile. Principe : 3 niveaux de lecture (identifier/agir →
+comprendre → explorer), une seule action primaire.
+
+- [ ] **P1** — Restructurer la popup :
+      a. en-tête compact + « Ajouter à l'itinéraire » seule action
+         pleine largeur, Modifier/Supprimer/OSM en barre d'icônes de pied
+      b. description clampée (3-4 lignes, tap pour déplier) ;
+         Intérêt/Conseil/Ambiance regroupés dans un repli « En savoir plus »
+      c. Wikivoyage et « Aux alentours » en accordéons uniformes,
+         **fetch au dépliage** (économise 2 requêtes/popup) ; la météo
+         reste une bande d'une ligne toujours visible
+      d. gabarit : maxWidth ~320 px, hauteur max interne avec scroll,
+         typographie hiérarchisée
+- [ ] **P2** — Mobile : bottom sheet (pattern Google Maps) au tap sur un
+      pin (≤ 820 px) — aperçu ~35 % / plein ~85 %, poignée, swipe pour
+      fermer, carte visible ; même HTML que la popup (source unique)
+- [ ] **P3** — Polish : squelettes de chargement, micro-transitions
+
+Garde-fous : tests XSS de popupHtml maintenus verts, délégations
+data-* conservées, popup fonctionnelle à chaque commit.
+
 Dette technique au fil de l'eau :
 - [ ] Leaflet chargé à la demande (index.html le charge même pour le
       dashboard) — à déplacer dans `ensureMapAssets`
