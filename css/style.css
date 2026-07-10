@@ -618,6 +618,11 @@ h1 {
   line-height: 1.2;
 }
 
+/* En-tête compact (P1) */
+.popup-hd { margin-bottom: 6px; }
+.popup-hd h2 { margin: 0 0 6px; font-size: 1.02rem; }
+.popup-hd .popup-category { margin-bottom: 0; }
+
 .popup-category {
   display: inline-flex;
   align-items: center;
@@ -669,6 +674,15 @@ h1 {
   line-height: 1.45;
 }
 
+/* Description longue : clampée, tap pour déplier (data-desc-toggle) */
+.popup-desc-text.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.popup-desc-text[data-desc-toggle] { cursor: pointer; }
+
 .popup-vf-link {
   display: flex;
   margin-bottom: 4px;
@@ -705,6 +719,70 @@ h1 {
   color: var(--muted);
   font-style: italic;
 }
+
+/* Replis uniformes de la popup (En savoir plus, Wikivoyage, Alentours) */
+.popup-fold {
+  margin: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.popup-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--forest-dark);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.popup-fold > summary::-webkit-details-marker { display: none; }
+
+.popup-fold > summary::after {
+  content: '▾';
+  margin-left: auto;
+  color: var(--muted);
+  transition: transform 150ms ease;
+}
+
+.popup-fold[open] > summary::after { transform: rotate(180deg); }
+
+.popup-fold-body { padding: 0 10px 8px; }
+
+/* Pied de popup : actions secondaires en icônes */
+.popup-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.popup-foot-spacer { flex: 1; }
+
+.popup-foot-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--forest-dark);
+  font-size: 0.85rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.popup-foot-btn:hover { background: rgba(31, 95, 67, 0.1); }
+.popup-foot-btn--danger:hover { background: rgba(139, 30, 30, 0.14); }
 
 /* ── Wikivoyage — accordion sections ─────────────────────────────────── */
 /* ── Météo 7 jours (popup) ──────────────────────────────────────────── */
@@ -1274,55 +1352,22 @@ body.resizing {
   justify-content: flex-end;
 }
 
-.popup-user-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.popup-edit,
+/* Actions du pin : barre d'icônes .popup-foot (P1). .popup-delete reste
+   utilisé par la popup GPX (bouton « Retirer la trace »). */
 .popup-delete {
-  flex: 1;
   padding: 6px 10px;
+  border: 1px solid rgba(139, 30, 30, 0.25);
   border-radius: 7px;
+  background: rgba(139, 30, 30, 0.06);
+  color: #8b1e1e;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   text-align: center;
-}
-
-.popup-edit {
-  border: 1px solid rgba(31, 95, 67, 0.28);
-  background: rgba(31, 95, 67, 0.07);
-  color: var(--forest-dark);
-}
-
-.popup-edit:hover { background: rgba(31, 95, 67, 0.14); }
-
-.popup-delete {
-  border: 1px solid rgba(139, 30, 30, 0.25);
-  background: rgba(139, 30, 30, 0.06);
-  color: #8b1e1e;
 }
 
 .popup-delete:hover { background: rgba(139, 30, 30, 0.14); }
-
-.popup-reset {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid rgba(28, 37, 32, 0.18);
-  border-radius: 7px;
-  background: rgba(28, 37, 32, 0.05);
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  text-align: center;
-}
-
-.popup-reset:hover { background: rgba(28, 37, 32, 0.1); color: var(--ink); }
 
 .place-card.user-pin {
   border-left-style: dashed;

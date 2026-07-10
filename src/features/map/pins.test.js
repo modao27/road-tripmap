@@ -36,6 +36,29 @@ describe('popupHtml (legacy)', () => {
     expect(html).not.toContain('onmouseover="alert');
   });
 
+  it('structure P1 : action itinéraire unique + actions secondaires en pied', () => {
+    const place = {
+      id: 'x', name: 'X', category: 'water', lat: 1, lng: 1,
+      interest: 'Vaut le détour', tip: 'Y aller tôt', userCreated: true,
+    };
+    const html = popupHtml(place, categories, {});
+    expect(html).toContain('popup-add-route');
+    expect(html).toContain('popup-foot');
+    expect(html).toContain('data-edit-id="x"');
+    expect(html).toContain('data-delete-id="x"');
+    // Intérêt / conseil regroupés dans le repli « En savoir plus »
+    expect(html).toContain('En savoir plus');
+    expect(html).toContain('Vaut le détour');
+  });
+
+  it('clampe les descriptions longues (tap pour déplier)', () => {
+    const long  = { id: 'x', name: 'X', category: 'water', lat: 1, lng: 1,
+                    description: 'mot '.repeat(80), userCreated: true };
+    const short = { ...long, description: 'Courte description.' };
+    expect(popupHtml(long,  categories, {})).toContain('data-desc-toggle');
+    expect(popupHtml(short, categories, {})).not.toContain('data-desc-toggle');
+  });
+
   it("bloque les URLs de fiche non http(s)", () => {
     const place = {
       id: 'x', name: 'X', category: 'water', lat: 1, lng: 1,

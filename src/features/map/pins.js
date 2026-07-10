@@ -30,7 +30,13 @@ function renderDescription(desc) {
   }
 
   let out = chipsHtml;
-  if (textLines.length) out += `<p class="popup-desc-text">${textLines.map(esc).join(' ')}</p>`;
+  if (textLines.length) {
+    const joined = textLines.map(esc).join(' ');
+    // Long texte : clampé à 4 lignes, tap pour déplier (délégation data-desc-toggle)
+    out += joined.length > 220
+      ? `<p class="popup-desc-text is-clamped" data-desc-toggle title="Afficher plus / moins">${joined}</p>`
+      : `<p class="popup-desc-text">${joined}</p>`;
+  }
   const vfHref = safeUrl(vfUrl);
   if (vfHref) out += `<a class="osm-link popup-vf-link" href="${vfHref}" target="_blank" rel="noopener">📋 Fiche complète — viaferrata-fr.net</a>`;
   return out;
@@ -46,37 +52,52 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
   const lat = esc(place.lat);
   const lng = esc(place.lng);
 
-  const actions = `<div class="popup-user-actions">
-      <button class="popup-edit"   data-edit-id="${id}"   type="button">Modifier</button>
-      ${place.userCreated
-        ? `<button class="popup-delete" data-delete-id="${id}" type="button">Supprimer</button>`
-        : isOverridden
-          ? `<button class="popup-reset"  data-reset-id="${id}"  type="button">Réinitialiser</button>`
-          : ''}
-    </div>`;
+  const hasCoords     = !!(place.lat && place.lng);
+  const isEnrichable  = (place.category === 'village' || place.category === 'base') && hasCoords;
+
+  // Niveau « comprendre » : intérêt / conseil / ambiance regroupés en un repli
+  const extras = [
+    place.interest ? `<div class="popup-section"><p class="popup-section-label">Intérêt</p><p class="popup-section-body">${esc(place.interest)}</p></div>` : '',
+    place.tip      ? `<div class="popup-section"><p class="popup-section-label">Conseil</p><p class="popup-section-body">${esc(place.tip)}</p></div>`      : '',
+    place.mood     ? `<p class="popup-mood">${esc(place.mood)}</p>`                                                                                        : '',
+  ].join('');
 
   return `
     <article class="popup" style="--color:${category.color}">
-      <h2>${esc(place.name)}</h2>
-      <div class="popup-category"><span>${category.icon}</span>${category.label}</div>
-      ${place.lat && place.lng
-        ? `<div class="wx-strip" data-wx-lat="${lat}" data-wx-lng="${lng}" aria-label="Météo 7 jours"></div>`
-        : ''}
-      ${renderDescription(place.description)}
-      ${(place.category === 'village' || place.category === 'base') && place.lat && place.lng
-        ? `<div class="wiki-enriched" data-wiki-lat="${lat}" data-wiki-lng="${lng}"><p class="wiki-loading">⟳ Wikivoyage…</p></div>`
-        : ''}
-      ${place.interest ? `<div class="popup-section"><p class="popup-section-label">Intérêt</p><p class="popup-section-body">${esc(place.interest)}</p></div>` : ''}
-      ${place.tip      ? `<div class="popup-section"><p class="popup-section-label">Conseil</p><p class="popup-section-body">${esc(place.tip)}</p></div>`      : ''}
-      ${place.mood     ? `<p class="popup-mood">${esc(place.mood)}</p>`                                                                                          : ''}
-      ${(place.category === 'village' || place.category === 'base') && place.lat && place.lng
-        ? `<div class="dt-nearby" data-dt-lat="${lat}" data-dt-lng="${lng}"><p class="dt-loading">⟳ Infos touristiques…</p></div>`
-        : ''}
-      <a class="osm-link" href="${esc(openInOSM(place.lat, place.lng))}" target="_blank" rel="noopener">Voir sur OpenStreetMap</a>
+      <header class="popup-hd">
+        <h2>${esc(place.name)}</h2>
+        <div class="popup-category"><span>${category.icon}</span>${category.label}</div>
+      </header>
+      <div class="popup-body">
+        ${hasCoords
+          ? `<div class="wx-strip" data-wx-lat="${lat}" data-wx-lng="${lng}" aria-label="Météo 7 jours"></div>`
+          : ''}
+        ${renderDescription(place.description)}
+        ${extras
+          ? `<details class="popup-fold">
+              <summary>ℹ️ En savoir plus</summary>
+              <div class="popup-fold-body">${extras}</div>
+            </details>`
+          : ''}
+        ${isEnrichable
+          ? `<div class="wiki-enriched" data-wiki-lat="${lat}" data-wiki-lng="${lng}"><p class="wiki-loading">⟳ Wikivoyage…</p></div>
+             <div class="dt-nearby" data-dt-lat="${lat}" data-dt-lng="${lng}"><p class="dt-loading">⟳ Infos touristiques…</p></div>`
+          : ''}
+      </div>
       <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${id}" type="button">
         ${isInRoute ? "✓ Dans l'itinéraire" : "➕ Ajouter à l'itinéraire"}
       </button>
-      ${actions}
+      <footer class="popup-foot">
+        <a class="popup-foot-btn" href="${esc(openInOSM(place.lat, place.lng))}" target="_blank"
+           rel="noopener" title="Voir sur OpenStreetMap" aria-label="Voir sur OpenStreetMap">🌍</a>
+        <span class="popup-foot-spacer"></span>
+        <button class="popup-foot-btn" data-edit-id="${id}" type="button" title="Modifier" aria-label="Modifier">✏️</button>
+        ${place.userCreated
+          ? `<button class="popup-foot-btn popup-foot-btn--danger" data-delete-id="${id}" type="button" title="Supprimer" aria-label="Supprimer">🗑️</button>`
+          : isOverridden
+            ? `<button class="popup-foot-btn" data-reset-id="${id}" type="button" title="Réinitialiser le lieu" aria-label="Réinitialiser">↺</button>`
+            : ''}
+      </footer>
     </article>
   `;
 }
@@ -394,6 +415,9 @@ export function initPins({
 
   // ── Popup action delegation ───────────────────────────────────────────────
   document.addEventListener('click', (e) => {
+    // Description clampée : tap pour déplier / replier
+    const desc = e.target.closest('[data-desc-toggle]');
+    if (desc) { desc.classList.toggle('is-clamped'); return; }
     const editBtn = e.target.closest('[data-edit-id]');
     if (editBtn) {
       const place = getAllPlaces().find(p => p.id === editBtn.dataset.editId);
