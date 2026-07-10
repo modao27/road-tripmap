@@ -707,6 +707,50 @@ h1 {
 }
 
 /* ── Wikivoyage — accordion sections ─────────────────────────────────── */
+/* ── Météo 7 jours (popup) ──────────────────────────────────────────── */
+.wx-strip {
+  display: flex;
+  gap: 2px;
+  margin: 2px 0 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.wx-strip:empty { display: none; }
+
+.wx-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 36px;
+  padding: 4px 2px;
+  border-radius: 8px;
+  cursor: default;
+}
+
+.wx-day:hover { background: rgba(31, 95, 67, 0.07); }
+
+.wx-dow {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.wx-ico { font-size: 0.95rem; line-height: 1.25; }
+
+.wx-t {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.wx-tmin { font-weight: 500; color: var(--muted); }
+
 .wiki-loading {
   margin: 6px 0 2px;
   font-size: 0.76rem;
@@ -2343,6 +2387,8 @@ mark.search-highlight {
 
   .route-day       { background: rgba(78, 168, 118, 0.12); }
   .route-day-empty { border-color: rgba(78, 168, 118, 0.3); }
+
+  .wx-day:hover { background: rgba(78, 168, 118, 0.12); }
 
   .place-route-add {
     background: rgba(255, 255, 255, 0.07);

@@ -21,6 +21,7 @@ import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
 import { initDatatourisme, initDtNearbyPopups } from './datatourisme.js';
 import { initWikivoyagePopups } from './wikivoyage.js';
+import { initWeatherPopups } from './weather.js';
 import { initOnboarding } from './onboarding.js';
 import { initDiscoverSourceSwitch } from './discover.js';
 
@@ -567,6 +568,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
   // ── DATAtourisme — hébergements, restaurants, événements à proximité ─────
   initDtNearbyPopups(map);
+
+  // ── Météo — prévisions 7 jours (Open-Meteo) dans toutes les popups ────────
+  initWeatherPopups(map);
 
   // ── Onboard : première ouverture d'un roadtrip vide ───────────────────────
   initOnboarding({

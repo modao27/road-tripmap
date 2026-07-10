@@ -59,6 +59,9 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
     <article class="popup" style="--color:${category.color}">
       <h2>${esc(place.name)}</h2>
       <div class="popup-category"><span>${category.icon}</span>${category.label}</div>
+      ${place.lat && place.lng
+        ? `<div class="wx-strip" data-wx-lat="${lat}" data-wx-lng="${lng}" aria-label="Météo 7 jours"></div>`
+        : ''}
       ${renderDescription(place.description)}
       ${(place.category === 'village' || place.category === 'base') && place.lat && place.lng
         ? `<div class="wiki-enriched" data-wiki-lat="${lat}" data-wiki-lng="${lng}"><p class="wiki-loading">⟳ Wikivoyage…</p></div>`

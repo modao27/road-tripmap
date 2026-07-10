@@ -35,7 +35,7 @@ const APP_SHELL = [
 const CDN_HOSTS  = ['unpkg.com', 'cdn.jsdelivr.net'];
 const TILE_HOSTS = ['tile.openstreetmap.org', 'data.geopf.fr', 'server.arcgisonline.com'];
 const DATA_HOSTS = ['supabase.co', 'nominatim.openstreetmap.org', 'overpass-api.de',
-                    'router.project-osrm.org', 'wikivoyage.org'];
+                    'router.project-osrm.org', 'wikivoyage.org', 'api.open-meteo.com'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
