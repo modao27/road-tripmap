@@ -30,6 +30,19 @@ export function getMapIdFromUrl() {
 
 // ── Vue carte (centre + zoom) ─────────────────────────────────────────────────
 
+// ── Cache hors-ligne des roadtrips ───────────────────────────────────────────
+// Miroir localStorage des pins + infos d'un roadtrip (par id) : la carte
+// reste consultable hors ligne (PWA). Supabase fait foi dès que le réseau
+// revient — le miroir est réécrit à chaque chargement réussi.
+
+export function loadRoadtripCache(roadtripId) {
+  return storageGet(`roadtripCache:${roadtripId}`, null);
+}
+
+export function saveRoadtripCache(roadtripId, { pins, info }) {
+  storageSet(`roadtripCache:${roadtripId}`, { pins, info, savedAt: Date.now() });
+}
+
 export function saveMapView(lat, lng, zoom) {
   storageSet('mapView', { lat, lng, zoom });
 }

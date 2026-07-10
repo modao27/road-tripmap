@@ -2,6 +2,7 @@ import { places as staticPlaces } from './places.js';
 import { categories } from '../../config/categories.js';
 import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
          getOrCreateMapId, isUUID,
+         loadRoadtripCache, saveRoadtripCache,
          saveMapView, loadMapView } from './storage.js';
 import { initMap, makeIcon, addMarker, focusPlace, renderMap, initLayerSwitcher } from './map.js';
 import { renderFilters, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
@@ -112,8 +113,25 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   let roadtripPinDays = [];
   let roadtripInfo    = null;
   if (!isSharedMap && mapParam && isUUID(mapParam)) {
+    let rawPins = null;
     try {
-      const rawPins = await fetchRoadtripPins(mapParam);
+      rawPins      = await fetchRoadtripPins(mapParam);
+      roadtripInfo = await fetchRoadtripInfo(mapParam);
+      // Miroir hors-ligne (PWA). Un résultat vide en anonyme peut n'être
+      // qu'un filtre RLS (session expirée) : ne pas écraser le miroir.
+      if (rawPins.length > 0 || getCurrentUserId()) {
+        saveRoadtripCache(mapParam, {
+          pins: rawPins,
+          info: roadtripInfo ?? loadRoadtripCache(mapParam)?.info ?? null,
+        });
+      }
+    } catch {
+      // Hors ligne ou non connecté : dernière consultation réussie
+      const cached = loadRoadtripCache(mapParam);
+      if (cached) { rawPins = cached.pins; roadtripInfo = cached.info; }
+    }
+
+    if (rawPins) {
       rawPins.forEach(pin => {
         userPlaces.push({
           id:           pin.id,
@@ -129,20 +147,16 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       });
       roadtripPinIds  = rawPins.map(p => p.id);
       roadtripPinDays = rawPins.map(p => p.day ?? 1); // colonne absente → Jour 1
+    }
 
-      // Met à jour le titre et mémorise les infos du roadtrip
-      roadtripInfo = await fetchRoadtripInfo(mapParam);
-      if (roadtripInfo?.title) {
-        document.title = roadtripInfo.title;
-        const h1 = document.querySelector('.sidebar-header-main h1');
-        if (h1) h1.textContent = roadtripInfo.title;
-        const eyebrow = document.querySelector('.eyebrow');
-        if (eyebrow) eyebrow.textContent = 'Road trip';
-        const intro = document.getElementById('sidebarIntro');
-        if (intro) intro.hidden = true;
-      }
-    } catch {
-      // Non connecté ou table inaccessible — fallback user_pins
+    if (roadtripInfo?.title) {
+      document.title = roadtripInfo.title;
+      const h1 = document.querySelector('.sidebar-header-main h1');
+      if (h1) h1.textContent = roadtripInfo.title;
+      const eyebrow = document.querySelector('.eyebrow');
+      if (eyebrow) eyebrow.textContent = 'Road trip';
+      const intro = document.getElementById('sidebarIntro');
+      if (intro) intro.hidden = true;
     }
   }
 
