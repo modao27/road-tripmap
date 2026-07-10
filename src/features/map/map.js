@@ -52,6 +52,38 @@ export function makeIcon(place, categories) {
   });
 }
 
+/**
+ * Garde la popup dans l'écran quand son contenu change de taille après
+ * l'ouverture (dépliage des <details>, description dépliée, enrichissements
+ * async) : Leaflet ne recalcule l'autoPan qu'à l'ouverture. Un
+ * ResizeObserver sur le contenu re-déclenche cadrage + recentrage.
+ */
+export function initPopupAutoPan(map) {
+  map.on('popupopen', (e) => {
+    const popup   = e.popup;
+    const content = popup.getElement()?.querySelector('.leaflet-popup-content');
+    if (!content) return;
+
+    let raf = null;
+    const observer = new ResizeObserver(() => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        // API interne Leaflet 1.x — popup.update() rechargerait le contenu
+        // (et perdrait l'état des replis), on ne rejoue que la géométrie.
+        popup._updateLayout?.();
+        popup._updatePosition?.();
+        popup._adjustPan?.();
+      });
+    });
+    observer.observe(content);
+    popup.once('remove', () => {
+      observer.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    });
+  });
+}
+
 export function addMarker(place, markers, popupHtmlFn, makeIconFn) {
   const marker = L.marker([place.lat, place.lng], {
     icon: makeIconFn(place),

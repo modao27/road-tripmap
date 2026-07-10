@@ -4,7 +4,8 @@ import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
          getOrCreateMapId, isUUID,
          loadRoadtripCache, saveRoadtripCache,
          saveMapView, loadMapView } from './storage.js';
-import { initMap, makeIcon, addMarker, focusPlace, renderMap, initLayerSwitcher } from './map.js';
+import { initMap, makeIcon, addMarker, focusPlace, renderMap,
+         initLayerSwitcher, initPopupAutoPan } from './map.js';
 import { renderFilters, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
 import { showToast, setSyncStatus, initSidebar, initResizer } from './ui.js';
 import { popupHtml, initPins } from './pins.js';
@@ -598,6 +599,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
   // ── Météo — prévisions 7 jours (Open-Meteo) dans toutes les popups ────────
   initWeatherPopups(map);
+
+  // ── La popup reste dans l'écran quand ses replis se déploient ─────────────
+  initPopupAutoPan(map);
 
   // ── Onboard : première ouverture d'un roadtrip vide ───────────────────────
   initOnboarding({
