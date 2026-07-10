@@ -69,6 +69,8 @@ export function initPopupAutoPan(map) {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = null;
+        // Dockée en bottom sheet (mobile) : le CSS positionne, rien à rejouer
+        if (popup.getElement()?.classList.contains('sheet-popup')) return;
         // API interne Leaflet 1.x — popup.update() rechargerait le contenu
         // (et perdrait l'état des replis), on ne rejoue que la géométrie.
         popup._updateLayout?.();

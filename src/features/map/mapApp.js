@@ -24,6 +24,7 @@ import { initOverpass } from './overpass.js';
 import { initDatatourisme, initDtNearbyPopups } from './datatourisme.js';
 import { initWikivoyagePopups } from './wikivoyage.js';
 import { initWeatherPopups } from './weather.js';
+import { initBottomSheet } from './bottomSheet.js';
 import { initRealtimePins } from './realtime.js';
 import { initOnboarding } from './onboarding.js';
 import { initDiscoverSourceSwitch } from './discover.js';
@@ -602,6 +603,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
   // ── La popup reste dans l'écran quand ses replis se déploient ─────────────
   initPopupAutoPan(map);
+
+  // ── Mobile : la popup devient un bottom sheet ──────────────────────────────
+  initBottomSheet(map);
 
   // ── Onboard : première ouverture d'un roadtrip vide ───────────────────────
   initOnboarding({
