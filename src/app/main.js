@@ -143,3 +143,12 @@ authStore.subscribe(({ user, loading, needsPasswordReset }) => {
     router.navigate('login');
   }
 });
+
+// ── Service worker (mode hors-ligne) ──────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Résolu contre l'URL de la page (sous-chemin GitHub Pages), pas le module
+    navigator.serviceWorker.register(new URL('sw.js', document.baseURI))
+      .catch(() => { /* contexte non sécurisé ou hors ligne au premier chargement */ });
+  });
+}
