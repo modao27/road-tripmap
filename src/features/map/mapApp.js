@@ -26,6 +26,7 @@ import { initWeatherPopups } from './weather.js';
 import { initRealtimePins } from './realtime.js';
 import { initOnboarding } from './onboarding.js';
 import { initDiscoverSourceSwitch } from './discover.js';
+import { initGpxImport } from './gpxImport.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 // Source unique : src/config/index.js (partagée avec la SPA)
@@ -478,6 +479,12 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
   // ── Switch source OSM / Tourisme officiel ─────────────────────────────────
   initDiscoverSourceSwitch({ overpassModule, dtModule });
+
+  // ── Import GPX (tracé + waypoints → pins) ─────────────────────────────────
+  initGpxImport({
+    map, toastWrap, showToastFn: showToast,
+    onAddToMap: data => pinsModule?.openForOverpass(data),
+  });
 
   // ── Itinéraire ────────────────────────────────────────────────────────────
   // Déclaré en let pour que onRefresh() y ait accès via la closure

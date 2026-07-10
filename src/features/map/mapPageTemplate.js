@@ -147,9 +147,13 @@ export const MAP_PAGE_HTML = `
                       title="Découper l'itinéraire en journées">📅 + Jour</button>
               <button class="secondary" id="routeOptimize" type="button">⚡ Optimiser</button>
               <button class="secondary" id="routeShare"    type="button">🔗 Partager</button>
-              <button class="secondary" id="routeGpx"      type="button">📥 GPX</button>
+              <button class="secondary" id="routeGpx"      type="button"
+                      title="Exporter l'itinéraire en GPX">📥 GPX</button>
+              <button class="secondary" id="routeGpxImport" type="button"
+                      title="Afficher un fichier GPX sur la carte">📂 Importer GPX</button>
               <button class="secondary" id="routeClear"    type="button">✕ Effacer</button>
             </div>
+            <input type="file" id="gpxFileInput" accept=".gpx,application/gpx+xml" hidden>
           </section>
         </div>
 

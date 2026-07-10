@@ -2006,6 +2006,13 @@ mark.search-highlight {
   margin-bottom: 4px;
 }
 
+/* Waypoints GPX importés */
+.gpx-wpt-icon {
+  font-size: 20px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(20, 36, 28, 0.4));
+}
+
 /* Marqueur numéroté sur la carte */
 .route-step-icon {
   display: grid;
