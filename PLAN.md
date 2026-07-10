@@ -205,9 +205,15 @@ comprendre → explorer), une seule action primaire.
       ⚠ À valider : popup d'une via ferrata enrichie (chips + desc
       longue clampée), d'un village (replis wiki/alentours au clic),
       actions ✏️🗑, et le tout sur mobile
-- [ ] **P2** — Mobile : bottom sheet (pattern Google Maps) au tap sur un
-      pin (≤ 820 px) — aperçu ~35 % / plein ~85 %, poignée, swipe pour
-      fermer, carte visible ; même HTML que la popup (source unique)
+- [x] **P2** — Mobile : bottom sheet — `a94b0d1` (popup Leaflet
+      reparentée et dockée en bas via .sheet-popup, poignée, swipe
+      bas = réduire/fermer, swipe haut ou tap = étendre 32vh → 64vh ;
+      même contenu et câblage, desktop inchangé). Corrections P1 au
+      passage : `b67096a` (ResizeObserver — la popup ne sort plus de
+      l'écran au dépliage des replis), `897f4c9` (variantes sombres
+      des nouveaux blocs).
+      ⚠ À valider sur téléphone (ou F12 responsive + touch) : tap pin →
+      sheet en bas, poignée, swipe, replis, fermeture au tap carte
 - [ ] **P3** — Polish : squelettes de chargement, micro-transitions
 
 Garde-fous : tests XSS de popupHtml maintenus verts, délégations
