@@ -75,6 +75,13 @@ onAuthChange(async (user, event) => {
   setState({ user, loading: false, error: null });
 });
 
+// Hors ligne, le refresh du JWT peut retarder INITIAL_SESSION de ~10 s
+// (retries avec backoff) : au-delà du plafond on rend l'app en anonyme,
+// l'événement re-déclenchera les subscribers quand la session arrivera.
+setTimeout(() => {
+  if (state.loading) setState({ loading: false });
+}, 3500);
+
 // ── API publique ──────────────────────────────────────────────────────────────
 
 export const authStore = {
