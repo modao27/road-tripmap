@@ -85,12 +85,16 @@ function readStoredUser() {
 }
 
 // Hors ligne, le refresh du JWT peut retarder INITIAL_SESSION de ~10 s
-// (retries avec backoff) : au-delà du plafond on rend l'app avec
-// l'utilisateur stocké (optimiste — RLS protège de toute façon les
-// données), et l'événement re-déclenchera les subscribers à l'arrivée
-// réelle de la session. Sans session stockée : anonyme.
+// (retries avec backoff) : au-delà du plafond on débloque l'app.
+// - hors ligne : utilisateur lu depuis la session stockée (optimiste —
+//   impossible de se reconnecter sans réseau, RLS protège côté serveur)
+// - en ligne : anonyme — une session lente/morte doit mener à la page de
+//   connexion, pas à une session fantôme qui ne voit que les données
+//   publiques. Si la session arrive après, l'événement re-déclenche les
+//   subscribers et l'app revient connectée.
 setTimeout(() => {
-  if (state.loading) setState({ user: readStoredUser(), loading: false });
+  if (!state.loading) return;
+  setState({ user: navigator.onLine ? null : readStoredUser(), loading: false });
 }, 3500);
 
 // ── API publique ──────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@
  *
  * Incrémenter VERSION invalide tous les caches à l'activation.
  */
-const VERSION    = 'v1';
+const VERSION    = 'v2'; // v2 : purge les caches de la transition sessionStorage → localStorage
 const APP_CACHE  = `app-${VERSION}`;
 const CDN_CACHE  = `cdn-${VERSION}`;
 const TILE_CACHE = `tiles-${VERSION}`;
