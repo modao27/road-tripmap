@@ -175,9 +175,8 @@ Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
       (abonnement par roadtrip, insert/update/delete des co-équipiers
       appliqués à la carte et à l'itinéraire sans recharger, anti-boucle
       sur les échos de nos propres écritures, désabonnement au démontage).
-      ⚠ À valider : le même roadtrip dans 2 onglets (ou 2 comptes) —
-      ajouter/déplacer/supprimer un pin d'un côté → l'autre suit, toasts
-      à l'appui. Vérifier aussi le run CI Migrations (019) après push
+      Validée le 2026-07-10 ✅ (2 onglets, migration 019 déployée par
+      la CI au premier push)
 - [x] **E4** — Import GPX — `8456c68` (gpxService : parsing pur GPX
       1.0/1.1, waypoints + tracé + longueur, 6 tests), `92bdd0e`
       (bouton 📂 dans l'onglet Road Trip : tracé pointillé violet sur
