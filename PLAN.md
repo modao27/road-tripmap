@@ -133,9 +133,15 @@ Pistes identifiées après clôture de l'audit, par ordre de valeur/effort.
       ⚠ À valider en navigateur : aller-retours dashboard ↔ carte ↔
       roadtrip, pas de doublons (popups, toasts, Ctrl+F, Escape),
       scroll du dashboard intact après visite de la carte
-- [ ] **D3** — Mode hors-ligne (PWA) : service worker, cache des tuiles
-      consultées, pins disponibles en local — le gain d'usage terrain le
-      plus concret. Chantier conséquent
+- [x] **D3** — Mode hors-ligne (PWA) — `8aee7de` (manifest + icônes
+      192/512, app installable), `871a145` (service worker : app shell
+      et CDN en stale-while-revalidate, tuiles cache-first plafonné à
+      800 entrées, API données jamais interceptées).
+      Hors ligne : l'app s'ouvre, les zones de carte consultées
+      s'affichent, les pins viennent du repli localStorage existant.
+      ⚠ À valider en navigateur (après push, sur le site Pages) :
+      installer l'app, couper le réseau (DevTools → Network → Offline),
+      recharger → l'app et les tuiles déjà vues doivent s'afficher
 - [x] **D4** — Étendre la couverture de tests DOM (happy-dom) : 76 tests.
       `0d82d56` (filters.js : pills/légende/liste, tri, highlight,
       XSS coupé par le highlight), `a310a84` (ui.js : toasts, sync,
@@ -155,8 +161,7 @@ Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
       persiste la journée), `0c11111` (UI : bouton 📅 + Jour, en-têtes
       Jour N avec distance/durée du jour, drag & drop inter-jours,
       optimisation par jour, partage ?rdays=).
-      ⚠ À valider en navigateur : + Jour → glisser des étapes entre
-      jours → recharger (persistance) → optimiser → partager le lien
+      Validée en navigateur le 2026-07-10 ✅
 - [ ] **E2** — Météo outdoor : Open-Meteo (gratuit, sans clé) dans la
       popup des pins — prévisions 7 jours, pertinent bivouac/via ferrata
 - [ ] **E3** — Temps réel : Supabase Realtime (`postgres_changes` sur

@@ -79,6 +79,15 @@ Pour les lieux de type **Village** ou **Point d'ancrage**, les popups affichent 
 - Confirmation avant chargement si données locales existantes
 - Bannière "Carte partagée chargée"
 
+### PWA & hors-ligne
+- **Installable** (manifest + icônes) — l'app s'ajoute à l'écran d'accueil
+- **Service worker** : l'app et les zones de carte déjà consultées restent
+  disponibles sans réseau (tuiles en cache, plafonné) ; les données
+  Supabase gardent leur repli localStorage
+- Après un déploiement, le nouveau code apparaît au rechargement suivant
+  (stale-while-revalidate). En dev : DevTools → Application →
+  Service workers → cocher *Update on reload*
+
 ### UX & accessibilité
 - **Dark mode** natif (`prefers-color-scheme: dark`)
 - Cross-highlight sidebar ↔ carte au survol
