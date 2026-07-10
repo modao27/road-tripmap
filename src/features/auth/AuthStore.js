@@ -1,10 +1,9 @@
 /**
  * @fileoverview Store auth — état singleton de la session utilisateur.
  *
- * Supabase est configuré avec storage: sessionStorage (supabaseClient.js).
- * sessionStorage persiste dans le même onglet à travers les navigations
- * (index.html ↔ map.html) → INITIAL_SESSION reçoit l'utilisateur directement,
- * sans mécanisme de backup/restore manuel.
+ * Supabase persiste la session en localStorage (supabaseClient.js) :
+ * INITIAL_SESSION reçoit l'utilisateur directement, y compris après un
+ * redémarrage de l'app (PWA hors ligne).
  *
  * @typedef {import('@supabase/supabase-js').User}        User
  * @typedef {import('./profileService.js').UserProfile}   UserProfile
@@ -75,11 +74,23 @@ onAuthChange(async (user, event) => {
   setState({ user, loading: false, error: null });
 });
 
+// Session stockée, lue en direct (sans validation réseau) — pour ne pas
+// bloquer l'app quand le refresh JWT est impossible (hors ligne).
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('rta-session'))?.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Hors ligne, le refresh du JWT peut retarder INITIAL_SESSION de ~10 s
-// (retries avec backoff) : au-delà du plafond on rend l'app en anonyme,
-// l'événement re-déclenchera les subscribers quand la session arrivera.
+// (retries avec backoff) : au-delà du plafond on rend l'app avec
+// l'utilisateur stocké (optimiste — RLS protège de toute façon les
+// données), et l'événement re-déclenchera les subscribers à l'arrivée
+// réelle de la session. Sans session stockée : anonyme.
 setTimeout(() => {
-  if (state.loading) setState({ loading: false });
+  if (state.loading) setState({ user: readStoredUser(), loading: false });
 }, 3500);
 
 // ── API publique ──────────────────────────────────────────────────────────────

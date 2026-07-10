@@ -1,11 +1,10 @@
 /**
  * @fileoverview Client Supabase singleton du SPA.
  *
- * Utilise sessionStorage (via l'option storage) plutôt que localStorage
- * pour persister la session. Avantages :
- * - Le build UMD ne persiste pas en localStorage de façon fiable
- * - sessionStorage survit aux navigations dans le même onglet (index ↔ map)
- * - Isolation totale du client map.html (persistSession: false)
+ * Session persistée en localStorage : indispensable depuis le mode
+ * hors-ligne (PWA) — la session doit survivre à la fermeture de l'app,
+ * on ne peut pas se reconnecter sans réseau. (L'ancien sessionStorage
+ * datait du pont index.html ↔ map.html, disparu avec la fusion SPA.)
  */
 
 // Source unique des credentials — exportés pour les URLs d'Edge Functions
@@ -25,8 +24,8 @@ const { createClient } = window.supabase;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage:          window.sessionStorage, // persiste dans le même onglet, survit aux navigations
-    storageKey:       'rta-session',         // clé isolée, jamais touchée par map.html
+    storage:          window.localStorage, // survit aux redémarrages (PWA hors ligne)
+    storageKey:       'rta-session',
     persistSession:   true,
     autoRefreshToken: true,
   },
