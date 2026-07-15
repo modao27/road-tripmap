@@ -15,6 +15,7 @@ import { supabase }                             from '../../shared/lib/supabaseC
 import { storageGet, storageSet } from '../../shared/utils/storage.js';
 import { createRoadtripPin, deletePinRemote } from '../pins/pinService.js';
 import { loadUserPins, saveUserPins, getOrCreateMapId } from '../map/storage.js';
+import { appBaseUrl } from '../../shared/utils/url.js';
 
 const LOCAL_KEY = 'roadtrips';
 
@@ -343,7 +344,7 @@ export async function sendInvitationEmail(roadtripId, email, role = 'editor') {
   if (insertErr) throw insertErr;
 
   // Envoie le magic link — l'invité sera redirigé vers l'app après inscription
-  const redirectTo = `${window.location.origin}/`;
+  const redirectTo = appBaseUrl(); // sous-chemin compris (GitHub Pages)
   const { error: otpErr } = await supabase.auth.signInWithOtp({
     email,
     options: { shouldCreateUser: true, emailRedirectTo: redirectTo },

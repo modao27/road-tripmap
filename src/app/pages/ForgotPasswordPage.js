@@ -1,7 +1,7 @@
 /**
  * @fileoverview Page "Mot de passe oublié".
  * Envoie un email de réinitialisation via Supabase.
- * L'URL de redirection (window.location.origin + '/') doit être
+ * L'URL de redirection (appBaseUrl() — sous-chemin compris) doit être
  * whitelistée dans Supabase → Authentication → URL Configuration.
  */
 

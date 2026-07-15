@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '../../shared/lib/supabaseClient.js';
+import { appBaseUrl } from '../../shared/utils/url.js';
 
 /**
  * @typedef {Object} AuthResult
@@ -87,7 +88,7 @@ export async function getSession() {
  * @returns {Promise<{ error: string|null }>}
  */
 export async function resetPasswordForEmail(email) {
-  const redirectTo = window.location.origin + '/';
+  const redirectTo = appBaseUrl(); // sous-chemin compris (GitHub Pages)
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
   if (error) return { error: localizeError(error.message) };
   return { error: null };
