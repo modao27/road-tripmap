@@ -1,5 +1,7 @@
 # Road trip outdoor
 
+**➡ https://my-roadtrip-map.fr** — installable comme app (PWA), utilisable hors ligne.
+
 Application web de planification de road trip outdoor. La carte agrège plusieurs sources de données en temps réel — OpenStreetMap, données touristiques officielles françaises (DATAtourisme), Wikivoyage — et les enrichit à la volée pour donner un aperçu complet d'une zone avant d'y aller.
 
 Trois modes de travail dans la même interface :
