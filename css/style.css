@@ -730,6 +730,55 @@ h1 {
   font-style: italic;
 }
 
+/* Squelettes de chargement (P3) — replis et météo */
+.popup-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 0 4px;
+}
+
+.popup-skel span,
+.wx-skel {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    rgba(28, 37, 32, 0.07) 25%,
+    rgba(28, 37, 32, 0.14) 50%,
+    rgba(28, 37, 32, 0.07) 75%);
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.1s linear infinite;
+}
+
+.popup-skel span                { height: 10px; }
+.popup-skel span:nth-child(2)   { width: 85%; }
+.popup-skel span:nth-child(3)   { width: 60%; }
+
+.wx-skel {
+  width: 36px;
+  min-width: 36px;
+  height: 48px;
+  border-radius: 8px;
+}
+
+@keyframes skel-shimmer {
+  to { background-position: -200% 0; }
+}
+
+/* Micro-transitions (P3) */
+.popup-fold[open] > .popup-fold-body {
+  animation: fold-in 160ms ease;
+}
+
+@keyframes fold-in {
+  from { opacity: 0; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-skel span, .wx-skel,
+  .popup-fold[open] > .popup-fold-body { animation: none; }
+}
+
 /* Replis uniformes de la popup (En savoir plus, Wikivoyage, Alentours) */
 .popup-fold {
   margin: 8px 0;
@@ -2501,6 +2550,14 @@ mark.search-highlight {
   }
 
   .popup-desc-text, .popup-section-body { color: #b8cec0; }
+
+  .popup-skel span, .wx-skel {
+    background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.06) 25%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.06) 75%);
+    background-size: 200% 100%;
+  }
 }
 
 /* ── Bottom sheet mobile (F-P2) ──────────────────────────────────────────────
@@ -2521,6 +2578,17 @@ mark.search-highlight {
 .sheet-popup .leaflet-popup-content-wrapper {
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -14px 44px rgba(20, 36, 28, 0.32);
+  /* Glisse depuis le bas à l'ouverture (le conteneur porte un
+     transform:none !important — on anime donc le wrapper) */
+  animation: sheet-up 220ms ease;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(28px); opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-popup .leaflet-popup-content-wrapper { animation: none; }
 }
 
 .sheet-popup .leaflet-popup-content {

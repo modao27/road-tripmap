@@ -7,6 +7,9 @@ function openInOSM(lat, lng, zoom = 14) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
 }
 
+// Squelette de chargement des replis (remplacé par le contenu fetché)
+const SKELETON = `<div class="popup-skel" aria-hidden="true"><span></span><span></span><span></span></div>`;
+
 // Rendu de la description : chips emojis, URL fiche, texte libre
 function renderDescription(desc) {
   if (!desc) return '';
@@ -70,7 +73,9 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
       </header>
       <div class="popup-body">
         ${hasCoords
-          ? `<div class="wx-strip" data-wx-lat="${lat}" data-wx-lng="${lng}" aria-label="Météo 7 jours"></div>`
+          ? `<div class="wx-strip" data-wx-lat="${lat}" data-wx-lng="${lng}" aria-label="Météo 7 jours">${
+              '<span class="wx-skel" aria-hidden="true"></span>'.repeat(7)
+            }</div>`
           : ''}
         ${renderDescription(place.description)}
         ${extras
@@ -82,11 +87,11 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
         ${isEnrichable
           ? `<details class="popup-fold wiki-enriched" data-wiki-lat="${lat}" data-wiki-lng="${lng}">
                <summary>📖 Wikivoyage</summary>
-               <div class="popup-fold-body"><p class="wiki-loading">⟳ Chargement…</p></div>
+               <div class="popup-fold-body">${SKELETON}</div>
              </details>
              <details class="popup-fold dt-nearby" data-dt-lat="${lat}" data-dt-lng="${lng}">
                <summary>🏕 Aux alentours</summary>
-               <div class="popup-fold-body"><p class="dt-loading">⟳ Chargement…</p></div>
+               <div class="popup-fold-body">${SKELETON}</div>
              </details>`
           : ''}
       </div>
