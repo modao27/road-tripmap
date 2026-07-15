@@ -268,11 +268,23 @@ push et pull request ; les erreurs front remontent dans la table
 
 ---
 
-## Déploiement sur GitHub Pages
+## Déploiement — GitHub Pages + domaine
 
 **Settings** → **Pages** → Source : `main` / `/ (root)` → Save.
 
-Le site sera disponible sur `https://ton-pseudo.github.io/road-trip-jura/`.
+L'app est servie sur **https://my-roadtrip-map.fr** (fichier `CNAME` à la
+racine ; l'URL `modao27.github.io/road-tripmap` redirige automatiquement).
+
+DNS chez le registrar :
+
+| Type | Nom | Valeur |
+|---|---|---|
+| A | `@` | `185.199.108.153` · `185.199.109.153` · `185.199.110.153` · `185.199.111.153` |
+| CNAME | `www` | `modao27.github.io` |
+
+Puis **Enforce HTTPS** dans Settings → Pages (certificat automatique), et
+déclarer le domaine dans **Supabase → Authentication → URL Configuration**
+(Site URL + Redirect URLs) pour les emails d'auth.
 
 > GitHub Pages sert les fichiers via HTTPS — les ES modules fonctionnent sans serveur local.
 > Les Edge Functions Supabase continuent de tourner indépendamment.
