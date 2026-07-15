@@ -19,7 +19,16 @@
 
 import { MAP_PAGE_HTML } from '../../features/map/mapPageTemplate.js';
 
-// Mêmes versions + hash SRI que map.html
+// Versions épinglées + hash SRI (Leaflet était dans index.html avant
+// d'être chargé ici à la demande — mêmes URLs, mêmes hash)
+const LEAFLET_JS = {
+  url:       'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  integrity: 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH',
+};
+const LEAFLET_CSS = {
+  url:       'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  integrity: 'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H',
+};
 const MARKERCLUSTER_JS = {
   url:       'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
   integrity: 'sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr',
@@ -60,13 +69,15 @@ let assetsPromise = null;
 // (body { overflow: hidden }, fond) qui casseraient les autres pages.
 let mapCssLink = null;
 
-/** Charge style.css + markercluster (une seule fois par document). */
+/** Charge Leaflet + markercluster + style.css (une seule fois par document). */
 function ensureMapAssets() {
   assetsPromise ??= Promise.all([
     loadCss('css/style.css').then(link => { mapCssLink = link; }),
+    loadCss(LEAFLET_CSS.url, LEAFLET_CSS.integrity),
     loadCss(MARKERCLUSTER_CSS.url, MARKERCLUSTER_CSS.integrity),
-    // markercluster étend window.L — Leaflet est chargé par index.html
-    loadScript(MARKERCLUSTER_JS.url, MARKERCLUSTER_JS.integrity),
+    // markercluster étend window.L — chargement séquentiel obligatoire
+    loadScript(LEAFLET_JS.url, LEAFLET_JS.integrity)
+      .then(() => loadScript(MARKERCLUSTER_JS.url, MARKERCLUSTER_JS.integrity)),
   ]);
   return assetsPromise;
 }
