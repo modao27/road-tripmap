@@ -182,8 +182,7 @@ Ordre retenu : **E1 → D3 (PWA) → E2**, le reste au fil de l'eau.
       (bouton 📂 dans l'onglet Road Trip : tracé pointillé violet sur
       couche dédiée, waypoints → « Ajouter à ma carte », fitBounds,
       toast récapitulatif).
-      ⚠ À valider : importer un .gpx (ex. export de l'app elle-même) →
-      tracé + waypoints visibles → ajouter un waypoint en pin
+      Validée le 2026-07-10 ✅
 
 ## Phase F — UX des popups de pins (établie le 2026-07-10)
 
@@ -202,9 +201,7 @@ comprendre → explorer), une seule action primaire.
       2 requêtes économisées par popup non consultée), `6debfa8`
       (d : corps scrollable ≤ 46vh, mobile 82vw/36vh, croix 32px,
       double scroll wiki supprimé).
-      ⚠ À valider : popup d'une via ferrata enrichie (chips + desc
-      longue clampée), d'un village (replis wiki/alentours au clic),
-      actions ✏️🗑, et le tout sur mobile
+      Validée le 2026-07-10 ✅ (desktop + mobile, mode sombre compris)
 - [x] **P2** — Mobile : bottom sheet — `a94b0d1` (popup Leaflet
       reparentée et dockée en bas via .sheet-popup, poignée, swipe
       bas = réduire/fermer, swipe haut ou tap = étendre 32vh → 64vh ;
@@ -212,8 +209,7 @@ comprendre → explorer), une seule action primaire.
       passage : `b67096a` (ResizeObserver — la popup ne sort plus de
       l'écran au dépliage des replis), `897f4c9` (variantes sombres
       des nouveaux blocs).
-      ⚠ À valider sur téléphone (ou F12 responsive + touch) : tap pin →
-      sheet en bas, poignée, swipe, replis, fermeture au tap carte
+      Validée le 2026-07-10 ✅
 - [ ] **P3** — Polish : squelettes de chargement, micro-transitions
 
 Garde-fous : tests XSS de popupHtml maintenus verts, délégations
