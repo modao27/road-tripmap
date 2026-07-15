@@ -233,9 +233,10 @@ Dette technique au fil de l'eau :
       `npx supabase functions deploy <nom>`
 - [x] Purge pg_cron vérifiée — `cron.job_run_details` : status
       `succeeded` ✅. **Le plan est intégralement soldé.**
-- [ ] Créer les 2 secrets GitHub du workflow migrations
-      (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) — l'historique
-      CLI est déjà synchronisé (001→018), `db push` no-op vérifié
+- [x] Créer les 2 secrets GitHub du workflow migrations
+      (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) — faits le
+      2026-07-09, validés par les runs Migrations verts (019 déployée
+      par la CI)
 
 ## Ordre recommandé
 
