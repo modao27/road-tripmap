@@ -210,18 +210,31 @@ comprendre → explorer), une seule action primaire.
       l'écran au dépliage des replis), `897f4c9` (variantes sombres
       des nouveaux blocs).
       Validée le 2026-07-10 ✅
-- [ ] **P3** — Polish : squelettes de chargement, micro-transitions
+- [x] **P3** — Polish — `53ffeab` (squelettes shimmer dans les replis
+      et la bande météo — plus de saut de mise en page —, fold-in au
+      dépliage, sheet-up à l'ouverture du bottom sheet,
+      prefers-reduced-motion respecté)
 
 Garde-fous : tests XSS de popupHtml maintenus verts, délégations
 data-* conservées, popup fonctionnelle à chaque commit.
 
 Dette technique au fil de l'eau :
-- [ ] Leaflet chargé à la demande (index.html le charge même pour le
-      dashboard) — à déplacer dans `ensureMapAssets`
-- [ ] Convertir la carte libre (`user_pins`/localStorage) en roadtrip à
-      la connexion — réconcilier les deux modèles de pins
-- [ ] Tests E2E Playwright (login → roadtrip → pin → partage)
-- [ ] Remonter les erreurs front (table Supabase ou Sentry)
+- [x] Leaflet chargé à la demande — `43c6518` (rejoint markercluster
+      dans ensureMapAssets ; le dashboard ne paie plus ~150 Ko de carte)
+- [x] Convertir la carte libre en roadtrip — `cf5afa4` (bannière
+      dashboard quand des pins de carte libre existent ; import ordonné,
+      intérêt/conseil/ambiance repliés dans la description, purge de
+      l'ancien modèle après conversion, « Ignorer » mémorisé)
+- [x] Tests E2E Playwright — `7bd65f8` (3 smoke publics : accueil,
+      carte libre complète, inscription ; job e2e dans la CI ;
+      `93955ac` : bug du badge itinéraire trouvé par le premier run).
+      Extension possible : parcours authentifié (compte de test en
+      secret CI)
+- [x] Remonter les erreurs front — `6aedfdf` (migration 020 :
+      table client_errors insert-only + purge 30 j intégrée au cron ;
+      errorReporter : max 5/session, dédoublonné, silencieux).
+      ⚠ La 020 partira par la CI au push ; consultation :
+      `SELECT * FROM client_errors ORDER BY created_at DESC;`
 
 ### Reste côté compte Supabase (hors code)
 

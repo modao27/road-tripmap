@@ -208,8 +208,11 @@ road-tripmap/
 ```
 
 Outillage (dev uniquement, le déploiement reste sans build) :
-`npm run lint` (ESLint) · `npm test` (Vitest, ~75 tests) · `npm run serve`
-La CI GitHub Actions rejoue lint + tests sur chaque push et pull request.
+`npm run lint` (ESLint) · `npm test` (Vitest, ~90 tests) ·
+`npm run test:e2e` (Playwright, parcours publics) · `npm run serve`
+La CI GitHub Actions rejoue lint + tests unitaires + E2E sur chaque
+push et pull request ; les erreurs front remontent dans la table
+`client_errors` (purge automatique après 30 jours).
 
 ---
 
