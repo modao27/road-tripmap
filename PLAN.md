@@ -231,8 +231,8 @@ Dette technique au fil de l'eau :
       `npx supabase link --project-ref cmgrszuyzdrmnddyetfq` — fait le
       2026-07-09 ; les Edge Functions se déploient désormais via
       `npx supabase functions deploy <nom>`
-- [ ] Lundi 2026-07-13 : vérifier la purge —
-      `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 3;`
+- [x] Purge pg_cron vérifiée — `cron.job_run_details` : status
+      `succeeded` ✅. **Le plan est intégralement soldé.**
 - [ ] Créer les 2 secrets GitHub du workflow migrations
       (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) — l'historique
       CLI est déjà synchronisé (001→018), `db push` no-op vérifié
