@@ -4,7 +4,10 @@
 
 import { authStore }                                  from '../../features/auth/AuthStore.js';
 import { signOut }                                    from '../../features/auth/authService.js';
-import { listRoadtrips, createRoadtrip, deleteRoadtrip, updateRoadtrip, inviteMember } from '../../features/roadtrips/roadtripService.js';
+import { listRoadtrips, createRoadtrip, deleteRoadtrip, updateRoadtrip, inviteMember,
+         importFreeMapAsRoadtrip } from '../../features/roadtrips/roadtripService.js';
+import { loadUserPins } from '../../features/map/storage.js';
+import { storageGet, storageSet } from '../../shared/utils/storage.js';
 import { renderList, renderListLoading, renderListError } from '../../features/dashboard/RoadtripList.js';
 import { toast }                                      from '../../shared/ui/toast.js';
 import { router }                                     from '../router.js';
@@ -42,6 +45,14 @@ export function renderDashboardPage(container) {
           <p class="dash-welcome__sub">
             ${user?.email ? `Connecté en tant que <strong>${esc(user.email)}</strong>` : ''}
           </p>
+        </div>
+
+        <div class="dash-import-banner" id="freeMapBanner" hidden>
+          <span id="freeMapBannerText"></span>
+          <span class="dash-import-banner__actions">
+            <button class="btn btn--primary" id="freeMapImportBtn" type="button">Convertir</button>
+            <button class="btn btn--ghost"   id="freeMapDismissBtn" type="button">Ignorer</button>
+          </span>
         </div>
 
         <div id="tripList" class="dash-list-wrap"></div>
@@ -161,6 +172,36 @@ export function renderDashboardPage(container) {
   }
 
   loadTrips();
+
+  // ── Import de la carte libre ──────────────────────────────────────────────
+  // Des pins de la carte libre (ancien modèle map_id/localStorage) traînent
+  // sur cet appareil : proposer de les convertir en roadtrip.
+  const freeMapPins = loadUserPins();
+  if (freeMapPins.length && !storageGet('freeMapImportDismissed', false)) {
+    const banner = container.querySelector('#freeMapBanner');
+    const n = freeMapPins.length;
+    container.querySelector('#freeMapBannerText').textContent =
+      `📍 ${n} lieu${n > 1 ? 'x' : ''} sur ta carte libre — les convertir en road trip ?`;
+    banner.hidden = false;
+
+    container.querySelector('#freeMapDismissBtn').addEventListener('click', () => {
+      banner.hidden = true;
+      storageSet('freeMapImportDismissed', true);
+    });
+
+    container.querySelector('#freeMapImportBtn').addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      try {
+        const trip = await importFreeMapAsRoadtrip(user?.id ?? null);
+        banner.hidden = true;
+        toast.success(`Carte libre convertie — « ${trip.title} » est dans tes road trips.`);
+        loadTrips();
+      } catch {
+        e.target.disabled = false;
+        toast.error("La conversion a échoué. Vérifie ta connexion et réessaie.");
+      }
+    });
+  }
 
   // ── Profil ────────────────────────────────────────────────────────────────
   container.querySelector('#profileBtn').addEventListener('click', () => {

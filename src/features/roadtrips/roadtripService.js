@@ -13,6 +13,8 @@
 
 import { supabase }                             from '../../shared/lib/supabaseClient.js';
 import { storageGet, storageSet } from '../../shared/utils/storage.js';
+import { createRoadtripPin, deletePinRemote } from '../pins/pinService.js';
+import { loadUserPins, saveUserPins, getOrCreateMapId } from '../map/storage.js';
 
 const LOCAL_KEY = 'roadtrips';
 
@@ -161,6 +163,51 @@ export async function fetchRoadtripInfo(id) {
   } catch {
     return null;
   }
+}
+
+// ── Import de la carte libre ──────────────────────────────────────────────────
+
+/**
+ * Convertit les pins de la carte libre (user_pins/localStorage) en un
+ * nouveau roadtrip, puis vide la carte libre (locale et distante) —
+ * réconcilie l'ancien modèle « map_id anonyme » avec les roadtrips.
+ * @param {string} userId
+ * @returns {Promise<Roadtrip|null>} null si la carte libre est vide
+ */
+export async function importFreeMapAsRoadtrip(userId) {
+  const pins = loadUserPins();
+  if (!pins.length) return null;
+
+  const trip = await createRoadtrip({
+    title:       'Ma carte libre',
+    description: 'Importé depuis la carte libre',
+    userId,
+  });
+
+  // Séquentiel : préserve l'ordre (order_index) et évite de marteler l'API
+  for (let i = 0; i < pins.length; i++) {
+    const p = pins[i];
+    // interest/tip/mood n'existent pas sur les pins de roadtrip :
+    // repliés dans la description pour ne rien perdre
+    const description = [p.description, p.interest, p.tip, p.mood]
+      .filter(Boolean).join('\n');
+    await createRoadtripPin(trip.id, {
+      name:        p.name,
+      category:    p.category || 'base',
+      lat:         p.lat,
+      lng:         p.lng,
+      description,
+      order_index: i,
+    });
+  }
+
+  // La carte libre a déménagé : purge locale + distante (échecs tolérés,
+  // un pin orphelin côté user_pins est sans conséquence)
+  const mapId = getOrCreateMapId();
+  await Promise.allSettled(pins.map(p => deletePinRemote(mapId, p.id)));
+  saveUserPins([]);
+
+  return trip;
 }
 
 // ── Mise à jour ───────────────────────────────────────────────────────────────
