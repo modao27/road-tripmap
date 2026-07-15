@@ -18,8 +18,12 @@ window.addEventListener('error', ({ message, filename, lineno }) => {
     </div>`;
 });
 
+import { initErrorReporter }               from '../shared/lib/errorReporter.js';
 import { authStore }                       from '../features/auth/AuthStore.js';
 import { router }                          from './router.js';
+
+// Remonte les erreurs non capturées vers Supabase (table client_errors)
+initErrorReporter();
 import { acceptPendingInvitations }        from '../features/roadtrips/roadtripService.js';
 import { toast }                           from '../shared/ui/toast.js';
 import { renderHomePage }           from './pages/HomePage.js';
