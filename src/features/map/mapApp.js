@@ -495,10 +495,13 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
     focusPlaceFn: doFocusPlace,
-    onStepsChange: isRoadtripMode ? (steps, days) => {
-      clearTimeout(orderSaveTimer);
-      orderSaveTimer = setTimeout(() => updatePinOrder(steps, days), 1000);
-    } : null,
+    onStepsChange: (steps, days) => {
+      updateRouteBadge(); // badges onglet + mobile, quel que soit le mode
+      if (isRoadtripMode) {
+        clearTimeout(orderSaveTimer);
+        orderSaveTimer = setTimeout(() => updatePinOrder(steps, days), 1000);
+      }
+    },
     signal,
   });
 
