@@ -8,10 +8,12 @@
     "serve": "npx -y serve .",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "eslint": "^10.6.0",
     "globals": "^17.7.0",
     "happy-dom": "^20.10.6",

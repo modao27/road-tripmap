@@ -5,6 +5,10 @@ node_modules/
 .env
 .env.local
 
+# Playwright (sorties de test)
+test-results/
+playwright-report/
+
 # OS
 .DS_Store
 Thumbs.db
