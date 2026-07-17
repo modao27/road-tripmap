@@ -9,6 +9,18 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#1f5f43">
   <link rel="preconnect" href="https://unpkg.com">
+  <script>
+    // Anti-flash : applique le thème mémorisé avant le premier rendu
+    // (voir src/shared/utils/theme.js — même clé, lecture brute ici
+    // pour rester synchrone et sans dépendance).
+    try {
+      var t = localStorage.getItem('rtm-theme');
+      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <!-- Leaflet + markercluster + css/style.css : chargés à la demande par
