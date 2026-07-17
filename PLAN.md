@@ -251,6 +251,60 @@ Dette technique au fil de l'eau :
       2026-07-09, validés par les runs Migrations verts (019 déployée
       par la CI)
 
+## Phase G — Refonte « compagnon de voyage » (établie 2026-07-17)
+
+Constat : l'identité visuelle actuelle (vert forêt, sobre) ne correspond
+plus à l'ambition du produit — une vitrine qui donne envie d'essayer,
+une app qui tient la promesse. Nouvelle palette : #235D7E (bleu
+principal), #E8DCC8 (sable), #F08C46 (orange, accent CTA/itinéraires),
+#FAF9F6 (fond clair), #1E293B (texte). Mode sombre dérivé (fonds
+bleu-nuit, accents conservés), bascule manuelle par-dessus le réglage
+système.
+
+Ordre : G0 → G1 → G2 → G3 → G4, ~7-10 séances, commits atomiques, app
+fonctionnelle à chaque commit, validation en navigateur (desktop +
+téléphone) entre les lots.
+
+- [x] **G0** — Socle de l'identité (~1 séance) : polices Outfit + Inter
+      auto-hébergées (sous-jeu latin, `fonts/*.woff2`, zéro requête
+      Google Fonts) — `42e18d2` ; `css/tokens.css` (palette claire/sombre
+      + nuances hover/teintes/bordures dérivées et vérifiées par calcul,
+      pas au jugé) et audit de contraste WCAG AA scripté
+      (`src/shared/utils/contrast.js` + 9 tests — confirme que l'orange
+      #F08C46 avec texte blanc échoue à 2.46:1 et impose un texte marine
+      sur les CTA orange, 5.95:1) — `041f1d1` ; composants de base
+      (`css/components.css` : boutons 48px/rayon 12, cards rayon 18,
+      transitions + `prefers-reduced-motion`), icônes Lucide en SVG
+      inline (`src/shared/ui/icons.js`, zéro dépendance), bascule
+      clair/sombre (`src/shared/utils/theme.js` + `themeToggle.js`,
+      bouton flottant monté hors `#app` donc persistant entre les
+      routes, mémorisation localStorage, script anti-flash synchrone
+      dans `<head>`) — `02dd2f9`.
+      Validé en navigateur (Playwright) le 2026-07-17 : polices servies
+      en 200, aucune erreur console, bascule clair/sombre fonctionnelle
+      sur l'accueil et persistante sur `/#/login` ; pages existantes
+      (vert forêt) non impactées — le re-skin est G2.
+- [ ] **G1** — Nouvelle page d'accueil (~2-3 séances) : hero plein écran
+      (photo Unsplash optimisée webp, sélection soumise avant
+      intégration), 3 blocs (itinéraire / souvenirs / partage), capture
+      de l'app générée par Playwright, fonctionnalités illustrées
+      (planning, hors-ligne, collaboration, météo, GPX, Découvrir),
+      galerie différée, FAQ en accordéons, footer, animations scroll
+      légères (IntersectionObserver)
+- [ ] **G2** — Re-skin complet de l'app (~2-3 séances) : migration
+      auth/dashboard/carte (sidebar, onglets, modales, popups phase F)
+      vers les tokens G0, fin du vert forêt (l'orange devient la
+      couleur des itinéraires), mode sombre cohérent partout
+- [ ] **G3** — Passe mobile (~1-2 séances) : zones de touche ≥ 44px,
+      formulaires/modales, safe areas (encoche), sidebar et onglets
+      carte — validation téléphone à chaque lot
+- [ ] **G4** — Branding et garde-fous (~1 séance) : favicon + icônes PWA
+      + `theme-color` aux nouvelles couleurs, captures Playwright de
+      référence (avant/après), Lighthouse accessibilité ≥ 95
+
+Décision ouverte : sélection des photos Unsplash pour le hero et la
+galerie (soumise avant intégration en G1).
+
 ## Ordre recommandé
 
 **A → C1-C2 → B → C3-C4 → D1 → D2/D3/D4 au choix.**
