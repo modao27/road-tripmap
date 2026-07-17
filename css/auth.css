@@ -87,7 +87,6 @@ html, body {
 .btn--danger:not(:disabled):hover { background: #a93226; }
 
 .btn--full   { width: 100%; }
-.btn--lg     { padding: 13px 28px; font-size: 1rem; border-radius: 12px; }
 .btn--sm     { padding: 6px 14px;  font-size: 0.82rem; }
 .btn--icon   { padding: 8px 12px; }
 
@@ -156,76 +155,7 @@ html, body {
   min-height: 1em;
 }
 
-/* ── HomePage ─────────────────────────────────────────────────────────────────── */
-.home-hero {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px 60px;
-  background: linear-gradient(160deg, #1a3d28 0%, #2f6f43 50%, #1a4060 100%);
-}
-
-.home-hero__content {
-  max-width: 520px;
-  text-align: center;
-  color: #fff;
-}
-
-.home-hero__badge {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.15);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  margin-bottom: 20px;
-}
-
-.home-hero__title {
-  font-size: clamp(2rem, 6vw, 3rem);
-  font-weight: 900;
-  line-height: 1.1;
-  margin: 0 0 16px;
-}
-
-.home-hero__sub {
-  font-size: 1.05rem;
-  opacity: 0.85;
-  line-height: 1.55;
-  margin: 0 0 32px;
-}
-
-.home-hero__actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.home-features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  padding: 48px 24px;
-  background: var(--paper);
-  max-width: 900px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.feature-card {
-  padding: 24px;
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  text-align: center;
-}
-
-.feature-card__icon { font-size: 2rem; display: block; margin-bottom: 12px; }
-.feature-card h3    { margin: 0 0 8px; font-size: 1rem; color: var(--forest-dark); }
-.feature-card p     { margin: 0; font-size: 0.86rem; color: var(--muted); line-height: 1.5; }
+/* HomePage : reconstruite sur les tokens Phase G, voir css/home.css */
 
 /* ── Auth card ────────────────────────────────────────────────────────────────── */
 .page--auth {
@@ -340,9 +270,7 @@ html, body {
   }
   body { background: #0e1610; }
   .auth-card, .modal  { background: #1a2620; }
-  .feature-card       { background: #1a2620; }
   .form-field__input  { background: #111c14; border-color: rgba(78,168,118,0.2); color: var(--ink); }
-  .home-features      { background: #0e1610; }
   .sk-shimmer, .sk-line {
     background: linear-gradient(90deg, #1e2e22 25%, #243428 50%, #1e2e22 75%);
     background-size: 200% 100%;
