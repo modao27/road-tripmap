@@ -1,0 +1,122 @@
+/* Design tokens — identité « compagnon de voyage » (Phase G).
+   Palette : #235D7E (principale), #E8DCC8 (sable), #F08C46 (accent
+   CTA/itinéraires), #FAF9F6 (fond), #1E293B (texte).
+
+   Ratios WCAG vérifiés (voir src/shared/utils/contrast.js + son test) :
+   - blanc sur --color-primary        : 7.15  (AA texte normal)
+   - --color-text sur --color-accent  : 5.95  (AA texte normal — l'orange a
+     besoin d'un texte marine, pas blanc : blanc/orange ne fait que 2.46)
+   - --color-accent-ink sur --color-bg: 5.05  (orange assombri, pour liens/texte)
+   - --color-muted sur --color-bg     : 4.61
+   - --color-accent sur --color-bg-dark (mode sombre, direct) : 7.58
+
+   Bascule clair/sombre : [data-theme="dark"] / [data-theme="light"] sur <html>
+   (posé par src/shared/utils/theme.js, mémorisé en localStorage) — sinon
+   repli sur prefers-color-scheme (réglage système). */
+
+:root {
+  /* Couleurs de marque */
+  --color-primary:       #235D7E;
+  --color-primary-hover: #1F526F;
+  --color-primary-tint:  #E9EFF2;
+  --color-sand:          #E8DCC8;
+  --color-accent:        #F08C46;
+  --color-accent-hover:  #D37B3E;
+  --color-accent-tint:   #FDF1E9;
+  --color-accent-ink:    #9C5B2E; /* orange assombri — texte/liens sur fond clair */
+
+  /* Neutres */
+  --color-bg:            #FAF9F6;
+  --color-surface:       #FFFFFF;
+  --color-text:          #1E293B;
+  --color-muted:         #6B727C;
+  --color-border:        rgba(30, 41, 59, 0.12);
+
+  /* Texte selon le fond du bouton */
+  --color-on-primary:    #FFFFFF;
+  --color-on-accent:     var(--color-text);
+
+  /* Typographie */
+  --font-heading: 'Outfit', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:    'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Forme */
+  --radius-btn:  12px;
+  --radius-card: 18px;
+  --shadow-card: 0 8px 32px rgba(30, 41, 59, 0.10);
+  --shadow-card-hover: 0 14px 40px rgba(30, 41, 59, 0.16);
+
+  /* Mouvement */
+  --transition-fast: 150ms ease;
+  --transition-base: 220ms ease;
+}
+
+/* ── Mode sombre : repli automatique sur le réglage système ─────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-primary:       #235D7E;
+    --color-primary-hover: #2C6E93;
+    --color-primary-tint:  #12222D;
+    --color-accent:        #F08C46;
+    --color-accent-hover:  #F39C61;
+    --color-accent-tint:   #1C2A22;
+    --color-accent-ink:    #F08C46; /* déjà 7.58 sur fond sombre, pas besoin d'assombrir */
+
+    --color-bg:            #08141C;
+    --color-surface:       #0F222E;
+    --color-text:          #EDEBE6;
+    --color-muted:         #9DA0A6;
+    --color-border:        rgba(237, 235, 230, 0.12);
+
+    --color-on-primary:    #FFFFFF;
+    --color-on-accent:     var(--color-text);
+
+    --shadow-card:       0 8px 32px rgba(0, 0, 0, 0.35);
+    --shadow-card-hover: 0 14px 40px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* ── Bascule manuelle (par-dessus le réglage système) ────────────────────── */
+:root[data-theme="dark"] {
+  --color-primary:       #235D7E;
+  --color-primary-hover: #2C6E93;
+  --color-primary-tint:  #12222D;
+  --color-accent:        #F08C46;
+  --color-accent-hover:  #F39C61;
+  --color-accent-tint:   #1C2A22;
+  --color-accent-ink:    #F08C46;
+
+  --color-bg:            #08141C;
+  --color-surface:       #0F222E;
+  --color-text:          #EDEBE6;
+  --color-muted:         #9DA0A6;
+  --color-border:        rgba(237, 235, 230, 0.12);
+
+  --color-on-primary:    #FFFFFF;
+  --color-on-accent:     var(--color-text);
+
+  --shadow-card:       0 8px 32px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] {
+  --color-primary:       #235D7E;
+  --color-primary-hover: #1F526F;
+  --color-primary-tint:  #E9EFF2;
+  --color-accent:        #F08C46;
+  --color-accent-hover:  #D37B3E;
+  --color-accent-tint:   #FDF1E9;
+  --color-accent-ink:    #9C5B2E;
+
+  --color-bg:            #FAF9F6;
+  --color-surface:       #FFFFFF;
+  --color-text:          #1E293B;
+  --color-muted:         #6B727C;
+  --color-border:        rgba(30, 41, 59, 0.12);
+
+  --color-on-primary:    #FFFFFF;
+  --color-on-accent:     var(--color-text);
+
+  --shadow-card:       0 8px 32px rgba(30, 41, 59, 0.10);
+  --shadow-card-hover: 0 14px 40px rgba(30, 41, 59, 0.16);
+}
