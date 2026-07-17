@@ -284,13 +284,26 @@ téléphone) entre les lots.
       en 200, aucune erreur console, bascule clair/sombre fonctionnelle
       sur l'accueil et persistante sur `/#/login` ; pages existantes
       (vert forêt) non impactées — le re-skin est G2.
-- [ ] **G1** — Nouvelle page d'accueil (~2-3 séances) : hero plein écran
-      (photo Unsplash optimisée webp, sélection soumise avant
-      intégration), 3 blocs (itinéraire / souvenirs / partage), capture
-      de l'app générée par Playwright, fonctionnalités illustrées
-      (planning, hors-ligne, collaboration, météo, GPX, Découvrir),
-      galerie différée, FAQ en accordéons, footer, animations scroll
-      légères (IntersectionObserver)
+- [x] **G1** — Nouvelle page d'accueil : photos Unsplash (licence
+      gratuite, vérifiée photo par photo — plusieurs résultats de
+      recherche étaient en Unsplash+ payant, écartés), hero + galerie
+      en webp déjà redimensionné par le CDN Unsplash — `142f86c` ;
+      icônes supplémentaires + `scrollReveal.js` (révélation au scroll,
+      repli immédiat si `prefers-reduced-motion`) — `69c74d3` ; capture
+      Playwright de l'app (`scripts/screenshot-home.mjs`, régénérable
+      via `npm run screenshot:home`, encodage PNG→WebP par le Chromium
+      embarqué faute de cwebp local) — `bc97868` ; `HomePage.js`
+      reconstruite section par section (hero, 3 blocs, capture encadrée,
+      6 fonctionnalités illustrées, galerie lazy, FAQ en `<details>`
+      natifs, footer), `css/home.css` entièrement sur les tokens Phase G,
+      suppression du CSS mort de l'ancienne page dans `auth.css`
+      (`.home-hero`, `.feature-card`, `.btn--lg`) — `6467916`.
+      Validé en navigateur (Playwright) le 2026-07-18 : clair/sombre,
+      scroll progressif (20 sections `[data-animate]` révélées), FAQ,
+      « Découvrir » (scroll), « Essayer sans compte » → `#/map`, mobile
+      390px, aucune requête en échec, aucune erreur console.
+      Décision Unsplash tranchée par Paul (« passe à G1 ») : sélection
+      faite et intégrée sans validation photo par photo préalable.
 - [ ] **G2** — Re-skin complet de l'app (~2-3 séances) : migration
       auth/dashboard/carte (sidebar, onglets, modales, popups phase F)
       vers les tokens G0, fin du vert forêt (l'orange devient la
