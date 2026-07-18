@@ -49,7 +49,7 @@ import { MAP_CONFIG as CONFIG } from '../../config/index.js';
 export async function initMapApp({ mapParam = null, signal } = {}) {
   if (typeof L === 'undefined') {
     document.querySelector('#map').innerHTML =
-      "<p style='margin:24px;font:16px system-ui;color:#143f31'>Leaflet n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
+      "<p style='margin:24px;font:16px system-ui;color:#1E293B'>Leaflet n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
     throw new Error('Leaflet is not available');
   }
 
@@ -262,8 +262,8 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       ({ coords: { latitude, longitude } }) => {
         if (userLocationMarker) map.removeLayer(userLocationMarker);
         userLocationMarker = L.circle([latitude, longitude], {
-          radius: 120, color: '#143f31', weight: 2,
-          fillColor: 'rgba(31, 95, 67, 0.18)', fillOpacity: 0.4,
+          radius: 120, color: '#235D7E', weight: 2,
+          fillColor: 'rgba(35, 93, 126, 0.18)', fillOpacity: 0.4,
         }).addTo(map);
         userLocationMarker.bindPopup('Vous êtes ici').openPopup();
         map.flyTo([latitude, longitude], 13, { animate: true, duration: 1.2 });

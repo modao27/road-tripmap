@@ -122,7 +122,7 @@ export async function getRoadtripBySlug(slug) {
 export async function createRoadtrip({
   title, description = '', startLabel = '',
   startLat = null, startLng = null,
-  userId, coverColor = '#1f5f43',
+  userId, coverColor = '#235D7E',
 }) {
   const { data, error } = await supabase
     .from('roadtrips')

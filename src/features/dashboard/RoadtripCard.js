@@ -7,7 +7,7 @@
 import { escapeHtml as esc } from '../../shared/utils/escape.js';
 
 const GRADIENTS = [
-  'linear-gradient(135deg, #1f5f43 0%, #2f8a60 100%)',
+  'linear-gradient(135deg, #235D7E 0%, #3E85AB 100%)',
   'linear-gradient(135deg, #2477a6 0%, #3a9fd4 100%)',
   'linear-gradient(135deg, #6f513f 0%, #a07858 100%)',
   'linear-gradient(135deg, #605d80 0%, #8a87b0 100%)',

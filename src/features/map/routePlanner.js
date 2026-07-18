@@ -240,7 +240,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     }).addTo(routeLayer);
 
     const poly = L.polyline(latLngs, {
-      color: '#1f5f43',
+      color: '#F08C46',
       weight: 5,
       opacity: 0.88,
       dashArray: dashed ? '10 7' : null,

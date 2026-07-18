@@ -109,7 +109,7 @@ export function renderMapPage(container, params = {}) {
     .catch(() => {
       const mapEl = container.querySelector('#map');
       if (mapEl) mapEl.innerHTML =
-        "<p style='margin:24px;font:16px system-ui;color:#143f31'>La carte n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
+        "<p style='margin:24px;font:16px system-ui;color:#1E293B'>La carte n'a pas pu se charger. Vérifie ta connexion internet puis recharge la page.</p>";
       return null;
     });
 
