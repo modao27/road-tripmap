@@ -19,10 +19,12 @@ describe('tokens.css — audit de contraste AA', () => {
   const light = {
     bg: '#FAF9F6', surface: '#FFFFFF', text: '#1E293B', muted: '#6B727C',
     primary: '#235D7E', accent: '#F08C46', accentInk: '#9C5B2E', onPrimary: '#FFFFFF',
+    onAccent: '#1E293B', primaryText: '#235D7E',
   };
   const dark = {
     bg: '#08141C', surface: '#0F222E', text: '#EDEBE6', muted: '#9DA0A6',
     primary: '#235D7E', accent: '#F08C46', onPrimary: '#FFFFFF',
+    onAccent: '#1E293B', primaryText: '#7096AB',
   };
 
   it('texte principal sur fond (clair et sombre)', () => {
@@ -47,6 +49,15 @@ describe('tokens.css — audit de contraste AA', () => {
     expect(contrastRatio('#FFFFFF', light.accent)).toBeLessThan(AA_NORMAL_TEXT);
   });
 
+  it('--color-on-accent est fixe (pas var(--color-text)) : --color-accent ne '
+    + "s'assombrit pas en mode sombre, contrairement à --color-text (clair) — "
+    + 'sinon le texte des boutons orange devient illisible en sombre (régression '
+    + 'trouvée par Lighthouse, 2.06:1)', () => {
+    expect(light.onAccent).toBe(dark.onAccent);
+    expect(contrastRatio(dark.onAccent, dark.accent)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    expect(contrastRatio(dark.text, dark.accent)).toBeLessThan(AA_NORMAL_TEXT);
+  });
+
   it('lien/texte orange sur fond clair : nécessite --color-accent-ink assombri', () => {
     expect(contrastRatio(light.accentInk, light.bg)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
     expect(contrastRatio(light.accent, light.bg)).toBeLessThan(AA_NORMAL_TEXT);
@@ -59,5 +70,16 @@ describe('tokens.css — audit de contraste AA', () => {
   it('bordures/séparateurs restent au moins au seuil UI (3:1, non-texte)', () => {
     expect(contrastRatio(light.primary, light.bg)).toBeGreaterThanOrEqual(AA_LARGE_TEXT);
     expect(contrastRatio(dark.text, dark.bg)).toBeGreaterThanOrEqual(AA_LARGE_TEXT);
+  });
+
+  it('--color-primary-text : titres/liens en --color-primary sur fond/surface '
+    + "sombres — --color-primary lui-même ne s'éclaircit pas entre les thèmes "
+    + '(utile en fond de bouton), donc en texte son contraste tombe à ~2.3:1 sur '
+    + 'une surface sombre (régression trouvée par Lighthouse sur /#/login)', () => {
+    expect(contrastRatio(light.primaryText, light.bg)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    expect(contrastRatio(light.primaryText, light.surface)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    expect(contrastRatio(dark.primaryText, dark.bg)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    expect(contrastRatio(dark.primaryText, dark.surface)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    expect(contrastRatio(dark.primary, dark.surface)).toBeLessThan(AA_NORMAL_TEXT);
   });
 });

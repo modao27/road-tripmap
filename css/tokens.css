@@ -19,6 +19,14 @@
   --color-primary:       #235D7E;
   --color-primary-hover: #1F526F;
   --color-primary-tint:  #E9EFF2;
+  /* --color-primary en usage TEXTE (titres, liens, icônes) : identique à
+     --color-primary en clair (déjà 6.79+ sur les fonds clairs), mais
+     éclairci en sombre — --color-primary lui-même ne change pas de
+     luminosité entre les thèmes (utile en fond de bouton), donc en texte
+     sur une surface sombre son contraste tombe à ~2.3:1 (trouvé par
+     Lighthouse). Ne pas confondre avec --color-primary-hover, calibré
+     pour un FOND de bouton survolé, pas pour du texte. */
+  --color-primary-text:  #235D7E;
   --color-sand:          #E8DCC8;
   --color-accent:        #F08C46;
   --color-accent-hover:  #D37B3E;
@@ -34,7 +42,11 @@
 
   /* Texte selon le fond du bouton */
   --color-on-primary:    #FFFFFF;
-  --color-on-accent:     var(--color-text);
+  /* Fixe (#1E293B), pas var(--color-text) : --color-accent ne change pas
+     de luminosité entre les thèmes, contrairement à --color-text (clair
+     en mode sombre) — sinon le texte des boutons orange devient illisible
+     en sombre (2.06:1, trouvé par Lighthouse). */
+  --color-on-accent:     #1E293B;
 
   /* Typographie */
   --font-heading: 'Outfit', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -57,6 +69,7 @@
     --color-primary:       #235D7E;
     --color-primary-hover: #2C6E93;
     --color-primary-tint:  #12222D;
+    --color-primary-text:  #7096AB; /* éclairci — 5.15+ sur surface/fond sombres */
     --color-accent:        #F08C46;
     --color-accent-hover:  #F39C61;
     --color-accent-tint:   #1C2A22;
@@ -69,7 +82,7 @@
     --color-border:        rgba(237, 235, 230, 0.12);
 
     --color-on-primary:    #FFFFFF;
-    --color-on-accent:     var(--color-text);
+    --color-on-accent:     #1E293B; /* fixe, pas var(--color-text) — voir data-theme="dark" plus bas */
 
     --shadow-card:       0 8px 32px rgba(0, 0, 0, 0.35);
     --shadow-card-hover: 0 14px 40px rgba(0, 0, 0, 0.45);
@@ -81,6 +94,7 @@
   --color-primary:       #235D7E;
   --color-primary-hover: #2C6E93;
   --color-primary-tint:  #12222D;
+  --color-primary-text:  #7096AB;
   --color-accent:        #F08C46;
   --color-accent-hover:  #F39C61;
   --color-accent-tint:   #1C2A22;
@@ -93,7 +107,11 @@
   --color-border:        rgba(237, 235, 230, 0.12);
 
   --color-on-primary:    #FFFFFF;
-  --color-on-accent:     var(--color-text);
+  /* Fixe (#1E293B), pas var(--color-text) : --color-accent ne change pas
+     de luminosité entre les thèmes, contrairement à --color-text (clair
+     en mode sombre) — sinon le texte des boutons orange devient illisible
+     en sombre (2.06:1, trouvé par Lighthouse). */
+  --color-on-accent:     #1E293B;
 
   --shadow-card:       0 8px 32px rgba(0, 0, 0, 0.35);
   --shadow-card-hover: 0 14px 40px rgba(0, 0, 0, 0.45);
@@ -103,6 +121,7 @@
   --color-primary:       #235D7E;
   --color-primary-hover: #1F526F;
   --color-primary-tint:  #E9EFF2;
+  --color-primary-text:  #235D7E;
   --color-accent:        #F08C46;
   --color-accent-hover:  #D37B3E;
   --color-accent-tint:   #FDF1E9;
@@ -115,7 +134,11 @@
   --color-border:        rgba(30, 41, 59, 0.12);
 
   --color-on-primary:    #FFFFFF;
-  --color-on-accent:     var(--color-text);
+  /* Fixe (#1E293B), pas var(--color-text) : --color-accent ne change pas
+     de luminosité entre les thèmes, contrairement à --color-text (clair
+     en mode sombre) — sinon le texte des boutons orange devient illisible
+     en sombre (2.06:1, trouvé par Lighthouse). */
+  --color-on-accent:     #1E293B;
 
   --shadow-card:       0 8px 32px rgba(30, 41, 59, 0.10);
   --shadow-card-hover: 0 14px 40px rgba(30, 41, 59, 0.16);

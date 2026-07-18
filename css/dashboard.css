@@ -28,7 +28,7 @@
   gap: 10px;
   font-weight: 800;
   font-size: 1.05rem;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 .dash-header__logo { font-size: 1.4rem; }
 
@@ -54,14 +54,14 @@
   margin: 0 0 4px;
   font-size: 1.6rem;
   font-weight: 900;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 .dash-welcome__sub {
   margin: 0;
   font-size: 0.88rem;
   color: var(--color-muted);
 }
-.dash-welcome__sub strong { color: var(--color-primary); font-weight: 700; }
+.dash-welcome__sub strong { color: var(--color-primary-text); font-weight: 700; }
 
 .dash-list-wrap { min-height: 200px; }
 
@@ -78,7 +78,7 @@
   border-radius: 12px;
   background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   font-size: 0.9rem;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .dash-import-banner[hidden] { display: none; }
@@ -131,7 +131,7 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -181,7 +181,7 @@
   color: var(--color-muted);
 }
 .rt-empty__icon  { font-size: 3.5rem; margin-bottom: 16px; }
-.rt-empty__title { margin: 0 0 8px; font-size: 1.2rem; font-weight: 700; color: var(--color-primary); }
+.rt-empty__title { margin: 0 0 8px; font-size: 1.2rem; font-weight: 700; color: var(--color-primary-text); }
 .rt-empty__sub   { margin: 0; font-size: 0.9rem; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
