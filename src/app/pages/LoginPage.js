@@ -7,7 +7,7 @@ import { authStore } from '../../features/auth/AuthStore.js';
 
 export function renderLoginPage(container) {
   container.innerHTML = `
-    <div class="page page--auth">
+    <main class="page page--auth">
       <div class="auth-card">
         <div class="auth-card__header">
           <a class="auth-back" href="#/">← Accueil</a>
@@ -50,7 +50,7 @@ export function renderLoginPage(container) {
           <a class="auth-link" href="#/register">Créer un compte</a>
         </p>
       </div>
-    </div>`;
+    </main>`;
 
   const form      = container.querySelector('#loginForm');
   const alertEl   = container.querySelector('#authAlert');

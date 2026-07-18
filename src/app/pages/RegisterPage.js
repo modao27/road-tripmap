@@ -6,7 +6,7 @@ import { signUp }    from '../../features/auth/authService.js';
 
 export function renderRegisterPage(container) {
   container.innerHTML = `
-    <div class="page page--auth">
+    <main class="page page--auth">
       <div class="auth-card">
         <div class="auth-card__header">
           <a class="auth-back" href="#/">← Accueil</a>
@@ -57,7 +57,7 @@ export function renderRegisterPage(container) {
           <a class="auth-link" href="#/login">Se connecter</a>
         </p>
       </div>
-    </div>`;
+    </main>`;
 
   const form       = container.querySelector('#registerForm');
   const alertEl    = container.querySelector('#authAlert');

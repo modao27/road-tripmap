@@ -10,7 +10,7 @@ import { router }         from '../router.js';
 
 export function renderResetPasswordPage(container) {
   container.innerHTML = `
-    <div class="page page--auth">
+    <main class="page page--auth">
       <div class="auth-card">
         <div class="auth-card__header">
           <h1 class="auth-card__title">Nouveau mot de passe</h1>
@@ -48,7 +48,7 @@ export function renderResetPasswordPage(container) {
           </button>
         </form>
       </div>
-    </div>`;
+    </main>`;
 
   container.querySelectorAll('.btn-eye').forEach(btn => {
     btn.addEventListener('click', () => {

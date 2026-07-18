@@ -118,41 +118,43 @@ export function renderHomePage(container) {
         </div>
       </header>
 
-      <section class="home-blocs" id="blocs">
-        ${BLOCS.map(blocHtml).join('')}
-      </section>
+      <main>
+        <section class="home-blocs" id="blocs">
+          ${BLOCS.map(blocHtml).join('')}
+        </section>
 
-      <section class="home-showcase" data-animate>
-        <div class="home-showcase__frame">
-          <div class="home-showcase__bar" aria-hidden="true">
-            <span></span><span></span><span></span>
+        <section class="home-showcase" data-animate>
+          <div class="home-showcase__frame">
+            <div class="home-showcase__bar" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <img class="home-showcase__img" src="images/home/app-screenshot.webp"
+                 alt="Capture de l'application : carte et itinéraire d'un road trip"
+                 loading="lazy" decoding="async" width="1280" height="800">
           </div>
-          <img class="home-showcase__img" src="images/home/app-screenshot.webp"
-               alt="Capture de l'application : carte et itinéraire d'un road trip"
-               loading="lazy" decoding="async" width="1280" height="800">
-        </div>
-      </section>
+        </section>
 
-      <section class="home-features" id="features">
-        <h2 class="home-section-title" data-animate>Pensé pour le terrain</h2>
-        <div class="home-features__grid">
-          ${FEATURES.map(featureHtml).join('')}
-        </div>
-      </section>
+        <section class="home-features" id="features">
+          <h2 class="home-section-title" data-animate>Pensé pour le terrain</h2>
+          <div class="home-features__grid">
+            ${FEATURES.map(featureHtml).join('')}
+          </div>
+        </section>
 
-      <section class="home-gallery">
-        <h2 class="home-section-title" data-animate>Ça donne envie de partir</h2>
-        <div class="home-gallery__grid">
-          ${GALLERY.map(galleryItemHtml).join('')}
-        </div>
-      </section>
+        <section class="home-gallery">
+          <h2 class="home-section-title" data-animate>Ça donne envie de partir</h2>
+          <div class="home-gallery__grid">
+            ${GALLERY.map(galleryItemHtml).join('')}
+          </div>
+        </section>
 
-      <section class="home-faq" id="faq">
-        <h2 class="home-section-title" data-animate>Questions fréquentes</h2>
-        <div class="home-faq__list" data-animate>
-          ${FAQ.map(faqItemHtml).join('')}
-        </div>
-      </section>
+        <section class="home-faq" id="faq">
+          <h2 class="home-section-title" data-animate>Questions fréquentes</h2>
+          <div class="home-faq__list" data-animate>
+            ${FAQ.map(faqItemHtml).join('')}
+          </div>
+        </section>
+      </main>
 
       <footer class="home-footer">
         <p>© ${new Date().getFullYear()} Road Trip Map</p>

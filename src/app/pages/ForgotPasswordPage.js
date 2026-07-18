@@ -9,7 +9,7 @@ import { resetPasswordForEmail } from '../../features/auth/authService.js';
 
 export function renderForgotPasswordPage(container) {
   container.innerHTML = `
-    <div class="page page--auth">
+    <main class="page page--auth">
       <div class="auth-card">
         <div class="auth-card__header">
           <a class="auth-back" href="#/login">← Retour à la connexion</a>
@@ -40,7 +40,7 @@ export function renderForgotPasswordPage(container) {
           <a class="auth-link" href="#/login">Se connecter</a>
         </p>
       </div>
-    </div>`;
+    </main>`;
 
   const form      = container.querySelector('#forgotForm');
   const alertEl   = container.querySelector('#authAlert');
