@@ -50,7 +50,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 76px 20px 24px; /* le bouton clair/sombre flottant occupe le coin haut droit */
+  /* le bouton clair/sombre flottant occupe le coin haut droit */
+  padding: calc(20px + env(safe-area-inset-top)) 76px 20px calc(24px + env(safe-area-inset-left));
 }
 
 .home-hero__badge {
@@ -65,6 +66,9 @@
 }
 
 .home-hero__navlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   background: none;
   border: none;
   color: #fff;
@@ -123,6 +127,9 @@
 .btn--on-photo:hover { background: rgba(255, 255, 255, 0.15); }
 
 .home-hero__tryfree {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   background: none;
   border: none;
   color: #fff;
@@ -316,6 +323,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 44px;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 1.02rem;
