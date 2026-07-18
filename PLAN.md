@@ -326,9 +326,26 @@ téléphone) entre les lots.
       Validé en navigateur (Playwright) le 2026-07-18 : carte libre
       clair/sombre, popup de lieu, onglet Road Trip, zéro erreur
       console.
-- [ ] **G3** — Passe mobile (~1-2 séances) : zones de touche ≥ 44px,
-      formulaires/modales, safe areas (encoche), sidebar et onglets
-      carte — validation téléphone à chaque lot
+- [x] **G3** — Passe mobile : audit Playwright à 390px (iPhone) sur
+      auth/accueil/carte, punch-list précise plutôt qu'au jugé —
+      boutons/champs/onglets/replis passés à 44px minimum (auth,
+      formulaires, composants) — `016bd1f` ; sidebar, onglets, barre
+      d'action, sélecteur de fond, boutons de route et de popup, croix
+      de fermeture Leaflet (32px visés au clair mais 24px réellement
+      rendus), catégories Découvrir — `d0dae89` (bug préexistant
+      corrigé au passage : `.source-btn` référençait des variables
+      jamais définies, le bouton actif OSM/Tourisme n'avait donc
+      jamais de fond) ; page d'accueil — `80af0ec`. Safe areas
+      (encoche) : `viewport-fit=cover` + `env(safe-area-inset-*)` sur
+      tout élément fixed/absolute touchant un bord d'écran (bascule
+      clair/sombre, hamburger, sidebar mobile, badge itinéraire,
+      bottom sheet, pied de carte, nav de la vitrine).
+      Volontairement laissés sous 44px : marqueurs Leaflet et
+      contrôles de zoom (convention universelle des cartes), liens
+      d'attribution légale, liens de texte inline dans une phrase.
+      Revalidé par le même audit (Playwright) le 2026-07-18 : plus
+      aucune cible manquante hors exceptions ci-dessus ; captures
+      mobile (login, sidebar ouverte, popup) sans régression visuelle.
 - [ ] **G4** — Branding et garde-fous (~1 séance) : favicon + icônes PWA
       + `theme-color` aux nouvelles couleurs, captures Playwright de
       référence (avant/après), Lighthouse accessibilité ≥ 95
