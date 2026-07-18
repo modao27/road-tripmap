@@ -346,12 +346,32 @@ téléphone) entre les lots.
       Revalidé par le même audit (Playwright) le 2026-07-18 : plus
       aucune cible manquante hors exceptions ci-dessus ; captures
       mobile (login, sidebar ouverte, popup) sans régression visuelle.
-- [ ] **G4** — Branding et garde-fous (~1 séance) : favicon + icônes PWA
-      + `theme-color` aux nouvelles couleurs, captures Playwright de
-      référence (avant/après), Lighthouse accessibilité ≥ 95
+- [x] **G4** — Branding et garde-fous : favicon + icônes PWA redessinés
+      (montagnes/route/soleil/oiseaux) aux couleurs exactes des tokens
+      — dessinés en SVG, rasterisés via le Chromium de Playwright (pas
+      d'outil d'édition d'image sur la machine), `manifest.webmanifest`
+      + `theme-color` alignés, version du service worker incrémentée
+      pour un rafraîchissement immédiat de l'icône — `d6e47cb`.
+      Lighthouse (accessibilité) a trouvé deux vraies régressions
+      invisibles à l'œil : `--color-on-accent` et l'usage texte de
+      `--color-primary` valaient tous les deux une couleur qui ne
+      s'éclaircit pas (ou s'éclaircit à tort) entre les thèmes — texte
+      illisible en sombre (2.06:1 et 2.28:1 mesurés, seuil 4.5:1).
+      Nouveau token `--color-primary-text` + fixation de
+      `--color-on-accent`, tests de contraste étendus pour documenter
+      pourquoi — `5d1d21f`. Landmark `<main>` manquant sur l'accueil et
+      les 4 pages d'auth, également trouvé par Lighthouse — `e389cf5`.
+      Script de captures de référence avant/après
+      (`npm run screenshot:reference`) — `cb402bc`.
+      Résultat : Lighthouse accessibilité 100/100 sur accueil,
+      connexion, inscription et carte (objectif ≥ 95 dépassé).
 
-Décision ouverte : sélection des photos Unsplash pour le hero et la
-galerie (soumise avant intégration en G1).
+**Phase G soldée** (G0 → G4, 2026-07-17 au 2026-07-18) : identité
+visuelle bleu/sable/orange sur toute l'app (vitrine, auth, dashboard,
+carte), clair/sombre cohérent partout, mobile ≥ 44px avec safe areas,
+branding et accessibilité validés par Lighthouse. Tous les commits
+sont locaux (non poussés) — c'est Paul qui pousse et valide en
+navigateur/téléphone, cf. [[road-tripmap-conventions]].
 
 ## Ordre recommandé
 
