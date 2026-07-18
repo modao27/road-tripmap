@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 test.describe('parcours publics', () => {
   test("la page d'accueil s'affiche et mène à la connexion", async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.home-hero__title')).toContainText('Ta carte outdoor');
+    await expect(page.locator('.home-hero__title')).toContainText('Planifiez vos road trips');
 
     await page.click('#heroLogin');
     await expect(page.locator('input[type="email"]')).toBeVisible();
