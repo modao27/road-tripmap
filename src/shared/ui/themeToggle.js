@@ -4,7 +4,7 @@
  * changements de page/route.
  */
 
-import { getEffectiveTheme, toggleTheme } from '../utils/theme.js';
+import { getEffectiveTheme, toggleTheme, syncThemeWithSystem } from '../utils/theme.js';
 import { ICON_SUN, ICON_MOON } from './icons.js';
 
 let button = null;
@@ -34,5 +34,5 @@ export function mountThemeToggle() {
 
   // Suit le système tant que l'utilisateur n'a pas fait de choix explicite
   window.matchMedia?.('(prefers-color-scheme: dark)')
-    .addEventListener?.('change', render);
+    .addEventListener?.('change', () => { syncThemeWithSystem(); render(); });
 }

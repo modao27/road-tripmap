@@ -51,3 +51,16 @@ export function toggleTheme() {
   applyTheme(next);
   return next;
 }
+
+/**
+ * Repose data-theme sur l'attribut effectif, sans le mémoriser — à
+ * appeler quand le système change de préférence en cours de session et
+ * qu'aucun choix explicite n'a été fait (sinon le choix explicite prime).
+ * css/style.css (carte) cible [data-theme] directement, pas
+ * prefers-color-scheme : sans ce recalage l'attribut resterait figé sur
+ * l'ancienne préférence système.
+ */
+export function syncThemeWithSystem() {
+  if (getStoredTheme() !== null) return;
+  document.documentElement.dataset.theme = systemPrefersDark() ? 'dark' : 'light';
+}

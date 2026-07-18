@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getStoredTheme, getEffectiveTheme, applyTheme, toggleTheme, THEME_STORAGE_KEY } from './theme.js';
+import { getStoredTheme, getEffectiveTheme, applyTheme, toggleTheme, syncThemeWithSystem, THEME_STORAGE_KEY } from './theme.js';
 
 beforeEach(() => {
   localStorage.removeItem(THEME_STORAGE_KEY);
@@ -40,5 +40,20 @@ describe('getEffectiveTheme', () => {
   it('renvoie la préférence explicite si présente', () => {
     applyTheme('dark');
     expect(getEffectiveTheme()).toBe('dark');
+  });
+});
+
+describe('syncThemeWithSystem', () => {
+  it("ne touche pas data-theme si une préférence explicite existe", () => {
+    applyTheme('light');
+    document.documentElement.dataset.theme = 'light';
+    syncThemeWithSystem();
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it("pose data-theme sans le mémoriser quand rien n'est explicite", () => {
+    syncThemeWithSystem();
+    expect(['light', 'dark']).toContain(document.documentElement.dataset.theme);
+    expect(getStoredTheme()).toBeNull();
   });
 });

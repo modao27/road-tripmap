@@ -10,12 +10,18 @@
   <meta name="theme-color" content="#1f5f43">
   <link rel="preconnect" href="https://unpkg.com">
   <script>
-    // Anti-flash : applique le thème mémorisé avant le premier rendu
-    // (voir src/shared/utils/theme.js — même clé, lecture brute ici
-    // pour rester synchrone et sans dépendance).
+    // Anti-flash : pose data-theme AVANT le premier rendu (voir
+    // src/shared/utils/theme.js — même clé, lecture brute ici pour
+    // rester synchrone et sans dépendance). Toujours résolu en 'light'
+    // ou 'dark' explicite (jamais absent) : css/style.css (carte) cible
+    // [data-theme="dark"] directement, pas prefers-color-scheme — sinon
+    // la bascule manuelle ne s'appliquerait qu'aux tokens, pas à la carte.
     try {
       var t = localStorage.getItem('rtm-theme');
-      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+      if (t !== 'dark' && t !== 'light') {
+        t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = t;
     } catch (e) {}
   </script>
   <link rel="stylesheet" href="css/fonts.css">
