@@ -15,7 +15,7 @@
  *
  * Incrémenter VERSION invalide tous les caches à l'activation.
  */
-const VERSION    = 'v2'; // v2 : purge les caches de la transition sessionStorage → localStorage
+const VERSION    = 'v3'; // v3 : nouvelle identité visuelle (Phase G) — favicon/icônes PWA changés
 const APP_CACHE  = `app-${VERSION}`;
 const CDN_CACHE  = `cdn-${VERSION}`;
 const TILE_CACHE = `tiles-${VERSION}`;
