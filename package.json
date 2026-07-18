@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "screenshot:home": "node scripts/screenshot-home.mjs"
+    "screenshot:home": "node scripts/screenshot-home.mjs",
+    "screenshot:reference": "node scripts/reference-screenshots.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

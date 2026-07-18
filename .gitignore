@@ -9,6 +9,9 @@ node_modules/
 test-results/
 playwright-report/
 
+# Captures de référence visuelle (régénérables, scripts/reference-screenshots.mjs)
+reference-screenshots/
+
 # OS
 .DS_Store
 Thumbs.db
