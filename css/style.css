@@ -53,7 +53,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 10px;
+  min-height: 44px;
+  margin: -12px 0 -2px -4px;
+  padding: 0 4px;
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--color-primary);
@@ -73,14 +75,18 @@ body {
 
 .header-toggle-btn {
   flex-shrink: 0;
-  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px 0 0;
   background: none;
   border: none;
   color: var(--color-muted);
   font-size: 0.62rem;
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: 8px;
   line-height: 1;
   transition: color 120ms ease, background 120ms ease;
 }
@@ -110,7 +116,7 @@ body {
 .action-btn {
   display: grid;
   place-items: center;
-  height: 40px;
+  height: 44px;
   border: 1px solid rgba(30, 41, 59, 0.1);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.72);
@@ -140,6 +146,7 @@ body {
 
 .sidebar-tab {
   flex: 1;
+  min-height: 44px;
   padding: 10px 6px;
   border: none;
   background: none;
@@ -339,6 +346,10 @@ h1 {
 }
 
 .filter-footer-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -13px 0;
   background: none;
   border: none;
   font: inherit;
@@ -784,6 +795,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   padding: 7px 10px;
   font-size: 0.8rem;
   font-weight: 800;
@@ -821,8 +833,8 @@ h1 {
 .popup-foot-btn {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.7);
@@ -1063,8 +1075,8 @@ a.dt-name:hover { text-decoration: underline; }
 
 .mobile-toggle {
   position: absolute;
-  top: 14px;
-  left: 14px;
+  top: calc(14px + env(safe-area-inset-top));
+  left: calc(14px + env(safe-area-inset-left));
   z-index: 700;
   display: none;
   align-items: center;
@@ -1120,6 +1132,7 @@ body.resizing {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 44px;
   padding: 8px 2px;
   cursor: pointer;
   list-style: none;
@@ -1472,7 +1485,7 @@ mark.search-highlight {
 
 .place-route-add {
   flex-shrink: 0;
-  width: 32px;
+  width: 44px;
   border: 1px solid rgba(240, 140, 70, 0.22);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.78);
@@ -1498,6 +1511,7 @@ mark.search-highlight {
   gap: 5px;
   margin-top: 10px;
   width: 100%;
+  min-height: 44px;
   padding: 7px 10px;
   border: 1px solid rgba(240, 140, 70, 0.25);
   border-radius: 8px;
@@ -1797,11 +1811,12 @@ mark.search-highlight {
 }
 .source-btn {
   flex: 1;
+  min-height: 44px;
   padding: 7px 10px;
   border: none;
   border-radius: 20px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--color-muted);
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
@@ -1810,12 +1825,12 @@ mark.search-highlight {
   letter-spacing: .01em;
 }
 .source-btn.active {
-  background: var(--accent);
+  background: var(--color-primary);
   color: #fff;
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
 }
 .source-btn:not(.active):hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 
 /* ── Découvrir / Overpass ────────────────────────────────────────────── */
@@ -1828,6 +1843,7 @@ mark.search-highlight {
 }
 
 .overpass-cat-btn {
+  min-height: 44px;
   padding: 5px 10px;
   border: 1.5px solid rgba(30, 41, 59, 0.12);
   border-radius: 999px;
@@ -2266,6 +2282,7 @@ mark.search-highlight {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   padding: 7px 10px;
   border: 1px solid rgba(30, 41, 59, 0.14);
   border-radius: 8px;
@@ -2303,10 +2320,10 @@ mark.search-highlight {
   .popup-body { max-height: 36vh; }
 
   .leaflet-container a.leaflet-popup-close-button {
-    width: 32px;
-    height: 32px;
+    width: 44px !important;
+    height: 44px !important;
     font-size: 20px;
-    line-height: 32px;
+    line-height: 44px !important;
   }
 
   .app {
@@ -2317,6 +2334,7 @@ mark.search-highlight {
     position: fixed;
     inset: 0 auto 0 0;
     width: min(88vw, 390px);
+    padding-left: env(safe-area-inset-left);
     transform: translateX(-104%);
     transition: transform 220ms ease;
   }
@@ -2336,7 +2354,11 @@ mark.search-highlight {
   }
 
   .sidebar-header {
-    padding-top: 68px;
+    padding-top: calc(68px + env(safe-area-inset-top));
+  }
+
+  .footer {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .resizer {
@@ -2347,13 +2369,14 @@ mark.search-highlight {
 /* ── Badge itinéraire mobile ─────────────────────────────────────────────── */
 .route-badge {
   position: absolute;
-  bottom: 96px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 700;
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   padding: 9px 20px;
   border: none;
   border-radius: 999px;
@@ -2575,7 +2598,7 @@ mark.search-highlight {
 
 .sheet-popup .leaflet-popup-content {
   width: auto !important;
-  margin: 6px 16px 14px;
+  margin: 6px 16px calc(14px + env(safe-area-inset-bottom));
 }
 
 .sheet-popup .leaflet-popup-tip-container { display: none; }
