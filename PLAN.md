@@ -304,10 +304,28 @@ téléphone) entre les lots.
       390px, aucune requête en échec, aucune erreur console.
       Décision Unsplash tranchée par Paul (« passe à G1 ») : sélection
       faite et intégrée sans validation photo par photo préalable.
-- [ ] **G2** — Re-skin complet de l'app (~2-3 séances) : migration
-      auth/dashboard/carte (sidebar, onglets, modales, popups phase F)
-      vers les tokens G0, fin du vert forêt (l'orange devient la
-      couleur des itinéraires), mode sombre cohérent partout
+- [x] **G2** — Re-skin complet de l'app : correctif de fond d'abord
+      (`data-theme` toujours résolu explicitement, plus jamais délégué
+      à `prefers-color-scheme` — sinon la bascule manuelle n'aurait
+      affecté que les tokens, pas la carte, dont le dark mode est posé
+      dans `css/style.css`) — `17a6af1` ; `css/auth.css` +
+      `css/dashboard.css` migrés vers les tokens, doublon mort
+      `.alert--success` supprimé — `57fd812` ; `css/style.css` (2700
+      lignes) migré entièrement — `--forest` → `--color-primary`
+      partout SAUF les éléments d'itinéraire (marqueurs numérotés,
+      badge mobile, stats, jours, bouton « ajouter », tracé OSRM dans
+      `routePlanner.js`) → `--color-accent` orange, conformément au
+      brief ; rgba() recolorées teinte par teinte (alpha conservé) ;
+      variables de catégorie mortes (`--lake/--rock/--village/--orange`)
+      supprimées ; couleurs de catégorie (rouge/violet/marron…)
+      volontairement non touchées — sémantique, pas identité de marque ;
+      le bloc de dark mode existant (~150 règles) migré vers
+      `[data-theme="dark"]` plutôt que supprimé — `2b5cc42` ; derniers
+      hex verts recolorés côté JS (tracé de route, cercle de
+      géolocalisation, dégradé de cover, textes d'erreur) — `17f344b`.
+      Validé en navigateur (Playwright) le 2026-07-18 : carte libre
+      clair/sombre, popup de lieu, onglet Road Trip, zéro erreur
+      console.
 - [ ] **G3** — Passe mobile (~1-2 séances) : zones de touche ≥ 44px,
       formulaires/modales, safe areas (encoche), sidebar et onglets
       carte — validation téléphone à chaque lot
