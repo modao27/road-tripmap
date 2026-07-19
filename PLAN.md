@@ -432,12 +432,22 @@ construire, l'audit montre le contraire) :
       situation réelle) reste à valider par Paul en navigateur, connecté —
       pas de compte de test disponible pour ne pas créer de données dans
       Supabase prod.
-- [ ] **H2** *(P1)* — Sidebar réellement escamotable : `#headerToggleBtn` doit
-      masquer tout le panneau (pas seulement l'en-tête), la carte réoccupant
-      l'espace via transition de `grid-template-columns` ; état mémorisé par
-      device (localStorage). *Bénéfice* : la carte peut occuper tout l'écran
-      par défaut en consultation, conforme à « la carte est le cœur du
-      produit ».
+- [x] **H2** *(P1)* — Sidebar réellement escamotable. L'ancien
+      `#headerToggleBtn` (ne repliait que le paragraphe d'intro) est
+      remplacé par `#sidebarCollapseBtn` (▶ dans le titre, masque tout le
+      panneau) : `.app.sidebar-collapsed` passe la grille à
+      `0px 0px 1fr`, la carte réoccupe l'espace via une transition de
+      `grid-template-columns` (250 ms). Réouverture par un onglet flottant
+      `#sidebarExpandTab` sur le bord de la carte (jamais affiché sous
+      821px — l'off-canvas mobile existant gère déjà ce cas). État
+      mémorisé par device (`localStorage.sidebarCollapsed`), restauré au
+      chargement sauf sur mobile où il est ignoré. Nettoyage : le repli de
+      `.sidebar-intro` (feature remplacée) est retiré, plus de code mort.
+      *Bénéfice* : la carte occupe tout l'écran par défaut dès la
+      deuxième visite, conforme à « la carte est le cœur du produit ».
+      Vérifié : lint 0 warning, `test:e2e` 3/3, captures Playwright
+      ouvert/replié/rouvert/replié-sombre/mobile + relecture après
+      rechargement (la préférence survit), aucune erreur console.
 - [ ] **H3** *(P1)* — FAB flottants sur la carte : extraire
       recentrer/géolocaliser/ajouter-un-lieu de `.action-bar` vers 2-3
       boutons flottants en bas à droite de `.map-wrap`, visibles même sidebar

@@ -386,23 +386,32 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   tabDiscoverBtn?.addEventListener('click', () => switchTab('discover'));
   switchTab('places');
 
-  // ── En-tête collapsible ───────────────────────────────────────────────────
-  const headerToggleBtn = document.getElementById('headerToggleBtn');
-  const sidebarIntro    = document.getElementById('sidebarIntro');
+  // ── Sidebar réellement escamotable (desktop) ─────────────────────────────
+  // Remplace l'ancien repli qui ne masquait que le paragraphe d'intro
+  // (Phase H2) : la carte réoccupe tout l'espace libéré via la grille
+  // .app, pas seulement quelques lignes de texte. Sans effet sur mobile,
+  // où l'off-canvas (initSidebar, ui.js) gère déjà l'affichage/masquage.
+  const appEl              = document.querySelector('.app');
+  const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+  const sidebarExpandTab   = document.getElementById('sidebarExpandTab');
 
-  function setHeaderCollapsed(collapsed) {
-    sidebarIntro?.classList.toggle('collapsed', collapsed);
-    headerToggleBtn?.setAttribute('aria-expanded', String(!collapsed));
-    if (headerToggleBtn) headerToggleBtn.textContent = collapsed ? '▼' : '▲';
-    localStorage.setItem('headerCollapsed', collapsed ? '1' : '0');
+  function setSidebarCollapsed(collapsed) {
+    appEl?.classList.toggle('sidebar-collapsed', collapsed);
+    if (sidebarExpandTab) sidebarExpandTab.hidden = !collapsed;
+    localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+    // Laisse la transition de grid-template-columns finir avant de
+    // recalculer la taille de la carte (sinon Leaflet capture l'ancienne).
+    setTimeout(() => map.invalidateSize(), 260);
   }
 
-  headerToggleBtn?.addEventListener('click', () => {
-    setHeaderCollapsed(!sidebarIntro?.classList.contains('collapsed'));
-  });
+  sidebarCollapseBtn?.addEventListener('click', () => setSidebarCollapsed(true));
+  sidebarExpandTab?.addEventListener('click', () => setSidebarCollapsed(false));
 
-  // Collapsé par défaut après la première visite
-  setHeaderCollapsed(localStorage.getItem('headerCollapsed') === '1');
+  // Replié par défaut après la première visite (jamais sur mobile : l'état
+  // stocké est ignoré tant que l'off-canvas gère l'affichage).
+  if (!mobileQuery.matches) {
+    setSidebarCollapsed(localStorage.getItem('sidebarCollapsed') === '1');
+  }
 
   // ── Menu utilisateur (profil + déconnexion) ──────────────────────────────
   // Absent en carte libre anonyme / lecture d'une carte partagée sans compte —

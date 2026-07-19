@@ -21,7 +21,7 @@ export const MAP_PAGE_HTML = `
         <div class="sidebar-header-main">
           <p class="eyebrow">Carte libre</p>
           <h1>Road trip outdoor dans le Jura</h1>
-          <button class="header-toggle-btn" id="headerToggleBtn" type="button" aria-expanded="true" title="Réduire l'en-tête">▲</button>
+          <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" title="Masquer la sidebar" aria-label="Masquer la sidebar">◀</button>
         </div>
         <p class="intro sidebar-intro" id="sidebarIntro">Une carte sans planning imposé pour repérer cascades, belvédères, villages, spots nature et via ferrata autour de Baume-les-Messieurs.</p>
       </header>
@@ -177,6 +177,7 @@ export const MAP_PAGE_HTML = `
 
     <section class="map-wrap" aria-label="Carte interactive du Jura">
       <button class="mobile-toggle" id="sidebarToggle" type="button" aria-expanded="false" aria-label="Afficher ou masquer la sidebar">☰</button>
+      <button class="sidebar-expand-tab" id="sidebarExpandTab" type="button" title="Afficher la sidebar" aria-label="Afficher la sidebar" hidden>▶</button>
       <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
       <div class="layer-switcher" id="layerSwitcher" role="group" aria-label="Fond de carte">
         <button class="layer-btn active" data-base="osm" type="button">🗺 Carte</button>

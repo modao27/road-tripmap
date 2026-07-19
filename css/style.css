@@ -27,9 +27,17 @@ body {
 .app {
   display: grid;
   grid-template-columns: var(--sidebar) 10px 1fr;
+  transition: grid-template-columns 250ms ease;
   width: 100%;
   min-height: 100vh;
   height: 100%;
+}
+
+/* Sidebar réellement escamotable (Phase H2) : la carte réoccupe l'espace
+   libéré, pas seulement une réduction visuelle du panneau. Réouverture via
+   #sidebarExpandTab (flottant sur la carte, cf. plus bas). */
+.app.sidebar-collapsed {
+  grid-template-columns: 0px 0px 1fr;
 }
 
 .sidebar {
@@ -38,6 +46,7 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
   background: linear-gradient(180deg, var(--color-surface), var(--color-primary-tint));
   border-right: 1px solid var(--color-border);
   box-shadow: var(--shadow);
@@ -80,7 +89,7 @@ body {
 
 .sidebar-header-main h1 { flex: 1; }
 
-.header-toggle-btn {
+.sidebar-collapse-btn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -91,24 +100,48 @@ body {
   background: none;
   border: none;
   color: var(--color-muted);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   cursor: pointer;
   border-radius: 8px;
   line-height: 1;
   transition: color 120ms ease, background 120ms ease;
 }
 
-.header-toggle-btn:hover { color: var(--color-primary-text); background: rgba(35, 93, 126, 0.08); }
+.sidebar-collapse-btn:hover { color: var(--color-primary-text); background: rgba(35, 93, 126, 0.08); }
 
 .sidebar-intro {
-  overflow: hidden;
-  max-height: 120px;
-  opacity: 1;
   margin-top: 10px;
-  transition: max-height 280ms ease, opacity 200ms ease, margin 280ms ease;
 }
 
-.sidebar-intro.collapsed { max-height: 0; opacity: 0; margin-top: 0; }
+/* Réouverture de la sidebar une fois masquée (.app.sidebar-collapsed) —
+   flottant sur la carte, jamais affiché sous 821px : l'off-canvas mobile
+   (.mobile-toggle) gère déjà l'affichage/masquage sur petit écran. */
+.sidebar-expand-tab {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  z-index: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 64px;
+  border: none;
+  border-radius: 0 12px 12px 0;
+  background: var(--color-surface);
+  color: var(--color-primary-text);
+  box-shadow: 0 6px 20px rgba(30, 41, 59, 0.18);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 150ms ease, width 150ms ease;
+}
+
+.sidebar-expand-tab:hover { background: var(--color-primary-tint); width: 30px; }
+
+@media (min-width: 821px) {
+  .sidebar-expand-tab:not([hidden]) { display: inline-flex; }
+}
 
 /* ── Barre d'actions ─────────────────────────────────────────────────────── */
 .action-bar {
@@ -1101,6 +1134,7 @@ a.dt-name:hover { text-decoration: underline; }
 
 .resizer {
   width: 10px;
+  overflow: hidden;
   cursor: ew-resize;
   background: linear-gradient(90deg, transparent, rgba(30,41,59,0.04));
   z-index: 600;
@@ -2358,6 +2392,12 @@ mark.search-highlight {
 
   .mobile-toggle {
     display: inline-flex;
+  }
+
+  /* L'escamotage complet (Phase H2) est un concept desktop : sur mobile,
+     l'off-canvas ci-dessus fait déjà le travail via .mobile-toggle. */
+  .sidebar-collapse-btn {
+    display: none;
   }
 
   .sidebar-header {
