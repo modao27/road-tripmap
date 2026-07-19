@@ -16,7 +16,10 @@ export const MAP_PAGE_HTML = `
       <header class="sidebar-header">
         <div class="sidebar-header-top">
           <a class="map-back-link" href="index.html#/dashboard">← Mes road trips</a>
-          ${userMenuHtml()}
+          <div class="sidebar-header-top-actions">
+            <button class="btn btn--ghost btn--icon" id="shareButton" type="button" title="Partager cette carte" aria-label="Partager cette carte">🔗</button>
+            ${userMenuHtml()}
+          </div>
         </div>
         <div class="sidebar-header-main">
           <p class="eyebrow">Carte libre</p>
@@ -25,14 +28,6 @@ export const MAP_PAGE_HTML = `
         </div>
         <p class="intro sidebar-intro" id="sidebarIntro">Une carte sans planning imposé pour repérer cascades, belvédères, villages, spots nature et via ferrata autour de Baume-les-Messieurs.</p>
       </header>
-
-      <!-- Barre d'actions icônes -->
-      <div class="action-bar" aria-label="Actions rapides">
-        <button class="action-btn" id="recenterButton" type="button" title="Recentrer sur Baume-les-Messieurs">⌖</button>
-        <button class="action-btn" id="geolocateButton" type="button" title="Ma position">📍</button>
-        <button class="action-btn pin-btn" id="pinModeButton" type="button" title="Ajouter un pin">📌</button>
-        <button class="action-btn" id="shareButton" type="button" title="Partager cette carte">🔗</button>
-      </div>
 
       <!-- Onglets -->
       <div class="sidebar-tabs" role="tablist">
@@ -179,6 +174,13 @@ export const MAP_PAGE_HTML = `
       <button class="mobile-toggle" id="sidebarToggle" type="button" aria-expanded="false" aria-label="Afficher ou masquer la sidebar">☰</button>
       <button class="sidebar-expand-tab" id="sidebarExpandTab" type="button" title="Afficher la sidebar" aria-label="Afficher la sidebar" hidden>▶</button>
       <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
+
+      <!-- Actions carte : flottantes, accessibles même sidebar masquée (Phase H3) -->
+      <div class="map-fabs" aria-label="Actions rapides">
+        <button class="map-fab" id="recenterButton" type="button" title="Recentrer sur Baume-les-Messieurs" aria-label="Recentrer sur Baume-les-Messieurs">⌖</button>
+        <button class="map-fab" id="geolocateButton" type="button" title="Ma position" aria-label="Ma position">📍</button>
+        <button class="map-fab" id="pinModeButton" type="button" title="Ajouter un pin" aria-label="Ajouter un pin">📌</button>
+      </div>
       <div class="layer-switcher" id="layerSwitcher" role="group" aria-label="Fond de carte">
         <button class="layer-btn active" data-base="osm" type="button">🗺 Carte</button>
         <button class="layer-btn" data-base="ign" type="button">⛰ IGN</button>

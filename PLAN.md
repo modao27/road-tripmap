@@ -448,11 +448,34 @@ construire, l'audit montre le contraire) :
       Vérifié : lint 0 warning, `test:e2e` 3/3, captures Playwright
       ouvert/replié/rouvert/replié-sombre/mobile + relecture après
       rechargement (la préférence survit), aucune erreur console.
-- [ ] **H3** *(P1)* — FAB flottants sur la carte : extraire
-      recentrer/géolocaliser/ajouter-un-lieu de `.action-bar` vers 2-3
-      boutons flottants en bas à droite de `.map-wrap`, visibles même sidebar
-      fermée (dépend de H2). *Bénéfice* : les actions carte restent
-      accessibles sidebar masquée, cohérent avec Google Maps/Apple Plans.
+- [x] **H3** *(P1)* — FAB flottants sur la carte. `.action-bar` (4 boutons)
+      est retirée de la sidebar : recentrer/géolocaliser/ajouter-un-lieu
+      deviennent `.map-fabs`, 3 boutons ronds flottants en bas à gauche de
+      `.map-wrap` (bas à droite déjà pris par le sélecteur de fond +
+      zoom Leaflet) ; visibles aussi bien sidebar repliée (desktop, H2)
+      que sidebar fermée par défaut (mobile — gain net : ces actions
+      étaient auparavant inaccessibles sans ouvrir le menu ☰). Le partage
+      reste une action de la sidebar, déplacé dans `.sidebar-header-top`
+      à côté du menu utilisateur (action moins fréquente, pas un FAB).
+      Masqués quand la sidebar mobile est ouverte (superposition avec la
+      liste/les filtres, pas avec la carte).
+      Bug trouvé et corrigé au passage : replier la sidebar à largeur 0
+      pouvait faire déborder `.app`/`.map-wrap` au-delà de 100vh (le
+      texte de la sidebar, remis à la ligne à largeur 0, réclamait plus
+      de hauteur que l'écran — la rangée de grille implicite suivait ce
+      contenu) et poussait les FAB hors-écran. Fixé par
+      `grid-template-rows: minmax(0, 1fr)` + `height: 100vh` explicite
+      sur `.app` (plutôt que `height:100%`, indéfini tant que `#app` n'a
+      pas de hauteur définie) et `min-height: 0` sur `.sidebar` (le
+      classique « automatic minimum size » de grid/flexbox, déjà appliqué
+      à `.sidebar-body` mais pas à `.sidebar` elle-même). *Bénéfice* : les
+      actions carte restent accessibles sidebar masquée ou fermée,
+      cohérent avec Google Maps/Apple Plans.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      captures Playwright + inspection des rects DOM avant/après repli
+      (confirmant `.app` reste à 800px de haut et les 3 FAB dans le
+      viewport), mobile ouvert/fermé, sombre, modale « Nouveau pin »
+      ouverte depuis le FAB.
 - [ ] **H4** *(P1)* — Mode focus à l'ouverture d'une fiche : replier
       automatiquement la sidebar et masquer les FAB non pertinents quand une
       popup/bottom sheet est ouverte ; ne restent que carte + fiche + retour

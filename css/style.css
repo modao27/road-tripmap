@@ -27,10 +27,15 @@ body {
 .app {
   display: grid;
   grid-template-columns: var(--sidebar) 10px 1fr;
+  /* minmax(0, 1fr) plutôt qu'une rangée implicite : sans ça, la sidebar
+     repliée (H2) à largeur 0 peut renvoyer du texte à la ligne dont la
+     hauteur de contenu dépasse 100vh, et la rangée implicite (auto) suit
+     ce contenu — .app grandit au-delà de l'écran et les FAB carte (H3),
+     ancrés en bas de .map-wrap, se retrouvent hors-écran. */
+  grid-template-rows: minmax(0, 1fr);
   transition: grid-template-columns 250ms ease;
   width: 100%;
-  min-height: 100vh;
-  height: 100%;
+  height: 100vh;
 }
 
 /* Sidebar réellement escamotable (Phase H2) : la carte réoccupe l'espace
@@ -46,6 +51,12 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Sans ce min-height:0, un item de grille garde par défaut un
+     min-height:auto (min-content) : à largeur 0 (sidebar repliée, H2),
+     le texte qui se remet à la ligne peut réclamer plus de hauteur que
+     100vh et forcer .app / .map-wrap à dépasser l'écran — les FAB carte
+     (H3), ancrés en bas de .map-wrap, se retrouvaient alors hors-écran. */
+  min-height: 0;
   overflow: hidden;
   background: linear-gradient(180deg, var(--color-surface), var(--color-primary-tint));
   border-right: 1px solid var(--color-border);
@@ -143,38 +154,54 @@ body {
   .sidebar-expand-tab:not([hidden]) { display: inline-flex; }
 }
 
-/* ── Barre d'actions ─────────────────────────────────────────────────────── */
-.action-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
+.sidebar-header-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-.action-btn {
-  display: grid;
-  place-items: center;
-  height: 44px;
-  border: 1px solid rgba(30, 41, 59, 0.1);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
-  font-size: 1.15rem;
-  cursor: pointer;
-  transition: background 120ms ease, box-shadow 120ms ease, transform 100ms ease;
+/* ── FAB carte : recentrer / géolocaliser / ajouter un pin (Phase H3) ────────
+   Flottants sur .map-wrap, pas dans la sidebar : restent accessibles
+   sidebar masquée (H2, desktop) ou fermée par défaut (mobile). Le partage
+   reste une action de la sidebar (cf. .sidebar-header-top-actions) — pas
+   un FAB, action moins fréquente que recentrer/géolocaliser/ajouter. */
+.map-fabs {
+  position: absolute;
+  left: calc(14px + env(safe-area-inset-left));
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 650;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.action-btn:hover {
-  background: white;
-  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.12);
+.map-fab {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-primary-text);
+  font-size: 1.15rem;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(30, 41, 59, 0.22);
+  transition: background-color 120ms ease, box-shadow 120ms ease, transform 100ms ease;
+}
+
+.map-fab:hover {
+  box-shadow: 0 10px 26px rgba(30, 41, 59, 0.3);
   transform: translateY(-1px);
 }
 
-.action-btn.active {
+.map-fab.active {
   background: var(--color-primary);
-  border-color: transparent;
+  color: var(--color-on-primary);
 }
+
+.map-fab[hidden] { display: none; }
 
 /* ── Onglets ─────────────────────────────────────────────────────────────── */
 .sidebar-tabs {
@@ -2384,6 +2411,12 @@ mark.search-highlight {
     transform: translateX(0);
   }
 
+  /* Sidebar ouverte = plein écran sur mobile : les FAB carte flotteraient
+     par-dessus la liste/les filtres, pas au-dessus de la carte. */
+  .sidebar.open ~ .map-wrap .map-fabs {
+    display: none;
+  }
+
   .map-wrap {
     width: 100vw;
     height: 100vh;
@@ -2474,13 +2507,6 @@ mark.search-highlight {
    .sidebar-tab (etat de base) sont deja corrects : ils utilisent
    --color-bg/--color-surface/--color-primary-tint/--color-border/
    --color-muted, geres par tokens.css. */
-
-[data-theme="dark"] .action-btn {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-[data-theme="dark"] .action-btn:hover { background: rgba(255, 255, 255, 0.13); }
-[data-theme="dark"] .action-btn.active { background: var(--color-primary-hover); border-color: transparent; }
 
 [data-theme="dark"] .filter-pill {
   background: rgba(255, 255, 255, 0.06);
