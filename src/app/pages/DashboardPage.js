@@ -8,10 +8,11 @@ import { listRoadtrips, createRoadtrip, deleteRoadtrip, updateRoadtrip, inviteMe
          importFreeMapAsRoadtrip } from '../../features/roadtrips/roadtripService.js';
 import { loadUserPins } from '../../features/map/storage.js';
 import { storageGet, storageSet } from '../../shared/utils/storage.js';
-import { renderList, renderListLoading, renderListError } from '../../features/dashboard/RoadtripList.js';
+import { renderList, renderListLoading, renderListError, renderListEmpty } from '../../features/dashboard/RoadtripList.js';
 import { toast }                                      from '../../shared/ui/toast.js';
 import { router }                                     from '../router.js';
 import { escapeHtml as esc }                          from '../../shared/utils/escape.js';
+import { userMenuHtml, wireUserMenu }                 from '../../shared/ui/userMenu.js';
 
 export function renderDashboardPage(container) {
   const { user } = authStore.getState();
@@ -24,18 +25,15 @@ export function renderDashboardPage(container) {
           <span class="dash-header__logo">🗺️</span>
           <span class="dash-header__name">Road Trip Map</span>
         </div>
+        <div class="dash-header__search">
+          <input class="dash-header__search-input" type="search" id="tripSearchInput"
+                 placeholder="Rechercher un road trip…" aria-label="Rechercher un road trip">
+        </div>
         <div class="dash-header__actions">
           <button class="btn btn--primary" id="newTripBtn">
             + Nouveau road trip
           </button>
-          <button class="btn btn--ghost btn--icon" id="profileBtn"
-                  title="Mon profil" aria-label="Mon profil">
-            👤
-          </button>
-          <button class="btn btn--ghost btn--icon" id="logoutBtn"
-                  title="Se déconnecter" aria-label="Se déconnecter">
-            ↩
-          </button>
+          ${userMenuHtml()}
         </div>
       </header>
 
@@ -158,18 +156,38 @@ export function renderDashboardPage(container) {
   let   pendingDeleteId     = null;
   let   pendingEditId       = null;
   let   pendingInviteId     = null;
+  let   allTrips            = [];
 
   // ── Chargement ────────────────────────────────────────────────────────────
   async function loadTrips() {
     renderListLoading(listWrap);
     try {
-      const trips = await listRoadtrips();
-      renderList(listWrap, trips, { onDelete: openDeleteModal, onShare: shareTrip, onEdit: openEditModal, onInvite: openInviteModal });
+      allTrips = await listRoadtrips();
+      applyTripSearch();
     } catch (err) {
       renderListError(listWrap, 'Impossible de charger les road trips.');
       listWrap.querySelector('#listRetry')?.addEventListener('click', loadTrips);
     }
   }
+
+  // ── Recherche client-side (pas de round-trip réseau par frappe) ──────────
+  function applyTripSearch() {
+    const query = container.querySelector('#tripSearchInput').value.trim().toLowerCase();
+    const handlers = { onDelete: openDeleteModal, onShare: shareTrip, onEdit: openEditModal, onInvite: openInviteModal };
+    if (!query) { renderList(listWrap, allTrips, handlers); return; }
+
+    const filtered = allTrips.filter(t => t.title?.toLowerCase().includes(query));
+    if (!filtered.length) {
+      renderListEmpty(listWrap, {
+        title: 'Aucun résultat',
+        sub: `Aucun road trip ne correspond à « ${esc(query)} ».`,
+      });
+      return;
+    }
+    renderList(listWrap, filtered, handlers);
+  }
+
+  container.querySelector('#tripSearchInput').addEventListener('input', applyTripSearch);
 
   loadTrips();
 
@@ -203,15 +221,10 @@ export function renderDashboardPage(container) {
     });
   }
 
-  // ── Profil ────────────────────────────────────────────────────────────────
-  container.querySelector('#profileBtn').addEventListener('click', () => {
-    router.navigate('profile');
-  });
-
-  // ── Déconnexion ───────────────────────────────────────────────────────────
-  container.querySelector('#logoutBtn').addEventListener('click', async () => {
-    await signOut();
-    router.navigate('');
+  // ── Menu utilisateur (profil + déconnexion) ──────────────────────────────
+  wireUserMenu(container.querySelector('.user-menu'), {
+    onProfile: () => router.navigate('profile'),
+    onLogout: async () => { await signOut(); router.navigate(''); },
   });
 
   // ── Nouveau road trip ─────────────────────────────────────────────────────

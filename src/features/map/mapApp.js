@@ -18,6 +18,8 @@ import { fetchPinsRemote, fetchOverridesRemote,
 import { fetchRoadtripInfo } from '../roadtrips/roadtripService.js';
 import { loadSharedMap } from '../sharing/sharingService.js';
 import { getCurrentUserId, sessionReady } from '../../shared/lib/session.js';
+import { signOut } from '../auth/authService.js';
+import { wireUserMenu } from '../../shared/ui/userMenu.js';
 import { initShareModal, showSharedMapBanner, confirmSharedMapLoad } from './share.js';
 import { initRoutePlanner } from './routePlanner.js';
 import { initOverpass } from './overpass.js';
@@ -401,6 +403,24 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
   // Collapsé par défaut après la première visite
   setHeaderCollapsed(localStorage.getItem('headerCollapsed') === '1');
+
+  // ── Menu utilisateur (profil + déconnexion) ──────────────────────────────
+  // Absent en carte libre anonyme / lecture d'une carte partagée sans compte —
+  // rien à proposer. Navigation en dur (index.html#/...) : la carte n'importe
+  // pas le routeur SPA, comme le lien retour ci-dessus.
+  const userMenuEl = document.querySelector('.sidebar-header .user-menu');
+  if (userMenuEl && getCurrentUserId()) {
+    wireUserMenu(userMenuEl, {
+      onProfile: () => { window.location.href = 'index.html#/profile'; },
+      onLogout: async () => {
+        await signOut();
+        window.location.href = 'index.html#/login';
+      },
+      signal,
+    });
+  } else {
+    userMenuEl?.remove();
+  }
 
   // ── Modale de partage (désactivée en mode lecture d'une carte partagée) ───
   if (!isSharedMap) {

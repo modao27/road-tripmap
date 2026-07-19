@@ -49,12 +49,19 @@ body {
   flex-shrink: 0;
 }
 
+.sidebar-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -12px -8px -2px -4px;
+}
+
 .map-back-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-height: 44px;
-  margin: -12px 0 -2px -4px;
   padding: 0 4px;
   font-size: 0.78rem;
   font-weight: 700;

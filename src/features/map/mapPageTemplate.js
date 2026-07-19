@@ -1,8 +1,12 @@
 /**
  * @fileoverview Markup de la page carte (source unique).
  * Injecté par la MapPage de la SPA (src/app/pages/MapPage.js).
- * Markup statique uniquement — aucune donnée interpolée.
+ * Markup statique uniquement — aucune donnée interpolée (le menu
+ * utilisateur ci-dessous est retiré du DOM par mapApp.js en carte libre
+ * anonyme / lecture d'une carte partagée, où il n'y a rien à proposer).
  */
+
+import { userMenuHtml } from '../../shared/ui/userMenu.js';
 
 export const MAP_PAGE_HTML = `
   <main class="app">
@@ -10,7 +14,10 @@ export const MAP_PAGE_HTML = `
 
       <!-- En-tête collapsible -->
       <header class="sidebar-header">
-        <a class="map-back-link" href="index.html#/dashboard">← Mes road trips</a>
+        <div class="sidebar-header-top">
+          <a class="map-back-link" href="index.html#/dashboard">← Mes road trips</a>
+          ${userMenuHtml()}
+        </div>
         <div class="sidebar-header-main">
           <p class="eyebrow">Carte libre</p>
           <h1>Road trip outdoor dans le Jura</h1>

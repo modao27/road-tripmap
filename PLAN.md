@@ -373,6 +373,156 @@ branding et accessibilité validés par Lighthouse. Tous les commits
 sont locaux (non poussés) — c'est Paul qui pousse et valide en
 navigateur/téléphone, cf. [[road-tripmap-conventions]].
 
+## Phase H — UX/UI post-connexion : la carte au centre (établie le 2026-07-18)
+
+Mission confiée par Paul (brief Lead Product Designer complet, conservé dans
+l'historique de conversation) : réduire la charge cognitive de l'app une fois
+connecté, faire de la carte le cœur de l'expérience, masquer la complexité par
+défaut (progressive disclosure). Découpe établie après audit du code actuel —
+pas au jugé.
+
+**Déjà acquis — à ne pas refaire** (le brief initial les supposait à
+construire, l'audit montre le contraire) :
+- Fiches de lieu + bottom sheet mobile (Phase F, `src/features/map/pins.js`,
+  `bottomSheet.js`) : 3 niveaux de lecture, replis chargés à la demande, swipe
+  mobile — solide. Seul un polish visuel ponctuel est prévu (H9), pas de refonte.
+- Filtres déjà en panneau repliable (`<details class="filter-section">`,
+  `filters.js`) — pas la « longue liste permanente » du brief ; reste à le
+  fermer par défaut (H7), pas à le reconstruire.
+- Ajout de lieu via Découvrir : déjà 2 clics (résultat → confirmer). Le point
+  de friction réel est le chemin manuel (modal + géocodage), pas le principe.
+
+**Ce qui surcharge réellement aujourd'hui** :
+- Sidebar toujours visible à largeur fixe (390px desktop), un seul niveau de
+  repli qui ne masque que l'en-tête (`#headerToggleBtn`) — `mapPageTemplate.js`,
+  grid `--sidebar` de `css/style.css`.
+- Deux systèmes de header différents (dashboard vs carte), aucune recherche
+  unifiée — `DashboardPage.js` vs `mapPageTemplate.js`.
+- Aucune notion de mode : 3 onglets (Lieux / Road Trip / Découvrir) + 4
+  boutons d'action visibles en permanence, y compris hors contexte.
+- Pas de mode focus : sidebar et onglets restent affichés à côté d'une fiche
+  de lieu ouverte.
+- Un seul breakpoint (820px, binaire desktop/mobile) — aucun traitement
+  tablette.
+- Planning Road Trip (E1) = liste de jours, pas de représentation temporelle
+  visuelle.
+
+### Tâches
+
+- [x] **H1** *(P1)* — Header unifié minimaliste. Livré en deux parties :
+      menu utilisateur partagé (`src/shared/ui/userMenu.js`, profil +
+      déconnexion fusionnés en un seul avatar avec menu déroulant) monté sur
+      le header du dashboard (remplace 2 boutons icônes séparés) et sur le
+      bandeau haut de la sidebar carte (accès profil/déconnexion qui
+      n'existait pas du tout depuis la carte) ; recherche de road trips
+      ajoutée au header dashboard (`#tripSearchInput`, filtrage client-side,
+      absente avant). *Bénéfice* : un seul composant de menu compte dans
+      toute l'app connectée, la recherche de road trips devient possible là
+      où elle n'existait pas.
+      Reste pour plus tard, volontairement : la recherche de **lieux**
+      (déjà existante dans l'onglet Lieux, `#searchInput`) n'a pas été
+      déplacée dans un header global — la déplacer avant que H2/H3
+      (sidebar escamotable + FAB) existent l'aurait fait disparaître avec
+      la sidebar masquée. À réévaluer une fois H2/H3 posés.
+      Vérifié : `npm run lint` (0 warning), `npm run test:e2e` (3/3),
+      captures Playwright clair/sombre/mobile sur le dashboard (harness
+      statique, pas de compte de test en prod) et sur la carte libre
+      anonyme (page réelle, menu absent comme attendu) — aucune erreur
+      console. ⚠ Le header dashboard authentifié (recherche + menu en
+      situation réelle) reste à valider par Paul en navigateur, connecté —
+      pas de compte de test disponible pour ne pas créer de données dans
+      Supabase prod.
+- [ ] **H2** *(P1)* — Sidebar réellement escamotable : `#headerToggleBtn` doit
+      masquer tout le panneau (pas seulement l'en-tête), la carte réoccupant
+      l'espace via transition de `grid-template-columns` ; état mémorisé par
+      device (localStorage). *Bénéfice* : la carte peut occuper tout l'écran
+      par défaut en consultation, conforme à « la carte est le cœur du
+      produit ».
+- [ ] **H3** *(P1)* — FAB flottants sur la carte : extraire
+      recentrer/géolocaliser/ajouter-un-lieu de `.action-bar` vers 2-3
+      boutons flottants en bas à droite de `.map-wrap`, visibles même sidebar
+      fermée (dépend de H2). *Bénéfice* : les actions carte restent
+      accessibles sidebar masquée, cohérent avec Google Maps/Apple Plans.
+- [ ] **H4** *(P1)* — Mode focus à l'ouverture d'une fiche : replier
+      automatiquement la sidebar et masquer les FAB non pertinents quand une
+      popup/bottom sheet est ouverte ; ne restent que carte + fiche + retour
+      explicite (dépend de H2/H3). *Bénéfice* : supprime la double lecture
+      fiche + sidebar sans toucher au contenu de la popup (déjà bon, Phase F).
+- [ ] **H5** *(P2)* — Modes explicites Explorer / Modifier / Roadtrip :
+      sélecteur dans le header (H1) qui pose, pour chaque mode, l'état par
+      défaut de la sidebar/FAB déjà construits (H2-H4) — Explorer : sidebar
+      fermée + FAB ; Modifier : sidebar Lieux/Filtres ouverte ; Roadtrip :
+      sidebar Road Trip ouverte. *Bénéfice* : chaque mode n'affiche que les
+      outils utiles, au lieu de 3 onglets + 4 actions visibles en permanence.
+- [ ] **H6** *(P2)* — Workflow d'ajout de lieu < 15 s : le FAB « ajouter »
+      (H3) ouvre une recherche flottante sans backdrop bloquant ; sélection →
+      pin posé directement, éditable inline, sans étape de confirmation
+      séparée pour le cas simple (dépend de H3). *Bénéfice* : passe le chemin
+      manuel de 3-4 interactions à 2, aligné sur le chemin Découvrir déjà
+      rapide.
+- [ ] **H7** *(P2)* — Filtres en tiroir fermé par défaut : remplacer le
+      `<details open>` par un tiroir fermé, déclenché par une puce
+      « Filtres (n actifs) » ; les chips actives restent visibles tiroir
+      fermé. *Bénéfice* : le panneau Lieux ne s'ouvre plus systématiquement
+      sur un mur de filtres.
+- [ ] **H8** *(P2)* — Responsive tablette dédié : nouveau breakpoint
+      intermédiaire (~600-960px), sidebar en overlay partiel plutôt que plein
+      écran (mobile) ou grid fixe (desktop) (dépend de H2). *Bénéfice* : la
+      tablette n'est aujourd'hui ni traitée comme mobile ni comme desktop.
+- [ ] **H9** *(P3)* — Pins/clusters : hiérarchie par zoom, désencombrement
+      des faibles zooms, léger scale au survol sur l'état déjà existant
+      (`.marker-highlight`). *Bénéfice* : lisibilité à l'échelle
+      région/pays ; la base (couleurs, cluster) est déjà solide.
+- [ ] **H10** *(P3)* — Timeline visuelle : nouvelle vue (bascule depuis le
+      mode Roadtrip, H5) représentant les jours horizontalement avec
+      étapes/hébergements/déplacements, en lecture des données de
+      `routePlanner.js` sans les dupliquer (dépend de H5). *Bénéfice* :
+      répond au besoin explicite de visualiser le voyage autrement que sur
+      la carte ; effort important, non indispensable au cœur carte.
+- [ ] **H11** *(Nice to have)* — Micro-animations : transitions
+      d'ouverture/fermeture sidebar, apparition des pins, hover FAB — une
+      fois H1-H8 stabilisés, `prefers-reduced-motion` respecté (déjà la
+      norme du projet). *Bénéfice* : soigne la sensation « calme » demandée
+      sans figer une UI qui va encore bouger.
+- [ ] **H12** *(Nice to have)* — Wireframes ASCII + audit complet documenté
+      (desktop/tablette/mobile/focus/timeline), si Paul veut le livrable de
+      réflexion complet décrit dans le brief avant de coder — à faire en
+      amont de H1 uniquement si un cadrage visuel doit être validé avant
+      implémentation.
+
+**Ordre de travail retenu** : H1 → H2 → H3 → H4 → H7 → H6 → H5 → H8 → H9 →
+H10 → H11.
+
+Logique de l'ordre : H1-H4 posent les fondations du shell (un seul header,
+une sidebar qui se masque vraiment, des FAB qui survivent à ce masquage, un
+mode focus qui s'appuie dessus) — c'est ce qui répond le plus directement à
+« la carte doit occuper la majorité de l'écran ». H7 et H6 sont des gains
+rapides et peu risqués une fois H3 posé, glissés avant la composition finale.
+H5 arrive après coup : les modes ne sont qu'un préréglage nommé des
+primitives déjà construites, pas une nouvelle mécanique. H8-H10 sont des
+extensions (tablette, polish pins, nouvelle vue) qui s'appuient sur un shell
+stabilisé. H11 ferme la marche pour ne pas animer une UI encore mouvante.
+H12 est optionnel et n'a de sens qu'en amont si un cadrage visuel doit être
+validé avant le code — sinon la découpe ci-dessus suffit pour démarrer.
+
+Comme pour les phases précédentes : commits atomiques, app fonctionnelle à
+chaque commit, validation en navigateur (desktop + téléphone) entre les
+lots, cf. [[road-tripmap-conventions]].
+
+⚠ Découvert pendant H1, sans rapport avec cette phase : `npm test` (Vitest)
+échoue intégralement — 17 suites, 0 test exécuté, erreurs
+`Cannot read properties of undefined (reading 'config')` /
+« Vitest failed to find the runner ». Reproduit à l'identique sur le code
+d'avant H1 (testé par `git stash`) : ce n'est pas une régression de cette
+phase. `node_modules/vite` est en 8.1.3 alors que `vitest@^4.1.10` (seule
+version déclarée dans `package.json`, `vite` n'y est pas épinglé) attend
+une ligne majeure antérieure — probablement une dérive de résolution npm
+au dernier install. `npm run lint` et `npm run test:e2e` (Playwright) ne
+sont pas affectés et restent la garde-fou pendant que ce point n'est pas
+réglé. À corriger séparément (épingler `vite` à une version compatible
+avec `vitest@4`, ou mettre à jour les deux ensemble) avant de compter sur
+`npm test` pour valider H2 et la suite.
+
 ## Ordre recommandé
 
 **A → C1-C2 → B → C3-C4 → D1 → D2/D3/D4 au choix.**

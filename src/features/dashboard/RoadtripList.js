@@ -18,15 +18,18 @@ export function renderListLoading(container) {
 }
 
 /**
- * Rend l'état vide.
+ * Rend l'état vide. `title`/`sub` sont déjà du HTML prêt à l'emploi (les
+ * appelants échappent eux-mêmes toute donnée utilisateur, ex. une requête
+ * de recherche) — pas d'échappement supplémentaire ici.
  * @param {HTMLElement} container
+ * @param {{ title?: string, sub?: string }} [override]
  */
-export function renderListEmpty(container) {
+export function renderListEmpty(container, { title, sub } = {}) {
   container.innerHTML = `
     <div class="rt-empty">
       <span class="rt-empty__icon">🗺️</span>
-      <h2 class="rt-empty__title">Aucun road trip pour l'instant</h2>
-      <p class="rt-empty__sub">Crée ton premier road trip pour commencer à explorer.</p>
+      <h2 class="rt-empty__title">${title ?? "Aucun road trip pour l'instant"}</h2>
+      <p class="rt-empty__sub">${sub ?? 'Crée ton premier road trip pour commencer à explorer.'}</p>
     </div>`;
 }
 
