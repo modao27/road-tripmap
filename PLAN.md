@@ -519,19 +519,19 @@ Comme pour les phases précédentes : commits atomiques, app fonctionnelle à
 chaque commit, validation en navigateur (desktop + téléphone) entre les
 lots, cf. [[road-tripmap-conventions]].
 
-⚠ Découvert pendant H1, sans rapport avec cette phase : `npm test` (Vitest)
-échoue intégralement — 17 suites, 0 test exécuté, erreurs
-`Cannot read properties of undefined (reading 'config')` /
-« Vitest failed to find the runner ». Reproduit à l'identique sur le code
-d'avant H1 (testé par `git stash`) : ce n'est pas une régression de cette
-phase. `node_modules/vite` est en 8.1.3 alors que `vitest@^4.1.10` (seule
-version déclarée dans `package.json`, `vite` n'y est pas épinglé) attend
-une ligne majeure antérieure — probablement une dérive de résolution npm
-au dernier install. `npm run lint` et `npm run test:e2e` (Playwright) ne
-sont pas affectés et restent la garde-fou pendant que ce point n'est pas
-réglé. À corriger séparément (épingler `vite` à une version compatible
-avec `vitest@4`, ou mettre à jour les deux ensemble) avant de compter sur
-`npm test` pour valider H2 et la suite.
+✅ Correctif (2026-07-19) — le point ⚠ noté pendant H1 (`npm test` cassé,
+17 suites en échec) n'était **pas** une dérive de version : `vitest@4.1.10`
+déclare bien supporter `vite ^6 || ^7 || ^8` (vérifié via `npm view`), donc
+`vite@8.1.3` installé était compatible. La vraie cause : le cache de
+pré-bundling `node_modules/.vite` était corrompu/périmé (probablement par
+l'enchaînement `git stash`/`git stash pop` pendant H1, en pleine
+exécution). `rm -rf node_modules/.vite` + un run normal a suffi à le
+régénérer proprement — confirmé stable sur 4 exécutions consécutives
+(17/17 suites, 110/110 tests). Aucun changement de dépendance nécessaire.
+Si `npm test` recasse un jour avec les mêmes erreurs (« Cannot read
+properties of undefined (reading 'config') » / « Vitest failed to find
+the runner »), revider `node_modules/.vite` avant de suspecter autre
+chose.
 
 ## Ordre recommandé
 
