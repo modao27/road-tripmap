@@ -6,7 +6,7 @@ import { loadUserPins, loadOverrides, saveUserPins, saveOverrides,
          saveMapView, loadMapView } from './storage.js';
 import { initMap, makeIcon, addMarker, focusPlace, renderMap,
          initLayerSwitcher, initPopupAutoPan } from './map.js';
-import { renderFilters, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
+import { renderFilters, renderFilterChips, renderLegend, renderPlaces, getVisiblePlaces } from './filters.js';
 import { showToast, setSyncStatus, initSidebar, initResizer } from './ui.js';
 import { popupHtml, initPins } from './pins.js';
 import { fetchPinsRemote, fetchOverridesRemote,
@@ -196,6 +196,8 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const filtersEl       = document.querySelector('#filters');
   const legendEl        = document.querySelector('#legend');
+  const filterChipsEl   = document.querySelector('#filterChipsPreview');
+  const filterCountEl   = document.querySelector('#filterActiveCount');
   const placeListEl     = document.querySelector('#placeList');
   const visibleCountEl  = document.querySelector('#visibleCount');
   const sidebarEl       = document.querySelector('#sidebar');
@@ -227,7 +229,18 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   }
   function doRenderMap()     { renderMap(getVisible(), markers, markerLayer); }
   function doRenderPlaces()  { renderPlaces(getVisible(), placeListEl, visibleCountEl, categories, searchQuery); }
-  function doRenderFilters() { renderFilters(filtersEl, categories, getAllPlaces, activeCategories); }
+  function doRenderFilters() {
+    renderFilters(filtersEl, categories, getAllPlaces, activeCategories);
+    updateFilterSummary();
+  }
+  // Aperçu (résumé + chips) visible tiroir fermé — appelé aussi depuis les
+  // mutations qui ne passent pas par doRenderFilters (checkbox, tout
+  // afficher/masquer) pour rester léger : pas de recalcul des comptes par
+  // catégorie, juste le texte et les puces.
+  function updateFilterSummary() {
+    if (filterCountEl) filterCountEl.textContent = `${activeCategories.size}/${Object.keys(categories).length}`;
+    if (filterChipsEl) renderFilterChips(filterChipsEl, categories, activeCategories);
+  }
   const routeBadgeEl       = document.getElementById('routeBadge');
   const routeBadgeCountEl  = document.getElementById('routeBadgeCount');
   const routeBadgePluralEl = document.getElementById('routeBadgePlural');
@@ -297,6 +310,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     if (event.target.checked) activeCategories.add(event.target.value);
     else activeCategories.delete(event.target.value);
     event.target.closest('.filter-pill')?.classList.toggle('active', event.target.checked);
+    updateFilterSummary();
     doRenderMap(); doRenderPlaces();
   });
 
@@ -307,6 +321,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       else activeCategories.delete(input.value);
       input.closest('.filter-pill')?.classList.toggle('active', enabled);
     });
+    updateFilterSummary();
     doRenderMap(); doRenderPlaces();
   }
   document.querySelector('#showAllButton').addEventListener('click', () => setAllFilters(true));

@@ -51,9 +51,17 @@ export const MAP_PAGE_HTML = `
               Rechercher un lieu
             </button>
             <input id="searchInput" class="search" type="search" placeholder="Rechercher un lieu…" aria-label="Recherche de lieu" hidden>
-            <!-- Filtres avec show/hide intégré -->
-            <details class="filter-section" open>
-              <summary>Filtres <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg></summary>
+            <!-- Aperçu des filtres actifs, visible même tiroir fermé -->
+            <div class="filter-chips" id="filterChipsPreview" aria-label="Filtres actifs"></div>
+
+            <!-- Filtres avec show/hide intégré : replié par défaut (Phase H7),
+                 le panneau Lieux ne s'ouvre plus systématiquement sur un mur
+                 de filtres — l'aperçu ci-dessus suffit pour voir l'état actif. -->
+            <details class="filter-section">
+              <summary>
+                <span class="filter-summary-label">Filtres <span class="filter-count" id="filterActiveCount"></span></span>
+                <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6"/></svg>
+              </summary>
               <div class="filters" id="filters"></div>
               <div class="legend" id="legend" aria-label="Légende des catégories"></div>
               <div class="filter-footer">

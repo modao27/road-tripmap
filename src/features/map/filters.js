@@ -15,6 +15,16 @@ export function renderFilters(filtersEl, categories, getAllPlaces, activeCategor
   }).join('');
 }
 
+// Aperçu compact des catégories actives — seul contenu du filtre visible
+// tiroir fermé (Phase H7), donc pas juste un doublon de renderFilters.
+export function renderFilterChips(chipsEl, categories, activeCategories) {
+  chipsEl.innerHTML = Object.entries(categories)
+    .filter(([key]) => activeCategories.has(key))
+    .map(([, category]) => `
+      <span class="filter-chip" style="--color:${category.color}" title="${category.label}">${category.icon}</span>
+    `).join('');
+}
+
 export function renderLegend(legendEl, categories) {
   legendEl.innerHTML = Object.values(categories).map(category => {
     return `

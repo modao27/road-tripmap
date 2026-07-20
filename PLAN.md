@@ -508,11 +508,22 @@ construire, l'audit montre le contraire) :
       séparée pour le cas simple (dépend de H3). *Bénéfice* : passe le chemin
       manuel de 3-4 interactions à 2, aligné sur le chemin Découvrir déjà
       rapide.
-- [ ] **H7** *(P2)* — Filtres en tiroir fermé par défaut : remplacer le
-      `<details open>` par un tiroir fermé, déclenché par une puce
-      « Filtres (n actifs) » ; les chips actives restent visibles tiroir
-      fermé. *Bénéfice* : le panneau Lieux ne s'ouvre plus systématiquement
-      sur un mur de filtres.
+- [x] **H7** *(P2)* — Filtres en tiroir fermé par défaut. `<details
+      class="filter-section" open>` perd son `open` ; le résumé
+      (`<summary>`) affiche désormais un compteur `n/total actifs`
+      (`#filterActiveCount`) et un aperçu compact des catégories actives
+      (`.filter-chips`, petites pastilles icône+couleur en lecture seule)
+      placé *avant* le `<details>` — donc visible même tiroir fermé,
+      contrairement au contenu du `<details>` lui-même. Mis à jour à
+      chaque mutation (case à cocher, tout afficher/masquer, chargement
+      initial) via `updateFilterSummary()`, sans recalculer les comptes
+      par catégorie (`renderFilters`) à chaque frappe. *Bénéfice* : le
+      panneau Lieux s'ouvre directement sur la liste des lieux, plus sur
+      un mur de filtres — l'état actif reste visible d'un coup d'œil.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      captures Playwright (fermé par défaut avec 7/7 chips, ouverture,
+      décoche d'une catégorie → chip disparaît + compteur 6/7 + liste et
+      carte se mettent à jour, sombre, mobile).
 - [ ] **H8** *(P2)* — Responsive tablette dédié : nouveau breakpoint
       intermédiaire (~600-960px), sidebar en overlay partiel plutôt que plein
       écran (mobile) ou grid fixe (desktop) (dépend de H2). *Bénéfice* : la

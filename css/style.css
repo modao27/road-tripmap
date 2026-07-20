@@ -1192,6 +1192,30 @@ body.resizing {
   cursor: ew-resize;
 }
 
+/* ── Aperçu des filtres actifs (Phase H7) ──────────────────────────────────
+   Toujours visible, y compris tiroir .filter-section fermé (état par
+   défaut désormais) : évite que masquer les filtres masque aussi l'état
+   courant. Puces en lecture seule — l'interaction reste dans le tiroir. */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.filter-chips:empty { display: none; }
+
+.filter-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color) 20%, white);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
 .filter-section {
   border-top: 1px solid var(--color-border);
   margin-top: 4px;
@@ -1213,6 +1237,18 @@ body.resizing {
   color: var(--color-muted);
   user-select: none;
   transition: color 120ms ease;
+}
+
+.filter-summary-label { display: flex; align-items: center; gap: 6px; }
+
+.filter-count {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
+  font-size: 0.68rem;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .filter-section > summary::-webkit-details-marker { display: none; }
