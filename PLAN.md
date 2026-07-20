@@ -476,11 +476,26 @@ construire, l'audit montre le contraire) :
       (confirmant `.app` reste à 800px de haut et les 3 FAB dans le
       viewport), mobile ouvert/fermé, sombre, modale « Nouveau pin »
       ouverte depuis le FAB.
-- [ ] **H4** *(P1)* — Mode focus à l'ouverture d'une fiche : replier
-      automatiquement la sidebar et masquer les FAB non pertinents quand une
-      popup/bottom sheet est ouverte ; ne restent que carte + fiche + retour
-      explicite (dépend de H2/H3). *Bénéfice* : supprime la double lecture
-      fiche + sidebar sans toucher au contenu de la popup (déjà bon, Phase F).
+- [x] **H4** *(P1)* — Mode focus à l'ouverture d'une fiche. Sur
+      `map.on('popupopen'/'popupclose')` (couvre popup desktop et bottom
+      sheet mobile — `bottomSheet.js` ne change que la présentation, pas
+      le cycle de vie Leaflet) : masque `.map-fabs` et, en desktop
+      seulement si elle n'était pas déjà repliée par choix de
+      l'utilisateur (H2), replie la sidebar — jamais persisté
+      (`setSidebarCollapsed(…, { persist:false })`), restauré
+      symétriquement à la fermeture. Un geste manuel (bouton replier/
+      rouvrir) pendant qu'une fiche est ouverte prime toujours : il
+      annule le suivi automatique pour ne pas écraser ensuite le choix de
+      l'utilisateur à la fermeture. Le retour explicite reste la croix ✕
+      de la popup, déjà là (Phase F) — pas de nouveau bouton.
+      *Bénéfice* : ne restent que la carte et la fiche à l'instant où
+      l'utilisateur regarde un lieu, sans toucher au contenu de la popup.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      4 scénarios Playwright (sidebar ouverte → fiche → ferme restaure ;
+      sidebar repliée manuellement → fiche → ferme reste repliée ;
+      bascule directe entre deux marqueurs sans flicker ; mobile liste →
+      bottom sheet → FAB masqués → ferme → FAB reviennent), captures
+      desktop et mobile.
 - [ ] **H5** *(P2)* — Modes explicites Explorer / Modifier / Roadtrip :
       sélecteur dans le header (H1) qui pose, pour chaque mode, l'état par
       défaut de la sidebar/FAB déjà construits (H2-H4) — Explorer : sidebar

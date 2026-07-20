@@ -394,24 +394,53 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   const appEl              = document.querySelector('.app');
   const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
   const sidebarExpandTab   = document.getElementById('sidebarExpandTab');
+  const mapFabsEl          = document.querySelector('.map-fabs');
+  // Vrai uniquement quand *le mode focus* (popupopen, plus bas) a replié
+  // la sidebar — sert à la rouvrir symétriquement à la fermeture de la
+  // fiche sans écraser un repli déjà choisi par l'utilisateur avant.
+  let focusCollapsedSidebar = false;
 
-  function setSidebarCollapsed(collapsed) {
+  function setSidebarCollapsed(collapsed, { persist = true } = {}) {
     appEl?.classList.toggle('sidebar-collapsed', collapsed);
     if (sidebarExpandTab) sidebarExpandTab.hidden = !collapsed;
-    localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+    if (persist) localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
     // Laisse la transition de grid-template-columns finir avant de
     // recalculer la taille de la carte (sinon Leaflet capture l'ancienne).
     setTimeout(() => map.invalidateSize(), 260);
   }
 
-  sidebarCollapseBtn?.addEventListener('click', () => setSidebarCollapsed(true));
-  sidebarExpandTab?.addEventListener('click', () => setSidebarCollapsed(false));
+  // Un geste manuel prime toujours sur le mode focus : s'il intervient
+  // pendant qu'une fiche est ouverte, on arrête d'essayer de « restaurer »
+  // un état que l'utilisateur vient de choisir explicitement.
+  sidebarCollapseBtn?.addEventListener('click', () => { focusCollapsedSidebar = false; setSidebarCollapsed(true); });
+  sidebarExpandTab?.addEventListener('click', () => { focusCollapsedSidebar = false; setSidebarCollapsed(false); });
 
   // Replié par défaut après la première visite (jamais sur mobile : l'état
   // stocké est ignoré tant que l'off-canvas gère l'affichage).
   if (!mobileQuery.matches) {
     setSidebarCollapsed(localStorage.getItem('sidebarCollapsed') === '1');
   }
+
+  // ── Mode focus (Phase H4) : fiche ouverte = carte + fiche seules ─────────
+  // Couvre popup desktop et bottom sheet mobile (bottomSheet.js ne change
+  // que la présentation, pas le cycle de vie popupopen/popupclose de
+  // Leaflet). Jamais persisté (persist:false) : un repli automatique n'est
+  // pas un choix utilisateur à mémoriser dans localStorage.
+  map.on('popupopen', () => {
+    if (mapFabsEl) mapFabsEl.hidden = true;
+    if (!mobileQuery.matches && !appEl?.classList.contains('sidebar-collapsed')) {
+      focusCollapsedSidebar = true;
+      setSidebarCollapsed(true, { persist: false });
+    }
+  });
+
+  map.on('popupclose', () => {
+    if (mapFabsEl) mapFabsEl.hidden = false;
+    if (focusCollapsedSidebar) {
+      focusCollapsedSidebar = false;
+      setSidebarCollapsed(false, { persist: false });
+    }
+  });
 
   // ── Menu utilisateur (profil + déconnexion) ──────────────────────────────
   // Absent en carte libre anonyme / lecture d'une carte partagée sans compte —
