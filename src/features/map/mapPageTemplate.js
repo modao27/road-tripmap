@@ -183,6 +183,21 @@ export const MAP_PAGE_HTML = `
       <button class="sidebar-expand-tab" id="sidebarExpandTab" type="button" title="Afficher la sidebar" aria-label="Afficher la sidebar" hidden>▶</button>
       <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
 
+      <!-- Ajout rapide (Phase H6) : ouvert par le FAB 📌, pas de backdrop
+           bloquant — recherche ou clic direct sur la carte, le pin est créé
+           tout de suite (nom éditable ensuite via la fiche). -->
+      <div class="quick-add" id="quickAdd" hidden>
+        <div class="geocode-wrap">
+          <input type="search" id="quickAddInput" class="quick-add-input"
+                 placeholder="Nom, adresse, ville…" autocomplete="off"
+                 aria-label="Rechercher un lieu à ajouter">
+          <ul id="quickAddResults" class="geocode-results" hidden></ul>
+        </div>
+        <p class="quick-add-hint">ou clique directement sur la carte
+          <button type="button" id="quickAddCancel">Annuler</button>
+        </p>
+      </div>
+
       <!-- Actions carte : flottantes, accessibles même sidebar masquée (Phase H3) -->
       <div class="map-fabs" aria-label="Actions rapides">
         <button class="map-fab" id="recenterButton" type="button" title="Recentrer sur Baume-les-Messieurs" aria-label="Recentrer sur Baume-les-Messieurs">⌖</button>

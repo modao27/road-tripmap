@@ -1459,6 +1459,63 @@ body.resizing {
   padding: 0;
 }
 
+/* ── Ajout rapide (Phase H6) ──────────────────────────────────────────────
+   Recherche flottante ouverte par le FAB 📌 (H3) : pas de backdrop
+   bloquant, la carte reste utilisable derrière. Sélection d'un résultat
+   OU clic direct sur la carte crée le pin tout de suite (defaults
+   raisonnables, nom éditable ensuite via ✏️ sur sa fiche) plutôt que de
+   faire remplir un formulaire avant de le poser. */
+.quick-add {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 700;
+  width: min(360px, 90vw);
+  padding: 12px;
+  background: var(--color-surface);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(30, 41, 59, 0.28);
+}
+
+.quick-add[hidden] { display: none; }
+
+.quick-add-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+}
+.quick-add-input::placeholder { color: var(--color-muted); }
+.quick-add-input:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
+.quick-add-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 2px 0;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.quick-add-hint button {
+  background: none;
+  border: none;
+  color: var(--color-primary-text);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+
 .pin-modal-backdrop {
   position: fixed;
   inset: 0;

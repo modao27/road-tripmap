@@ -502,12 +502,34 @@ construire, l'audit montre le contraire) :
       fermée + FAB ; Modifier : sidebar Lieux/Filtres ouverte ; Roadtrip :
       sidebar Road Trip ouverte. *Bénéfice* : chaque mode n'affiche que les
       outils utiles, au lieu de 3 onglets + 4 actions visibles en permanence.
-- [ ] **H6** *(P2)* — Workflow d'ajout de lieu < 15 s : le FAB « ajouter »
-      (H3) ouvre une recherche flottante sans backdrop bloquant ; sélection →
-      pin posé directement, éditable inline, sans étape de confirmation
-      séparée pour le cas simple (dépend de H3). *Bénéfice* : passe le chemin
-      manuel de 3-4 interactions à 2, aligné sur le chemin Découvrir déjà
-      rapide.
+- [x] **H6** *(P2)* — Workflow d'ajout de lieu < 15 s. Le FAB 📌 (H3)
+      n'ouvre plus la modale complète (`openPinModal()`) mais un panneau
+      `.quick-add` flottant sans backdrop — carte et sidebar restent
+      utilisables derrière. Sélection d'un résultat de recherche **ou**
+      clic direct sur la carte crée le pin *immédiatement*
+      (`quickAddPin()`) avec des valeurs par défaut (nom du résultat ou
+      « Nouveau lieu », première catégorie) : plus de formulaire à remplir
+      avant de poser le pin. Sa fiche s'ouvre aussitôt (mode focus, H4) —
+      ✏️ y est à un clic pour ajuster nom/catégorie/note si besoin, sans
+      rien perdre en capacité, juste réordonné (créer vite → affiner après
+      plutôt que tout saisir → créer).
+      La modale complète reste utilisée telle quelle pour l'édition d'un
+      lieu existant, sa relocalisation (« Ou cliquer sur la carte » dans
+      la modale) et le pré-remplissage depuis Découvrir — seul le point
+      d'entrée « nouveau pin vide » change. Distinction faite via
+      `setPinMode(active, source)` (`'quickAdd'` vs `'relocate'`), pour
+      que le clic carte suivant sache quoi faire.
+      Extraction `geocodeSearch()`/`renderGeocodeResults()` partagées
+      entre la recherche de la modale et celle du panneau (évite de
+      dupliquer l'appel Nominatim et le rendu des résultats).
+      *Bénéfice* : 2 interactions (FAB + résultat, ou FAB + clic carte)
+      au lieu de 3-4, aligné sur le chemin Découvrir déjà rapide.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      6 scénarios Playwright (recherche → création confirmée en
+      localStorage, clic carte direct → « Nouveau lieu », non-régression
+      complète du flux de relocalisation pendant une édition — modale
+      correcte rouverte avec le bon titre, Escape ferme le panneau),
+      captures sombre et mobile.
 - [x] **H7** *(P2)* — Filtres en tiroir fermé par défaut. `<details
       class="filter-section" open>` perd son `open` ; le résumé
       (`<summary>`) affiche désormais un compteur `n/total actifs`

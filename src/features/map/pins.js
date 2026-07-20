@@ -143,6 +143,10 @@ export function initPins({
   signal,
 }) {
   let pinMode = false;
+  // Qui a armé pinMode : 'relocate' (repositionner un pin existant depuis
+  // la modale d'édition) ou 'quickAdd' (nouveau pin depuis le FAB, H6) —
+  // détermine quel bandeau flottant s'affiche et ce que fait le clic carte.
+  let pinModeSource = null;
   let pendingPinCoords = null;
   let editingPinId = null;
   let pendingEditPin = null;
@@ -150,6 +154,9 @@ export function initPins({
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const pinModeBtn       = document.getElementById('pinModeButton');
   const pinHintEl        = document.getElementById('pinHint');
+  const quickAddEl       = document.getElementById('quickAdd');
+  const quickAddInput    = document.getElementById('quickAddInput');
+  const quickAddResultsEl = document.getElementById('quickAddResults');
   const pinModalBackdrop = document.getElementById('pinModalBackdrop');
   const pinNameInput     = document.getElementById('pinName');
   const pinCategorySelect = document.getElementById('pinCategory');
@@ -183,6 +190,30 @@ export function initPins({
   let geocodeDebounce = null;
   let geocodeController = null;
   let geocodeCandidates = [];
+  // Ajout rapide (H6) : recherche indépendante de celle de la modale
+  // (états et cycles de vie différents — pas de backdrop, pas de champs à
+  // pré-remplir), mais même API et même rendu de résultats.
+  let quickAddDebounce = null;
+  let quickAddController = null;
+  let quickAddCandidates = [];
+
+  async function geocodeSearch(query, signal) {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=${config.geocodeLimit}&accept-language=fr`;
+    const res = await fetch(url, { signal });
+    return res.json();
+  }
+
+  function renderGeocodeResults(listEl, candidates) {
+    if (!candidates.length) { listEl.hidden = true; return; }
+    listEl.innerHTML = candidates.map((r, i) => {
+      const parts = r.display_name.split(', ');
+      return `<li class="geocode-result-item" data-idx="${i}">
+        <span class="geocode-result-name">${esc(parts[0])}</span>
+        <span class="geocode-result-detail">${esc(parts.slice(1, 4).join(', '))}</span>
+      </li>`;
+    }).join('');
+    listEl.hidden = false;
+  }
 
   function resetGeocodeUI() {
     pinGeocodeInput.value = '';
@@ -206,11 +237,31 @@ export function initPins({
     pinNameInput.focus();
   }
 
-  function setPinMode(active) {
+  function setPinMode(active, source = 'relocate') {
     pinMode = active;
-    pinModeBtn.classList.toggle('active', active);
-    pinHintEl.hidden = !active;
+    pinModeSource = active ? source : null;
+    // Le FAB ne s'allume que pour son propre déclenchement (quickAdd) —
+    // pas quand pinMode est armé depuis la modale d'édition (relocate).
+    pinModeBtn.classList.toggle('active', active && source === 'quickAdd');
+    pinHintEl.hidden  = !(active && source === 'relocate');
+    quickAddEl.hidden = !(active && source === 'quickAdd');
     map.getContainer().style.cursor = active ? 'crosshair' : '';
+    if (active && source === 'quickAdd') {
+      quickAddInput.value = '';
+      quickAddResultsEl.hidden = true;
+      quickAddInput.focus();
+    } else {
+      clearTimeout(quickAddDebounce);
+      quickAddController?.abort();
+    }
+  }
+
+  // Ajout rapide (H6) : crée le pin immédiatement avec des valeurs par
+  // défaut raisonnables, sans formulaire préalable — l'utilisateur ajuste
+  // ensuite via ✏️ sur la fiche qui s'ouvre si le nom/la catégorie ne
+  // conviennent pas. Objectif : poser un lieu en 2 interactions, < 15 s.
+  function quickAddPin(lat, lng, name) {
+    saveUserPin(name?.trim() || 'Nouveau lieu', Object.keys(categories)[0], '', lat, lng);
   }
 
   function makePopupHtml(place) {
@@ -337,18 +388,8 @@ export function initPins({
       if (geocodeController) geocodeController.abort();
       geocodeController = new AbortController();
       try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=${config.geocodeLimit}&accept-language=fr`;
-        const res = await fetch(url, { signal: geocodeController.signal });
-        geocodeCandidates = await res.json();
-        if (!geocodeCandidates.length) { geocodeResultsEl.hidden = true; return; }
-        geocodeResultsEl.innerHTML = geocodeCandidates.map((r, i) => {
-          const parts = r.display_name.split(', ');
-          return `<li class="geocode-result-item" data-idx="${i}">
-            <span class="geocode-result-name">${esc(parts[0])}</span>
-            <span class="geocode-result-detail">${esc(parts.slice(1, 4).join(', '))}</span>
-          </li>`;
-        }).join('');
-        geocodeResultsEl.hidden = false;
+        geocodeCandidates = await geocodeSearch(q, geocodeController.signal);
+        renderGeocodeResults(geocodeResultsEl, geocodeCandidates);
       } catch (e) {
         if (e.name !== 'AbortError') showToastFn(toastWrap, 'Recherche indisponible', 'error', 3000);
       }
@@ -368,15 +409,51 @@ export function initPins({
     if (e.key === 'Escape') geocodeResultsEl.hidden = true;
   });
 
+  // ── Ajout rapide (H6) : recherche flottante ouverte par le FAB ──────────
+  quickAddInput.addEventListener('input', () => {
+    clearTimeout(quickAddDebounce);
+    const q = quickAddInput.value.trim();
+    if (q.length < 3) { quickAddResultsEl.hidden = true; return; }
+    quickAddDebounce = setTimeout(async () => {
+      if (quickAddController) quickAddController.abort();
+      quickAddController = new AbortController();
+      try {
+        quickAddCandidates = await geocodeSearch(q, quickAddController.signal);
+        renderGeocodeResults(quickAddResultsEl, quickAddCandidates);
+      } catch (e) {
+        if (e.name !== 'AbortError') showToastFn(toastWrap, 'Recherche indisponible', 'error', 3000);
+      }
+    }, config.geocodeDebounce);
+  });
+
+  quickAddResultsEl.addEventListener('click', (e) => {
+    const item = e.target.closest('.geocode-result-item');
+    if (!item) return;
+    const r = quickAddCandidates[parseInt(item.dataset.idx)];
+    if (!r) return;
+    const parts = r.display_name.split(', ');
+    setPinMode(false);
+    quickAddPin(parseFloat(r.lat), parseFloat(r.lon), parts[0]);
+  });
+
+  quickAddInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setPinMode(false);
+  });
+
+  document.getElementById('quickAddCancel').addEventListener('click', () => setPinMode(false));
+
   // ── Modal / mode listeners ────────────────────────────────────────────────
-  pinModeBtn.addEventListener('click', () => openPinModal());
+  pinModeBtn.addEventListener('click', () => {
+    if (pinMode && pinModeSource === 'quickAdd') setPinMode(false);
+    else setPinMode(true, 'quickAdd');
+  });
 
   document.getElementById('pinHintCancel').addEventListener('click', () => setPinMode(false));
 
   document.getElementById('pinMapClickBtn').addEventListener('click', () => {
     pendingEditPin = editingPinId ? getAllPlaces().find(p => p.id === editingPinId) : null;
     closePinModal();
-    setPinMode(true);
+    setPinMode(true, 'relocate');
   });
 
   document.getElementById('pinLocationClear').addEventListener('click', () => {
@@ -444,15 +521,26 @@ export function initPins({
   signal?.addEventListener('abort', () => {
     clearTimeout(geocodeDebounce);
     geocodeController?.abort();
+    clearTimeout(quickAddDebounce);
+    quickAddController?.abort();
   }, { once: true });
 
   // ── Map click ─────────────────────────────────────────────────────────────
   map.on('click', (e) => {
     if (pinMode) {
-      setPinMode(false);
+      const source  = pinModeSource;
       const editPin = pendingEditPin;
+      setPinMode(false);
       pendingEditPin = null;
-      openPinModal(e.latlng.lat, e.latlng.lng, editPin);
+      if (source === 'quickAdd') {
+        // Nouveau pin depuis le FAB (H6) : créé directement, pas de
+        // formulaire — renommage possible ensuite via ✏️ sur sa fiche.
+        quickAddPin(e.latlng.lat, e.latlng.lng);
+      } else {
+        // Repositionnement d'un pin existant (bouton "cliquer sur la
+        // carte" de la modale d'édition) : le formulaire reste nécessaire.
+        openPinModal(e.latlng.lat, e.latlng.lng, editPin);
+      }
       return;
     }
     if (onMapClick) onMapClick(e);
