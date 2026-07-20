@@ -1427,12 +1427,69 @@ body.resizing {
   color: var(--color-primary-text);
 }
 
-.pin-hint {
+/* ── Pile flottante haut-centre (Phase H5) ────────────────────────────────
+   Sélecteur de mode (toujours visible) + bandeaux conditionnels
+   (repositionnement de pin, ajout rapide H6) : un seul conteneur
+   positionné, les enfants s'empilent en flux normal — évite les
+   décalages calculés à la main entre plusieurs éléments absolus
+   indépendants qui peuvent chacun apparaître ou non. */
+.map-top-stack {
   position: absolute;
-  top: 14px;
+  top: calc(14px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Sélecteur de mode (Phase H5) ─────────────────────────────────────────
+   Explorer / Modifier / Road Trip : raccourcis qui posent l'état par
+   défaut déjà construit (H2 sidebar escamotable, tabs existants) — pas un
+   nouveau mécanisme, juste une porte d'entrée unique et toujours visible
+   (contrairement aux onglets, dans la sidebar donc invisibles repliée). */
+.mode-switcher {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--color-surface);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.22);
+}
+
+.mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.mode-btn:hover { color: var(--color-primary-text); }
+
+.mode-btn.active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+@media (max-width: 480px) {
+  .mode-btn-label { display: none; }
+  .mode-btn { padding: 0 12px; }
+}
+
+.pin-hint {
   background: var(--color-primary);
   color: white;
   padding: 9px 16px;
@@ -1466,11 +1523,6 @@ body.resizing {
    raisonnables, nom éditable ensuite via ✏️ sur sa fiche) plutôt que de
    faire remplir un formulaire avant de le poser. */
 .quick-add {
-  position: absolute;
-  top: calc(14px + env(safe-area-inset-top));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 700;
   width: min(360px, 90vw);
   padding: 12px;
   background: var(--color-surface);
@@ -2506,9 +2558,11 @@ mark.search-highlight {
     transform: translateX(0);
   }
 
-  /* Sidebar ouverte = plein écran sur mobile : les FAB carte flotteraient
-     par-dessus la liste/les filtres, pas au-dessus de la carte. */
-  .sidebar.open ~ .map-wrap .map-fabs {
+  /* Sidebar ouverte = plein écran sur mobile : les FAB carte et la pile
+     haut-centre (sélecteur de mode, H5) flotteraient par-dessus la
+     liste/les filtres, pas au-dessus de la carte. */
+  .sidebar.open ~ .map-wrap .map-fabs,
+  .sidebar.open ~ .map-wrap .map-top-stack {
     display: none;
   }
 

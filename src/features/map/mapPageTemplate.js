@@ -181,21 +181,34 @@ export const MAP_PAGE_HTML = `
     <section class="map-wrap" aria-label="Carte interactive du Jura">
       <button class="mobile-toggle" id="sidebarToggle" type="button" aria-expanded="false" aria-label="Afficher ou masquer la sidebar">☰</button>
       <button class="sidebar-expand-tab" id="sidebarExpandTab" type="button" title="Afficher la sidebar" aria-label="Afficher la sidebar" hidden>▶</button>
-      <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
 
-      <!-- Ajout rapide (Phase H6) : ouvert par le FAB 📌, pas de backdrop
-           bloquant — recherche ou clic direct sur la carte, le pin est créé
-           tout de suite (nom éditable ensuite via la fiche). -->
-      <div class="quick-add" id="quickAdd" hidden>
-        <div class="geocode-wrap">
-          <input type="search" id="quickAddInput" class="quick-add-input"
-                 placeholder="Nom, adresse, ville…" autocomplete="off"
-                 aria-label="Rechercher un lieu à ajouter">
-          <ul id="quickAddResults" class="geocode-results" hidden></ul>
+      <!-- Pile flottante haut-centre : sélecteur de mode (toujours visible,
+           Phase H5) + bandeaux conditionnels (repositionnement de pin,
+           ajout rapide H6) — un conteneur commun pour éviter les
+           chevauchements/décalages magiques entre ces éléments. -->
+      <div class="map-top-stack">
+        <div class="mode-switcher" id="modeSwitcher" role="tablist" aria-label="Mode">
+          <button class="mode-btn" data-mode="explore" role="tab" type="button" aria-selected="false">🧭 <span class="mode-btn-label">Explorer</span></button>
+          <button class="mode-btn" data-mode="edit" role="tab" type="button" aria-selected="false">✏️ <span class="mode-btn-label">Modifier</span></button>
+          <button class="mode-btn" data-mode="roadtrip" role="tab" type="button" aria-selected="false">🗺️ <span class="mode-btn-label">Road Trip</span></button>
         </div>
-        <p class="quick-add-hint">ou clique directement sur la carte
-          <button type="button" id="quickAddCancel">Annuler</button>
-        </p>
+
+        <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
+
+        <!-- Ajout rapide (Phase H6) : ouvert par le FAB 📌, pas de backdrop
+             bloquant — recherche ou clic direct sur la carte, le pin est
+             créé tout de suite (nom éditable ensuite via la fiche). -->
+        <div class="quick-add" id="quickAdd" hidden>
+          <div class="geocode-wrap">
+            <input type="search" id="quickAddInput" class="quick-add-input"
+                   placeholder="Nom, adresse, ville…" autocomplete="off"
+                   aria-label="Rechercher un lieu à ajouter">
+            <ul id="quickAddResults" class="geocode-results" hidden></ul>
+          </div>
+          <p class="quick-add-hint">ou clique directement sur la carte
+            <button type="button" id="quickAddCancel">Annuler</button>
+          </p>
+        </div>
       </div>
 
       <!-- Actions carte : flottantes, accessibles même sidebar masquée (Phase H3) -->

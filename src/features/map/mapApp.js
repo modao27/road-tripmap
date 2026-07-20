@@ -381,6 +381,17 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   const paneRoute      = document.getElementById('tabPaneRoute');
   const paneDiscover   = document.getElementById('tabPaneDiscover');
 
+  // ── Sélecteur de mode (Phase H5) — déclaré avant switchTab() : le premier
+  // appel de switchTab plus bas synchronise déjà l'indicateur de mode.
+  const modeSwitcherEl = document.getElementById('modeSwitcher');
+  function setActiveMode(mode) {
+    modeSwitcherEl?.querySelectorAll('.mode-btn').forEach(btn => {
+      const active = btn.dataset.mode === mode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', String(active));
+    });
+  }
+
   function switchTab(tab) {
     const active = { places: tab === 'places', route: tab === 'route', discover: tab === 'discover' };
     tabPlacesBtn?.classList.toggle('active', active.places);
@@ -393,6 +404,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     paneRoute?.classList.toggle('active', active.route);
     paneDiscover?.classList.toggle('active', active.discover);
     if (active.discover) overpassModule?.activate();
+    // Lieux et Découvrir se rangent tous deux sous « Modifier » : ce sont
+    // des outils de curation des lieux, pas un mode à part entière.
+    setActiveMode(active.route ? 'roadtrip' : 'edit');
     setTimeout(() => map.invalidateSize(), 10);
   }
 
@@ -427,14 +441,67 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // Un geste manuel prime toujours sur le mode focus : s'il intervient
   // pendant qu'une fiche est ouverte, on arrête d'essayer de « restaurer »
   // un état que l'utilisateur vient de choisir explicitement.
-  sidebarCollapseBtn?.addEventListener('click', () => { focusCollapsedSidebar = false; setSidebarCollapsed(true); });
-  sidebarExpandTab?.addEventListener('click', () => { focusCollapsedSidebar = false; setSidebarCollapsed(false); });
+  sidebarCollapseBtn?.addEventListener('click', () => {
+    focusCollapsedSidebar = false;
+    setSidebarCollapsed(true);
+    setActiveMode('explore');
+  });
+  sidebarExpandTab?.addEventListener('click', () => {
+    focusCollapsedSidebar = false;
+    setSidebarCollapsed(false);
+    // Reflète l'onglet déjà actif plutôt que de forcer un mode — la
+    // réouverture ne change pas ce qu'on regardait avant le repli.
+    setActiveMode(tabRouteBtn?.classList.contains('active') ? 'roadtrip' : 'edit');
+  });
 
   // Replié par défaut après la première visite (jamais sur mobile : l'état
-  // stocké est ignoré tant que l'off-canvas gère l'affichage).
+  // stocké est ignoré tant que l'off-canvas gère l'affichage — le mode
+  // y reste toujours « explore » au chargement, cf. plus bas).
   if (!mobileQuery.matches) {
-    setSidebarCollapsed(localStorage.getItem('sidebarCollapsed') === '1');
+    const startCollapsed = localStorage.getItem('sidebarCollapsed') === '1';
+    setSidebarCollapsed(startCollapsed);
+    if (startCollapsed) setActiveMode('explore');
+  } else {
+    setActiveMode('explore');
   }
+
+  // ── Sélecteur de mode : pose l'état par défaut déjà construit (H2-H4) ────
+  // Explorer = sidebar masquée ; Modifier = sidebar sur l'onglet Lieux ;
+  // Road Trip = sidebar sur l'onglet Road Trip. Pas un nouveau mécanisme —
+  // juste une porte d'entrée unique, visible même sidebar fermée (contrairement
+  // aux onglets, qui vivent dans la sidebar).
+  function openSidebarTo(tab) {
+    if (mobileQuery.matches) {
+      sidebarEl.classList.add('open');
+      sidebarToggleEl.setAttribute('aria-expanded', 'true');
+    } else {
+      focusCollapsedSidebar = false;
+      setSidebarCollapsed(false);
+    }
+    switchTab(tab); // met aussi à jour l'indicateur de mode
+    setTimeout(() => map.invalidateSize(), 230);
+  }
+
+  function closeSidebarForExplore() {
+    setActiveMode('explore');
+    if (mobileQuery.matches) {
+      sidebarEl.classList.remove('open');
+      sidebarToggleEl.setAttribute('aria-expanded', 'false');
+      setTimeout(() => map.invalidateSize(), 230);
+    } else {
+      focusCollapsedSidebar = false;
+      setSidebarCollapsed(true);
+    }
+  }
+
+  modeSwitcherEl?.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      if (mode === 'explore') closeSidebarForExplore();
+      else if (mode === 'edit') openSidebarTo('places');
+      else if (mode === 'roadtrip') openSidebarTo('route');
+    });
+  });
 
   // ── Mode focus (Phase H4) : fiche ouverte = carte + fiche seules ─────────
   // Couvre popup desktop et bottom sheet mobile (bottomSheet.js ne change

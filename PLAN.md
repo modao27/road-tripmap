@@ -496,12 +496,41 @@ construire, l'audit montre le contraire) :
       bascule directe entre deux marqueurs sans flicker ; mobile liste →
       bottom sheet → FAB masqués → ferme → FAB reviennent), captures
       desktop et mobile.
-- [ ] **H5** *(P2)* — Modes explicites Explorer / Modifier / Roadtrip :
-      sélecteur dans le header (H1) qui pose, pour chaque mode, l'état par
-      défaut de la sidebar/FAB déjà construits (H2-H4) — Explorer : sidebar
-      fermée + FAB ; Modifier : sidebar Lieux/Filtres ouverte ; Roadtrip :
-      sidebar Road Trip ouverte. *Bénéfice* : chaque mode n'affiche que les
-      outils utiles, au lieu de 3 onglets + 4 actions visibles en permanence.
+- [x] **H5** *(P2)* — Modes explicites Explorer / Modifier / Roadtrip.
+      Pas dans le header (H1) en fin de compte : `.sidebar-header-top` vit
+      *dans* la sidebar, donc invisible justement quand on veut en sortir
+      (Explorer). Le sélecteur est un `#modeSwitcher` flottant sur la
+      carte, toujours visible — nouvelle pile commune `.map-top-stack`
+      (haut-centre de `.map-wrap`) qui l'empile proprement avec les
+      bandeaux conditionnels déjà existants (`#pinHint` du repositionnement,
+      `#quickAdd` de H6), sans décalages calculés à la main.
+      3 boutons posent l'état déjà construit : Explorer →
+      `closeSidebarForExplore()` (repli grille desktop H2 / fermeture
+      off-canvas mobile) ; Modifier → `openSidebarTo('places')` ; Road
+      Trip → `openSidebarTo('route')` — ces deux derniers réutilisent le
+      même geste que le badge itinéraire mobile existant (ouvrir + changer
+      d'onglet), généralisé aux deux mécanismes desktop/mobile plutôt que
+      dupliqué. Découvrir n'est pas un mode à part : il se range sous
+      « Modifier », simple outil de curation.
+      L'indicateur actif se resynchronise sur les actions **explicites**
+      seulement (clic direct sur un onglet, repli/dépli manuel ◀/▶) — pas
+      pendant le repli automatique du mode focus (H4, `persist:false`),
+      pour ne pas faire clignoter le sélecteur à chaque ouverture de
+      fiche. `setActiveMode()` déclaré avant `switchTab()` (le premier
+      appel de `switchTab('places')` a lieu dès l'init).
+      *Bénéfice* : porte d'entrée unique, toujours accessible même
+      sidebar masquée — contrairement aux onglets, qui vivent dans la
+      sidebar et disparaissent avec elle.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      scénarios Playwright complets (état initial, clic sur chacun des
+      3 modes, sync sur clic d'onglet direct, repli/dépli manuel, relance
+      avec préférence repliée mémorisée, empilement avec l'ajout rapide
+      sans chevauchement, mobile fermé/ouvert avec sélecteur masqué
+      sidebar ouverte), sombre. ⚠ `npm test` a de nouveau échoué une fois
+      pendant cette phase avec les mêmes erreurs que le point déjà
+      corrigé après H1 (cache `node_modules/.vite` périmé) — même
+      remède (`rm -rf node_modules/.vite`), confirme que c'est bien un
+      problème de cache récurrent et non une régression.
 - [x] **H6** *(P2)* — Workflow d'ajout de lieu < 15 s. Le FAB 📌 (H3)
       n'ouvre plus la modale complète (`openPinModal()`) mais un panneau
       `.quick-add` flottant sans backdrop — carte et sidebar restent
