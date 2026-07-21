@@ -654,16 +654,47 @@ construire, l'audit montre le contraire) :
       vide, ouverture, clic étape → fermeture + focus carte confirmé,
       Escape ferme, sombre, mobile avec défilement horizontal entre
       jours).
-- [ ] **H11** *(Nice to have)* — Micro-animations : transitions
-      d'ouverture/fermeture sidebar, apparition des pins, hover FAB — une
-      fois H1-H8 stabilisés, `prefers-reduced-motion` respecté (déjà la
-      norme du projet). *Bénéfice* : soigne la sensation « calme » demandée
-      sans figer une UI qui va encore bouger.
+- [x] **H11** *(Nice to have)* — Micro-animations. Audit d'abord : 2 des 3
+      exemples cités étaient déjà couverts au fil des phases précédentes
+      — transition d'ouverture/fermeture sidebar (`grid-template-columns`
+      desktop H2, `transform` off-canvas mobile) et hover des FAB
+      (`.map-fab:hover`, H3) — rien à ajouter là. Le vrai manque : aucune
+      animation à l'apparition d'un pin. Ajouté `@keyframes marker-pop`
+      (fade + léger scale, 220ms) sur `.custom-marker`. Rejoue à chaque
+      `addLayer()` Leaflet — y compris sur un simple changement de
+      filtre/recherche (`renderMap()` fait un `clearLayers()` complet à
+      chaque fois) — assumé volontairement : assez court et discret pour
+      se sentir réactif plutôt que gadget, testé après un enchaînement
+      tout masquer/tout afficher sans accroc.
+      Volontairement laissé de côté : animer l'ouverture des modales
+      (Timeline H10, pin, partage) n'a pas de convention établie dans le
+      projet (aucune n'anime son ouverture aujourd'hui) — l'ajouter à une
+      seule casserait la cohérence avec les autres ; sujet à part si
+      souhaité, pas un manque de H11 à proprement parler.
+      *Bénéfice* : soigne la sensation « calme » sans figer une UI qui va
+      encore bouger — et confirme que l'essentiel avait déjà été traité
+      au fil de l'eau plutôt que reporté.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      animation confirmée par inspection du style calculé (nom + durée),
+      rejeu correct après tout masquer/tout afficher, désactivée sous
+      `prefers-reduced-motion: reduce` (testé via l'émulation Playwright).
 - [ ] **H12** *(Nice to have)* — Wireframes ASCII + audit complet documenté
       (desktop/tablette/mobile/focus/timeline), si Paul veut le livrable de
       réflexion complet décrit dans le brief avant de coder — à faire en
       amont de H1 uniquement si un cadrage visuel doit être validé avant
       implémentation.
+
+**Phase H soldée** (H1 → H11, 2026-07-18 au 2026-07-21) : header/sidebar
+unifiés et réellement escamotables, FAB flottants, mode focus, ajout de
+lieu en 2 interactions, filtres en tiroir, modes explicites, tablette
+traitée à part du mobile/desktop, hiérarchie visuelle des pins/clusters,
+Timeline du voyage, micro-animations. La carte occupe désormais tout
+l'écran par défaut et le reste de l'interface s'efface au profit du
+contenu, conformément au brief initial. H12 (wireframes/audit complet)
+reste optionnel — non demandé, la découpe ci-dessus a suffi à driver le
+travail sans lui. Tous les commits sont locaux (non poussés) — c'est
+Paul qui pousse et valide en navigateur/téléphone, cf.
+[[road-tripmap-conventions]].
 
 **Ordre de travail retenu** : H1 → H2 → H3 → H4 → H7 → H6 → H5 → H8 → H9 →
 H10 → H11.

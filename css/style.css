@@ -648,6 +648,14 @@ h1 {
   font-size: 0.72rem;
 }
 
+/* Apparition (Phase H11) : Leaflet recrée l'élément DOM du marqueur à
+   chaque addLayer() — y compris renderMap() sur un simple changement de
+   filtre/recherche — donc l'animation rejoue à chaque fois. Volontaire :
+   assez courte et discrète pour se sentir réactif plutôt que gadget. */
+@keyframes marker-pop {
+  from { opacity: 0; transform: rotate(-45deg) scale(0.4); }
+}
+
 .custom-marker {
   display: grid;
   place-items: center;
@@ -661,6 +669,7 @@ h1 {
   font-size: 17px;
   font-weight: 900;
   transform: rotate(-45deg);
+  animation: marker-pop 220ms ease-out;
 }
 
 .custom-marker span {
@@ -1805,7 +1814,7 @@ body.resizing {
 .marker-highlight .custom-marker { transform: rotate(-45deg) scale(1.15); }
 
 @media (prefers-reduced-motion: reduce) {
-  .custom-marker { transition: none; }
+  .custom-marker { transition: none; animation: none; }
 }
 
 .place-card.card-highlight {
