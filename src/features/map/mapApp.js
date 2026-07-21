@@ -208,7 +208,10 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // ── Carte ─────────────────────────────────────────────────────────────────
   const { map, markerLayer, baseLayers } = initMap(CONFIG);
   const layerSwitcher = initLayerSwitcher(baseLayers, map);
-  const mobileQuery   = window.matchMedia('(max-width: 820px)');
+  // Seuil aligné sur css/style.css (Phase H8) : couvre aussi les tablettes,
+  // qui ont besoin du même off-canvas tactile (swipe-to-close, ui.js) que
+  // le mobile plutôt que de la grille desktop pensée souris/trackpad.
+  const mobileQuery   = window.matchMedia('(max-width: 960px)');
 
   // Restaure l'état si carte partagée
   if (isSharedMap && sharedData) {

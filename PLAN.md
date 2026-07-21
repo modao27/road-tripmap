@@ -575,10 +575,38 @@ construire, l'audit montre le contraire) :
       captures Playwright (fermé par défaut avec 7/7 chips, ouverture,
       décoche d'une catégorie → chip disparaît + compteur 6/7 + liste et
       carte se mettent à jour, sombre, mobile).
-- [ ] **H8** *(P2)* — Responsive tablette dédié : nouveau breakpoint
-      intermédiaire (~600-960px), sidebar en overlay partiel plutôt que plein
-      écran (mobile) ou grid fixe (desktop) (dépend de H2). *Bénéfice* : la
-      tablette n'est aujourd'hui ni traitée comme mobile ni comme desktop.
+- [x] **H8** *(P2)* — Responsive tablette dédié. Audit d'abord (captures
+      Playwright à 700/768/820/834/960/1024px) plutôt qu'un nouveau
+      breakpoint au jugé : le vrai problème n'était pas un intermédiaire
+      manquant entre mobile et desktop, mais la frontière existante
+      (820px) mal placée — un iPad Air portrait (834px) tombait déjà côté
+      « desktop » : sidebar en grille fixe à 390px sur 834 (≈ 47 % de
+      l'écran, contre ≈ 30 % sur un vrai desktop 1280px), sans
+      swipe-to-close (`initSidebar`, `ui.js`, verrouillé sur ce seuil).
+      Correctif : seuil porté de 820 à 960px dans les 3 endroits qui le
+      dupliquaient (`css/style.css` — bloc mobile principal + 2 requêtes
+      liées `.sidebar-expand-tab`/`.route-badge` ; `mobileQuery` dans
+      `mapApp.js`, qui pilote aussi l'off-canvas, les FAB et le sélecteur
+      de mode H5). Les tablettes héritent ainsi du même overlay partiel
+      que le mobile (largeur plafonnée à 390px, glissement fermé/ouvert
+      déjà tactile) plutôt qu'un troisième mécanisme construit à part —
+      « overlay partiel » décrit déjà exactement ce que fait l'off-canvas
+      une fois plafonné en largeur sur un grand écran.
+      Nuance volontaire : le seuil de `bottomSheet.js` (popup dockée en
+      bas vs flottante) n'a **pas** suivi ce changement et reste à 820px
+      — docker la popup est un secours pour les écrans étroits où une
+      popup flottante couvrirait trop de carte, pas une préférence
+      tactile ; une tablette a la largeur pour une popup flottante
+      classique (285px, identique au desktop). Testé et corrigé après
+      avoir constaté qu'un premier essai à 960px produisait une popup
+      dockée pleine largeur (868px) sur tablette, un vrai recul.
+      *Bénéfice* : la carte reste très majoritairement visible même
+      sidebar ouverte sur tablette, et le swipe tactile fonctionne enfin
+      à cette taille d'écran.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      captures Playwright à 700/834/900/1024px (mobile inchangé sous
+      820px, tablette en overlay partiel jusqu'à 960px avec popup
+      flottante confirmée, desktop en grille inchangé au-delà).
 - [ ] **H9** *(P3)* — Pins/clusters : hiérarchie par zoom, désencombrement
       des faibles zooms, léger scale au survol sur l'état déjà existant
       (`.marker-highlight`). *Bénéfice* : lisibilité à l'échelle

@@ -9,6 +9,10 @@
 // classe .sheet-popup le docke en bas. Leaflet gère toujours ouverture,
 // fermeture (✕, tap carte) et cycle de vie.
 
+// Seuil volontairement différent de mobileQuery (mapApp.js, 960px avec la
+// Phase H8) : le dock en bas d'écran est un secours pour les écrans étroits
+// où une popup flottante couvrirait trop de carte, pas une préférence
+// tactile — une tablette a la largeur pour une popup flottante classique.
 const MOBILE = window.matchMedia('(max-width: 820px)');
 const SWIPE_CLOSE_PX  = 80;  // glisser vers le bas au-delà → réduit/ferme
 const SWIPE_EXPAND_PX = 40;  // glisser vers le haut au-delà → étend
