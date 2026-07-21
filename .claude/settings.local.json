@@ -10,7 +10,11 @@
       "WebFetch(domain:www.passionviaferrata.fr)",
       "WebFetch(domain:monbeaupays.fr)",
       "Bash(git add *)",
-      "Bash(git commit -m 'feat: services Supabase — roadtripService + pinService nouveau schéma *)"
+      "Bash(git commit -m 'feat: services Supabase — roadtripService + pinService nouveau schéma *)",
+      "Bash(cp \"C:\\\\Users\\\\pauld\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-pauld-Documents-git-road-tripmap\\\\afbd0e5d-297d-45b6-acbc-69c5c3de7381\\\\scratchpad\\\\audit-touch.mjs\" \"./.tmp-audit-touch.mjs\")",
+      "Bash(node ./.tmp-audit-touch.mjs)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm test *)"
     ]
   }
 }
