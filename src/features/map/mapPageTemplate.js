@@ -152,6 +152,9 @@ export const MAP_PAGE_HTML = `
             </div>
             <ul class="route-steps" id="routeSteps" aria-label="Étapes de l'itinéraire"></ul>
             <p class="route-empty" id="routeEmpty">Ajoute des lieux depuis leurs popups ou les cartes.</p>
+            <button class="secondary route-timeline-btn" id="routeTimelineBtn" type="button" hidden>
+              🕓 Vue Timeline
+            </button>
             <div class="route-actions">
               <button class="secondary" id="routeAddDay"   type="button"
                       title="Découper l'itinéraire en journées">📅 + Jour</button>
@@ -249,6 +252,19 @@ export const MAP_PAGE_HTML = `
   </div>
 
   <!-- Modale de partage -->
+  <!-- Timeline du voyage (Phase H10) : lecture seule, en dehors de la
+       sidebar (trop étroite pour des jours côte à côte) — les données
+       viennent de routePlanner.js, aucune copie séparée. -->
+  <div class="pin-modal-backdrop" id="timelineBackdrop" hidden>
+    <div class="timeline-modal" role="dialog" aria-modal="true" aria-labelledby="timelineTitle">
+      <div class="timeline-modal-header">
+        <h3 id="timelineTitle">Timeline du voyage</h3>
+        <button type="button" id="timelineClose" aria-label="Fermer">✕</button>
+      </div>
+      <div class="timeline-days" id="timelineDays"></div>
+    </div>
+  </div>
+
   <div class="pin-modal-backdrop" id="shareModalBackdrop" hidden>
     <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
       <h3 id="shareModalTitle">Partager cette carte</h3>

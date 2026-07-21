@@ -628,12 +628,32 @@ construire, l'audit montre le contraire) :
       rapproché (pins individuels, plus de clusters), matrice CSS
       calculée confirmant le scale appliqué sans déplacement du marqueur
       au survol.
-- [ ] **H10** *(P3)* — Timeline visuelle : nouvelle vue (bascule depuis le
-      mode Roadtrip, H5) représentant les jours horizontalement avec
-      étapes/hébergements/déplacements, en lecture des données de
-      `routePlanner.js` sans les dupliquer (dépend de H5). *Bénéfice* :
-      répond au besoin explicite de visualiser le voyage autrement que sur
-      la carte ; effort important, non indispensable au cœur carte.
+- [x] **H10** *(P3)* — Timeline visuelle. Nouveau bouton « 🕓 Vue Timeline »
+      dans le panneau Road Trip (masqué tant qu'aucune étape), ouvre un
+      overlay large (`min(1100px, 96vw)`, réutilise `.pin-modal-backdrop`
+      pour le fond/centrage mais un panneau propre — 400px de large aurait
+      été bien trop étroit pour des jours côte à côte) montrant les jours
+      en colonnes horizontales, chacune listant ses étapes avec la
+      distance à vol d'oiseau vers la suivante (même calcul que la liste,
+      `haversine`) et le total du jour en tête (`dayLegStats()`, legs OSRM
+      réels quand disponibles). Entièrement **en lecture** dans
+      `routePlanner.js` : aucune donnée dupliquée, `renderTimeline()`
+      relit `steps`/`stepDays`/`routeData` à chaque ouverture et se
+      rafraîchit toute seule si l'overlay est ouvert pendant qu'une
+      donnée sous-jacente change (fin d'un fetch OSRM). Cliquer une étape
+      ferme l'overlay et centre la carte dessus (réutilise `focusPlaceFn`,
+      donc déclenche aussi le mode focus H4 — la sidebar se replie
+      naturellement pour montrer la fiche, comportement cohérent et non
+      un cas particulier à gérer). Pas de réorganisation ni d'édition
+      dans la Timeline elle-même — ça reste le rôle de la liste.
+      *Bénéfice* : répond au besoin explicite de visualiser le voyage
+      autrement que sur la carte, sans dupliquer la logique déjà solide
+      de `routePlanner.js`.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      scénario Playwright complet (5 étapes réparties sur 2 jours dont un
+      vide, ouverture, clic étape → fermeture + focus carte confirmé,
+      Escape ferme, sombre, mobile avec défilement horizontal entre
+      jours).
 - [ ] **H11** *(Nice to have)* — Micro-animations : transitions
       d'ouverture/fermeture sidebar, apparition des pins, hover FAB — une
       fois H1-H8 stabilisés, `prefers-reduced-motion` respecté (déjà la

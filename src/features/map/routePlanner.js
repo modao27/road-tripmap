@@ -1,5 +1,6 @@
 import { saveRouteSteps, loadRouteMode, saveRouteMode } from './storage.js';
 import { escapeHtml as esc } from '../../shared/utils/escape.js';
+import { trapFocus } from './ui.js';
 // Logique pure (OSRM, distances, optimisation, GPX) :
 // src/features/routing/routingService.js. Ce module garde DOM et Leaflet.
 import { OSRM_PROFILE, formatDistance, formatDuration, haversine,
@@ -36,6 +37,11 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   const shareBtn    = document.getElementById('routeShare');
   const gpxBtn      = document.getElementById('routeGpx');
   const addDayBtn   = document.getElementById('routeAddDay');
+  const timelineBtn       = document.getElementById('routeTimelineBtn');
+  const timelineBackdrop  = document.getElementById('timelineBackdrop');
+  const timelineDaysEl    = document.getElementById('timelineDays');
+  const timelineCloseBtn  = document.getElementById('timelineClose');
+  let releaseTimelineFocusTrap = null;
 
   // ── Résolution des IDs en objets lieu ─────────────────────────────────────
   function resolvePlaces() {
@@ -307,6 +313,11 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     } else {
       statsEl.hidden = true;
     }
+
+    if (timelineBtn) timelineBtn.hidden = n === 0;
+    // Timeline ouverte pendant qu'une donnée sous-jacente change (ex. legs
+    // OSRM qui arrivent après coup) : la rafraîchir plutôt que la figer.
+    if (timelineBackdrop && !timelineBackdrop.hidden) renderTimeline();
   }
 
   // Cumul des legs OSRM de la journée d (null tant que le tracé n'est pas là,
@@ -320,6 +331,75 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       if (routeData.legDays[j] === d) { dist += leg.distance; dur += leg.duration; count++; }
     });
     return count ? { dist, dur } : null;
+  }
+
+  // ── Timeline (Phase H10) : vue alternative, jours côte à côte ────────────
+  // Lecture seule — les mêmes steps/stepDays/dayLegStats que la liste,
+  // aucune donnée dupliquée. Réordonnancement/édition restent dans la liste.
+  function timelineStepHtml(place, i) {
+    const cat   = place ? categories[place.category] : null;
+    const name  = place ? place.name : '[Lieu supprimé]';
+    const icon  = cat?.icon ?? '❓';
+    const color = cat?.color ?? '#888';
+    return `
+      <button class="timeline-step" type="button" data-step-index="${i}" style="--color:${color}">
+        <span class="timeline-step-icon">${icon}</span>
+        <span class="timeline-step-name">${esc(name)}</span>
+      </button>`;
+  }
+
+  function timelineDayHtml(d, idxs, places) {
+    const s = dayLegStats(d);
+    const stats = s
+      ? `${formatDistance(s.dist)} · ${formatDuration(s.dur)}`
+      : `${idxs.length} étape${idxs.length > 1 ? 's' : ''}`;
+
+    let stepsHtml = '';
+    idxs.forEach((i, pos) => {
+      const place = places[i];
+      if (pos > 0) {
+        const prevPlace = places[idxs[pos - 1]];
+        if (prevPlace && place) {
+          const dist = haversine(prevPlace.lat, prevPlace.lng, place.lat, place.lng);
+          stepsHtml += `<div class="timeline-connector" aria-hidden="true">↓ ${formatDistance(dist)}</div>`;
+        }
+      }
+      stepsHtml += timelineStepHtml(place, i);
+    });
+
+    return `
+      <div class="timeline-day">
+        <div class="timeline-day-header">
+          <span class="timeline-day-label">Jour ${d}</span>
+          <span class="timeline-day-stats">${idxs.length ? stats : 'Aucune étape'}</span>
+        </div>
+        <div class="timeline-day-steps">
+          ${idxs.length ? stepsHtml : '<p class="timeline-day-empty">Aucune étape ce jour</p>'}
+        </div>
+      </div>`;
+  }
+
+  function renderTimeline() {
+    if (!timelineDaysEl) return;
+    const places = resolvePlaces();
+    let html = '';
+    for (let d = 1; d <= dayCount; d++) {
+      const idxs = [];
+      for (let i = 0; i < steps.length; i++) if (stepDays[i] === d) idxs.push(i);
+      html += timelineDayHtml(d, idxs, places);
+    }
+    timelineDaysEl.innerHTML = html;
+  }
+
+  function openTimeline() {
+    renderTimeline();
+    timelineBackdrop.hidden = false;
+    releaseTimelineFocusTrap = trapFocus(timelineBackdrop);
+  }
+
+  function closeTimeline() {
+    timelineBackdrop.hidden = true;
+    releaseTimelineFocusTrap?.(); releaseTimelineFocusTrap = null;
   }
 
   // ── Liste des étapes (groupée par jour quand dayCount > 1) ───────────────
@@ -556,6 +636,27 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   shareBtn?.addEventListener('click',    shareRoute);
   gpxBtn?.addEventListener('click',      exportGPX);
   addDayBtn?.addEventListener('click',   addDay);
+
+  // ── Timeline (Phase H10) ──────────────────────────────────────────────────
+  timelineBtn?.addEventListener('click', openTimeline);
+  timelineCloseBtn?.addEventListener('click', closeTimeline);
+  timelineBackdrop?.addEventListener('click', (e) => {
+    if (e.target === timelineBackdrop) closeTimeline();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && timelineBackdrop && !timelineBackdrop.hidden) closeTimeline();
+  }, { signal });
+  // Clic sur une étape de la timeline → zoom + popup sur la carte, comme
+  // pour la liste (stepsEl plus bas) ; ferme l'overlay pour révéler la carte.
+  timelineDaysEl?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-step-index]');
+    if (!btn) return;
+    const place = resolvePlaces()[+btn.dataset.stepIndex];
+    if (!place) return;
+    closeTimeline();
+    if (focusPlaceFn) focusPlaceFn(place);
+    else map.flyTo([place.lat, place.lng], 14, { animate: true, duration: 0.8 });
+  });
 
   // ── Drop zone : accepte les cartes de lieu glissées depuis la sidebar ─────
   function isPlaceCardDrag(e) {
