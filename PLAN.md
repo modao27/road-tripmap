@@ -607,10 +607,27 @@ construire, l'audit montre le contraire) :
       captures Playwright à 700/834/900/1024px (mobile inchangé sous
       820px, tablette en overlay partiel jusqu'à 960px avec popup
       flottante confirmée, desktop en grille inchangé au-delà).
-- [ ] **H9** *(P3)* — Pins/clusters : hiérarchie par zoom, désencombrement
-      des faibles zooms, léger scale au survol sur l'état déjà existant
-      (`.marker-highlight`). *Bénéfice* : lisibilité à l'échelle
-      région/pays ; la base (couleurs, cluster) est déjà solide.
+- [x] **H9** *(P3)* — Pins/clusters. `maxClusterRadius` (fixe à 50px
+      avant) devient une fonction du zoom (`map.js`) : ×1.6 (80px) à
+      zoom ≤ 8 pour décongestionner les vues région, inchangé (50px,
+      `config.clusterRadius`) au zoom par défaut (10), ×0.6 (30px)
+      au-delà de 11 — moins de regroupement une fois rapproché (`focusZoom`
+      13 compris). Les bulles de cluster gagnent une hiérarchie de taille
+      selon l'effectif (34/40/46px selon <8/8-19/≥20 pins) plutôt qu'une
+      taille fixe. `.marker-highlight` (survol carte de lieu ↔ marqueur,
+      déjà existant) gagne un léger `scale(1.15)` en plus du halo —
+      appliqué sur `.custom-marker` (l'enfant), pas sur l'élément Leaflet
+      lui-même qui porte le `translate3d` de positionnement en style
+      inline : un `transform` CSS dessus serait silencieusement écrasé
+      par cet inline et ne ferait rien.
+      *Bénéfice* : lisibilité à l'échelle région/pays sans perdre la
+      précision une fois zoomé ; la base (couleurs, cluster) était déjà
+      solide, ajustement seulement.
+      Vérifié : lint 0 warning, `test:e2e` 3/3, `npm test` 110/110,
+      captures Playwright zoom faible (clusters 2/3/4 visibles) et zoom
+      rapproché (pins individuels, plus de clusters), matrice CSS
+      calculée confirmant le scale appliqué sans déplacement du marqueur
+      au survol.
 - [ ] **H10** *(P3)* — Timeline visuelle : nouvelle vue (bascule depuis le
       mode Roadtrip, H5) représentant les jours horizontalement avec
       étapes/hébergements/déplacements, en lecture des données de

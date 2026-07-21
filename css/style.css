@@ -1659,6 +1659,17 @@ body.resizing {
   transition: filter 150ms ease;
 }
 
+/* Léger scale au survol (Phase H9) — sur .custom-marker, pas sur le
+   marqueur Leaflet lui-même : celui-ci porte le transform de
+   positionnement (translate3d) posé en style inline par Leaflet, qu'un
+   transform CSS ici écraserait silencieusement (l'inline gagne toujours). */
+.custom-marker { transition: transform 150ms ease; }
+.marker-highlight .custom-marker { transform: rotate(-45deg) scale(1.15); }
+
+@media (prefers-reduced-motion: reduce) {
+  .custom-marker { transition: none; }
+}
+
 .place-card.card-highlight {
   background: rgba(35, 93, 126, 0.08) !important;
   box-shadow: 0 0 0 2px var(--color-primary), 0 6px 18px rgba(35, 93, 126, 0.15) !important;
@@ -2469,11 +2480,13 @@ mark.search-highlight {
 }
 
 /* ── Clusters ─────────────────────────────────────────────────────────── */
+/* Largeur/hauteur réelles posées inline par map.js selon l'effectif du
+   cluster (34/40/46px, Phase H9) — la valeur ici n'est qu'un repli. */
 .cluster-icon {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: var(--color-primary);
   color: white;

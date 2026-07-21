@@ -23,14 +23,29 @@ export function initMap(config) {
   baseLayers.osm.addTo(map);
 
   const markerLayer = L.markerClusterGroup({
-    maxClusterRadius: config.clusterRadius,
+    // Rayon variable selon le zoom (Phase H9) plutôt qu'une valeur fixe :
+    // décongestionne les vues région/pays (zoom ≤ 8, regroupement large)
+    // sans perdre la précision une fois rapproché (zoom > 11, focusZoom
+    // 13 compris — regroupement réduit). config.clusterRadius (50) reste
+    // la référence, inchangée au zoom par défaut (10, palier médian).
+    maxClusterRadius: (zoom) => {
+      if (zoom <= 8)  return config.clusterRadius * 1.6;
+      if (zoom <= 11) return config.clusterRadius;
+      return config.clusterRadius * 0.6;
+    },
     showCoverageOnHover: false,
-    iconCreateFunction: (cluster) => L.divIcon({
-      className: '',
-      html: `<div class="cluster-icon">${cluster.getChildCount()}</div>`,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18]
-    })
+    iconCreateFunction: (cluster) => {
+      // Hiérarchie visuelle par effectif : un cluster de 25 pins n'est
+      // pas juste un chiffre différent d'un cluster de 3, la bulle grandit.
+      const count = cluster.getChildCount();
+      const size  = count >= 20 ? 46 : count >= 8 ? 40 : 34;
+      return L.divIcon({
+        className: '',
+        html: `<div class="cluster-icon" style="width:${size}px;height:${size}px">${count}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2]
+      });
+    }
   }).addTo(map);
 
   return { map, markerLayer, baseLayers };
