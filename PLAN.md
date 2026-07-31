@@ -738,3 +738,85 @@ Notes :
   côté front deviennent nécessaires un jour, Vite s'insérera après la phase B.
 - Chaque étape de B laisse l'app fonctionnelle — on peut s'arrêter n'importe où
   sans dette supplémentaire.
+
+## Phase I — Road trip en train (estimation, établie le 2026-07-31)
+
+Besoin : boucle **gare de départ → rando/bivouac → même gare d'arrivée**,
+comme alternative au road trip voiture actuel. Pas encore commencée —
+cette section chiffre l'effort avant de trancher un périmètre.
+
+### Constat d'architecture
+
+- Le mode de trajet (`driving`/`cycling`/`walking`) est **global à tout
+  l'itinéraire** (une seule variable `mode` dans `routePlanner.js`, un seul
+  `rmode` dans l'URL partagée) : on ne peut pas aujourd'hui mélanger « train »
+  sur un tronçon et « à pied » sur un autre.
+- `routingService.fetchOsrmRoute` interroge le serveur public **OSRM**, qui
+  ne sait calculer que des trajets routiers/piétons/cyclables — aucune
+  notion d'horaires ferroviaires. Il n'existe pas d'équivalent public
+  gratuit d'OSRM pour le train (SNCF Connect/Trainline n'exposent pas
+  d'API publique pour un développeur indépendant ; Navitia.io, l'ancienne
+  API ouverte de la SNCF, existe mais avec un statut et des quotas
+  incertains dans la durée — cf. les dépendances externes déjà fragiles du
+  projet, type DATAtourisme/ViaFerrata).
+- Le reste (planning par jour E1, drag & drop, GPX, partage par URL,
+  optimisation) est réutilisable tel quel : une boucle « gare → rando →
+  gare » est juste un roadtrip à 2 jours (ou plus) dont le 1ᵉʳ et le
+  dernier lieu sont identiques.
+
+### Option A — MVP sans horaires temps réel (recommandée)
+
+Le train devient un **tronçon manuel** : l'utilisateur choisit deux gares,
+l'app ne calcule ni horaire ni prix (aucune API fiable et gratuite pour ça),
+elle affiche juste le tronçon et renvoie vers une recherche externe.
+
+- [ ] **I1** — Catégorie « Gare » (icône 🚉) dans `categories.js` +
+      `shared/types` ; recherche de gare via Nominatim (filtré
+      `railway=station`) ou petite liste statique des gares SNCF
+      (dataset ouvert, ~3000 lignes) pour l'autocomplétion. *(~1 séance)*
+- [ ] **I2** — Mode par tronçon plutôt que mode global : `routePlanner.js`
+      passe de `mode: string` à un mode par leg (`steps[i].mode`), avec
+      `'train'` comme nouvelle valeur ne déclenchant **pas** d'appel OSRM.
+      C'est le changement le plus structurant de la phase — impacte le
+      calcul de distance/durée totale, l'affichage des tronçons, et le
+      format `?route=&rmode=` partagé par URL (devient une liste de modes,
+      pas une valeur unique). *(~2 séances)*
+- [ ] **I3** — Rendu du tronçon train : ligne pointillée (pas de tracé
+      OSRM), saisie manuelle heure aller/retour + numéro de train
+      optionnel, lien externe « Rechercher ce trajet » (SNCF Connect /
+      Trainline, sans garantie de deep-link stable). Bivouac/rando au
+      milieu garde le calcul OSRM à pied existant. *(~1-2 séances)*
+- [ ] **I4** — GPX + partage : inclure la gare et son horaire dans l'export
+      GPX (waypoint + `<desc>`), adapter `sharingService`/`routePlanner`
+      pour sérialiser le mode par tronçon. *(~0.5-1 séance)*
+- [ ] **I5** — Tests (`routingService`, round-trip GPX/partage) + 1 test
+      E2E « boucle même ville » + validation navigateur. *(~1 séance)*
+
+**Total Option A : ~6-8 séances (≈ 3-5 jours de dev)**, en réutilisant
+~90 % du moteur d'itinéraire existant (jours, drag & drop, optimisation,
+partage). Aucune migration Supabase requise (le mode/route vit en
+localStorage + URL, pas en base).
+
+### Option B — Horaires réels (extension future, hors MVP)
+
+Ajouter un vrai calcul d'horaires (date de départ choisie → propositions de
+trains réels, comme OSRM le fait pour la voiture) suppose une **Edge
+Function proxy** vers Navitia.io ou un jeu GTFS France
+(transport.data.gouv.fr), sur le modèle de `via-ferrata-info` (clé secrète
+côté Supabase, cache). Complexité supplémentaire propre au train : la
+route dépend d'une **date/heure** (contrairement à la route routière,
+toujours disponible), gestion des correspondances, et absence de garantie
+de pérennité de l'API choisie (déjà vécu avec des sources externes du
+projet).
+
+**Effort additionnel estimé : +6-8 séances** (proxy + cache + datepicker +
+gestion des cas « pas de train ce jour-là » + tests), soit un total
+**Option A + B ≈ 12-16 séances (≈ 7-10 jours)**.
+
+### Recommandation
+
+Démarrer par l'Option A seule : elle livre la fonctionnalité demandée
+(boucle gare → rando/bivouac → gare) sans dépendance externe fragile,
+cohérente avec la philosophie « zéro build, APIs publiques gratuites » du
+projet. L'option B ne se justifie que si la saisie manuelle de l'horaire
+s'avère trop frictionnelle à l'usage réel.
