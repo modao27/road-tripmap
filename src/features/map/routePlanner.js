@@ -131,6 +131,19 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     scheduleFetch();
   }
 
+  // Marque/démarque le tronçon menant au pas `index` comme 'train'.
+  function applyStepTransport(index, value) {
+    if (index < 0 || index >= stepTransport.length) return;
+    stepTransport[index] = value === 'train' ? 'train' : null;
+    persist();
+    renderStepList();
+    scheduleFetch();
+  }
+
+  function toggleStepTransport(index) {
+    applyStepTransport(index, stepTransport[index] === 'train' ? null : 'train');
+  }
+
   function clearRoute() {
     steps = [];
     stepDays = [];
@@ -271,17 +284,17 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   // Un segment par tronçon OSRM + un segment pointillé par tronçon train
-  // (cf. fetchRoute/splitIntoSegments). Même style pointillé que le
-  // fallback ligne droite — distinction fine (couleur dédiée) laissée à
-  // une passe UI ultérieure.
+  // (cf. fetchRoute/splitIntoSegments), dans la couleur de la catégorie
+  // Gare — même langage que le pointillé du fallback ligne droite, teinte
+  // dédiée pour distinguer un vrai tronçon train d'un tracé approximatif.
   function drawSegmentedRoute(drawSegments, places) {
     clearMapLayers();
-    drawSegments.forEach(seg => drawPolyline(seg.latLngs, seg.train));
+    drawSegments.forEach(seg => drawPolyline(seg.latLngs, seg.train, seg.train ? (categories.gare?.color ?? '#2c3e6b') : undefined));
     addStepMarkers(places);
     fitRoute(drawSegments.flatMap(s => s.latLngs));
   }
 
-  function drawPolyline(latLngs, dashed = false) {
+  function drawPolyline(latLngs, dashed = false, color = '#F08C46') {
     // Bordure blanche sous la ligne principale
     L.polyline(latLngs, {
       color: 'white', weight: 9, opacity: 0.5,
@@ -289,7 +302,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     }).addTo(routeLayer);
 
     const poly = L.polyline(latLngs, {
-      color: '#F08C46',
+      color,
       weight: 5,
       opacity: 0.88,
       dashArray: dashed ? '10 7' : null,
@@ -448,20 +461,41 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   // ── Liste des étapes (groupée par jour quand dayCount > 1) ───────────────
+  // Recherche externe : pas de deep-link fiable connu (SNCF Connect/
+  // Trainline ne documentent pas de paramètres d'URL stables) — on ouvre
+  // l'accueil et l'utilisateur saisit lui-même les deux gares.
+  const SNCF_CONNECT_URL = 'https://www.sncf-connect.com/';
+
   function stepHtml(places, i) {
     const place    = places[i];
     const name     = place ? place.name : '[Lieu supprimé]';
     const icon     = place ? (categories[place.category]?.icon ?? '📍') : '?';
     const deleted  = !place ? ' route-step--deleted' : '';
+    // i === 0 : aucun tronçon ne mène au premier pas, stepTransport[0] est
+    // ignoré par fetchRoute (legTransport = placeTransport.slice(1)) — le
+    // badge doit refléter exactement cette règle, même via une URL forgée.
+    const isTrain  = i > 0 && stepTransport[i] === 'train';
+    // Le toggle n'a de sens que sur une gare, et seulement si un tronçon
+    // la précède (i === 0 : premier pas, rien à marquer comme train).
+    const canToggleTrain = i > 0 && place?.category === 'gare';
 
-    // Distance partielle (ligne droite avec lieu précédent)
+    // Distance partielle (ligne droite avec lieu précédent) — remplacée
+    // par un badge + lien de recherche quand le tronçon est en train.
     let partialHtml = '';
-    if (i > 0 && place && places[i - 1]) {
+    if (isTrain) {
+      partialHtml = `<span class="route-step-dist route-step-train">🚉 Train</span>
+        <a class="route-step-train-link" href="${SNCF_CONNECT_URL}" target="_blank" rel="noopener noreferrer">🔎 Chercher ce trajet</a>`;
+    } else if (i > 0 && place && places[i - 1]) {
       const prev = places[i - 1];
       partialHtml = `<span class="route-step-dist">${formatDistance(
         haversine(prev.lat, prev.lng, place.lat, place.lng)
       )}</span>`;
     }
+
+    const trainToggleHtml = canToggleTrain
+      ? `<button class="route-step-train-toggle${isTrain ? ' active' : ''}" data-train-toggle="${i}"
+                 type="button" title="${isTrain ? 'Ne plus marquer ce tronçon comme un trajet en train' : 'Marquer ce tronçon comme un trajet en train'}">🚉</button>`
+      : '';
 
     return `
       <li class="route-step${deleted}" draggable="true" data-step-index="${i}">
@@ -472,6 +506,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
           <span class="route-step-name">${esc(name)}</span>
           ${partialHtml}
         </span>
+        ${trainToggleHtml}
         <button class="route-step-remove" data-remove-step="${i}"
                 type="button" title="Retirer de l'itinéraire">✕</button>
       </li>`;
@@ -671,7 +706,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     const btn = e.target.closest('[data-remove-step]');
     if (btn) { removeStep(+btn.dataset.removeStep); return; }
     const dayBtn = e.target.closest('[data-remove-day]');
-    if (dayBtn) removeDay(+dayBtn.dataset.removeDay);
+    if (dayBtn) { removeDay(+dayBtn.dataset.removeDay); return; }
+    const trainBtn = e.target.closest('[data-train-toggle]');
+    if (trainBtn) toggleStepTransport(+trainBtn.dataset.trainToggle);
   });
 
   // Délégation globale : bouton "Ajouter à l'itinéraire" dans popups + cartes
@@ -746,7 +783,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // Clic sur étape → zoom + popup
   stepsEl.addEventListener('click', e => {
     const li = e.target.closest('[data-step-index]');
-    if (!li || e.target.closest('[data-remove-step]')) return;
+    if (!li || e.target.closest('[data-remove-step], [data-train-toggle], .route-step-train-link')) return;
     const place = resolvePlaces()[+li.dataset.stepIndex];
     if (!place) return;
     if (focusPlaceFn) focusPlaceFn(place);
@@ -781,15 +818,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     },
     /**
      * Marque le tronçon menant au pas `index` comme 'train' (ou l'annule).
-     * Additif, sans UI câblée pour l'instant (cf. Phase I3).
+     * Câblé sur le toggle 🚉 de la liste des étapes (Phase I3).
      * @param {number} index @param {'train'|null} value
      */
-    setStepTransport(index, value) {
-      if (index < 0 || index >= stepTransport.length) return;
-      stepTransport[index] = value === 'train' ? 'train' : null;
-      persist();
-      renderStepList();
-      scheduleFetch();
-    },
+    setStepTransport: applyStepTransport,
   };
 }

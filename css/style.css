@@ -2397,6 +2397,40 @@ mark.search-highlight {
   color: var(--color-muted);
 }
 
+/* ── Tronçon train (Phase I3) ──────────────────────────────────────────
+   Couleur dédiée alignée sur la catégorie Gare (#2c3e6b), indépendante
+   du thème (même logique que l'accent orange de .route-day ci-dessous). */
+.route-step-dist.route-step-train { color: #2c3e6b; }
+
+.route-step-train-link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #2c3e6b;
+  text-decoration: none;
+}
+.route-step-train-link:hover { text-decoration: underline; }
+
+.route-step-train-toggle {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(44, 62, 107, 0.1);
+  color: #2c3e6b;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0.55;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+.route-step-train-toggle:hover  { opacity: 0.85; }
+.route-step-train-toggle.active {
+  background: rgba(44, 62, 107, 0.18);
+  opacity: 1;
+}
+
 .route-step-remove,
 .route-day-remove {
   flex-shrink: 0;
