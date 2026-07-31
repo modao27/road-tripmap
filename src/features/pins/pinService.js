@@ -284,22 +284,31 @@ export async function upsertRoadtripPin(roadtripId, pin) {
 }
 
 /**
- * Met à jour l'order_index — et la journée si fournie — de chaque pin
- * (parallèle, UUID seulement). Les échecs individuels sont ignorés —
- * l'ordre sera resynchronisé au prochain drag & drop.
+ * Met à jour l'order_index — et la journée / le transport si fournis —
+ * de chaque pin (parallèle, UUID seulement). Les échecs individuels sont
+ * ignorés — l'ordre sera resynchronisé au prochain drag & drop.
+ * `days`/`transport` omis (null) → champ non touché ; fourni → chaque
+ * position est écrite telle quelle (y compris `null` pour « pas de
+ * transport dédié », qui doit pouvoir effacer un ancien `'train'`).
  * @param {string[]} pinIds
  * @param {number[]} [days] - journée de chaque pin, parallèle à pinIds
+ * @param {(string|null)[]} [transport] - 'train' ou null, parallèle à pinIds
  */
-export async function updatePinOrder(pinIds, days = null) {
+export async function updatePinOrder(pinIds, days = null, transport = null) {
   const rows = pinIds
-    .map((id, i) => ({ id, order_index: i, day: days?.[i] ?? null }))
+    .map((id, i) => ({
+      id, order_index: i,
+      day:       days?.[i] ?? null,
+      transport: transport ? (transport[i] ?? null) : undefined,
+    }))
     .filter(r => isAnyUUID(r.id));
   if (!rows.length) return;
-  await Promise.all(rows.map(({ id, order_index, day }) =>
-    supabase.from('pins')
-      .update(day === null ? { order_index } : { order_index, day })
-      .eq('id', id)
-  ));
+  await Promise.all(rows.map(({ id, order_index, day, transport: t }) => {
+    const fields = { order_index };
+    if (day !== null) fields.day = day;
+    if (t !== undefined) fields.transport = t;
+    return supabase.from('pins').update(fields).eq('id', id);
+  }));
 }
 
 /** @param {string} _roadtripId @param {string} pinId */
