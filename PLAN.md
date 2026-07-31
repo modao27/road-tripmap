@@ -795,22 +795,34 @@ exportées en GPX doivent rester identiques après chaque commit).
       sandbox (CDN Supabase/Leaflet non joignables ici) — à confirmer
       manuellement : catégorie Gare → recherche "lyon" → gares affichées,
       changement de catégorie → Nominatim repris.*
-- [ ] **I2** — Transport **par tronçon, additif** — pas de refonte du mode
-      global. `routePlanner.js` garde `mode` (driving/cycling/walking)
-      exactement comme aujourd'hui ; on ajoute un tableau parallèle
-      `stepTransport` (`steps[i]` → `'train' | null`), sur le modèle exact
-      de `stepDays` qui fait déjà ça pour les jours (même fichier, même
-      pattern de `splice`/`map` synchronisé avec `steps`). Quand un pas est
-      marqué `'train'`, le tronçon qui y **mène** saute l'appel OSRM ; tous
-      les autres tronçons continuent d'utiliser `mode` normalement. Un
-      roadtrip sans aucune gare n'a **aucun** `stepTransport` renseigné →
-      code strictement identique à avant, donc **zéro régression possible**
-      sur l'existant. Format de partage : comme `rdays`
-      (`if (dayCount > 1)`), un nouveau paramètre `rtransport=` ne
-      s'ajoute à l'URL **que si** au moins un tronçon train existe —
-      les URLs déjà partagées ne changent pas de format.
-      *(~1.5 séance — plus petit que l'estimation initiale car additif
-      plutôt que remplacement)*
+- [x] **I2** — Transport **par tronçon, additif** — `ea13a54` : `mode`
+      global (driving/cycling/walking) inchangé, ajout d'un tableau
+      parallèle `stepTransport` (`steps[i]` → `'train' | null`) sur le
+      modèle exact de `stepDays` (même fichier, synchronisé à chaque
+      mutation existante — `addStep`/`removeStep`/`moveStepToDay`/
+      `optimizeOrder` (suivi par id, pas par position)/drag & drop/
+      `setStepsAndDays`). `fetchRoute` découpe désormais l'itinéraire en
+      segments (`splitIntoSegments`, déplacé dans `routingService.js`
+      car logique pure — 5 tests dédiés) : un appel OSRM par segment
+      non-train, un tronçon train saute l'OSRM et se dessine en ligne
+      pointillée droite, sans contribuer à la distance/durée totale
+      (exclusion automatique, pas de logique dédiée nécessaire). Sans
+      aucune gare marquée (cas de tous les roadtrips existants), un seul
+      segment couvre tout l'itinéraire → **comportement strictement
+      inchangé** (même appel OSRM unique, même géométrie, mêmes stats) —
+      vérifié par les tests. Partage : `rtransport=` dans l'URL
+      uniquement si un tronçon train existe, comme `rdays`. 120/120 tests
+      + lint verts.
+      ⚠ **Limite découverte en cours de route** : contrairement à `day`
+      (colonne `pins.day`, migration 018), `stepTransport` n'a **pas**
+      d'équivalent persisté côté Supabase pour le mode roadtrip — un
+      resync temps réel (déplacement de pin par un co-équipier) peut
+      donc effacer les tronçons train marqués cette session. Dégradation
+      sans casse (pas de crash, juste un oubli du marquage), mais une
+      migration `pins.transport` (même modèle que 018) serait nécessaire
+      si ce mode collaboratif est réellement utilisé pour des roadtrips
+      en train — **décision à prendre avant de l'ajouter**, pas incluse
+      ici (changement de schéma = hors scope d'un commit additif).
 - [ ] **I3** — UI du tronçon train, alignée sur les codes visuels déjà en
       place : ligne **pointillée** sur la couche route (le tracé GPX
       importé est déjà pointillé violet depuis E4 — réutiliser le même
