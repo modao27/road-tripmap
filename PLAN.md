@@ -770,51 +770,73 @@ Le train devient un **tronçon manuel** : l'utilisateur choisit deux gares,
 l'app ne calcule ni horaire ni prix (aucune API fiable et gratuite pour ça),
 elle affiche juste le tronçon et renvoie vers une recherche externe.
 
-- [ ] **I1** — Catégorie « Gare » (icône 🚉) dans `categories.js` +
-      `shared/types`. **Identification des gares : ne pas utiliser
-      Nominatim en source principale.** OSM (`railway=station`) est une
-      donnée collaborative sans identifiant canonique fiable — doublons,
-      gares mal taguées (`halt` vs `station`), pas de code officiel pour
-      lever les homonymies (plusieurs communes françaises partagent un
-      nom de gare). Source recommandée :
-      [`trainline-eu/stations`](https://github.com/trainline-eu/stations)
-      (`stations.csv`, licence ODbL) — déjà le résultat d'une réconciliation
-      OSM + SNCF Open Data + GeoNames, avec code UIC stable par gare, noms
-      + coordonnées + pays. Un seul fichier à filtrer sur `country = FR` et
-      embarquer en JSON statique comme `places.js` l'est déjà pour les 35
-      lieux — même philosophie « donnée versionnée » plutôt que dépendance
-      réseau pour une info qui ne bouge jamais. Licence ODbL : attribution
-      requise (mention dans le README, aux côtés d'OSM/DATAtourisme déjà
-      créditées) et republier en ODbL si le fichier filtré est modifié —
-      pas de contrainte sur le code de l'app, seulement sur la donnée.
-      Autocomplétion : recherche sur nom **+ commune affichée** pour
-      désambiguïser visuellement les homonymes, code UIC comme identifiant
-      stable (au lieu d'un id généré côté client). Nominatim reste en
-      repli uniquement si une gare manque au dataset (rare, ex. halte très
-      récente). *(~1 séance, dataset déjà nettoyé — pas de travail de
-      réconciliation à refaire)*
-- [ ] **I2** — Mode par tronçon plutôt que mode global : `routePlanner.js`
-      passe de `mode: string` à un mode par leg (`steps[i].mode`), avec
-      `'train'` comme nouvelle valeur ne déclenchant **pas** d'appel OSRM.
-      C'est le changement le plus structurant de la phase — impacte le
-      calcul de distance/durée totale, l'affichage des tronçons, et le
-      format `?route=&rmode=` partagé par URL (devient une liste de modes,
-      pas une valeur unique). *(~2 séances)*
-- [ ] **I3** — Rendu du tronçon train : ligne pointillée (pas de tracé
-      OSRM), saisie manuelle heure aller/retour + numéro de train
-      optionnel, lien externe « Rechercher ce trajet » (SNCF Connect /
-      Trainline, sans garantie de deep-link stable). Bivouac/rando au
-      milieu garde le calcul OSRM à pied existant. *(~1-2 séances)*
-- [ ] **I4** — GPX + partage : inclure la gare et son horaire dans l'export
-      GPX (waypoint + `<desc>`), adapter `sharingService`/`routePlanner`
-      pour sérialiser le mode par tronçon. *(~0.5-1 séance)*
-- [ ] **I5** — Tests (`routingService`, round-trip GPX/partage) + 1 test
-      E2E « boucle même ville » + validation navigateur. *(~1 séance)*
+**Séquençage révisé le 2026-07-31 — au plus rentable, sans rien casser.**
+Chaque étape ci-dessous est livrable seule, réversible, et n'altère aucun
+comportement existant (routes voiture/vélo/marche déjà partagées ou
+exportées en GPX doivent rester identiques après chaque commit).
 
-**Total Option A : ~6-8 séances (≈ 3-5 jours de dev)**, en réutilisant
+- [ ] **I1** — Catégorie « Gare » (icône 🚉) dans `categories.js` +
+      `shared/types`, alimentée par
+      [`trainline-eu/stations`](https://github.com/trainline-eu/stations)
+      (`stations.csv` filtré `country = FR`, licence ODbL — attribution
+      README, code UIC comme id stable) embarqué en JSON statique comme
+      `places.js`. **100 % additif** : une nouvelle catégorie de pin ne
+      touche à rien d'existant (elle apparaît dans les filtres comme les
+      7 autres, gratuitement, via le système de catégories déjà en place).
+      *Rentable dès ce commit* : dès I1 seul, on peut déjà poser une gare
+      sur la carte et la voir dans l'itinéraire (tronçon calculé à pied
+      comme n'importe quel autre pin) — utile même avant I2/I3.
+      UI recherche : réutilise la recherche par nom déjà présente pour les
+      pins perso, résultat affiché `Nom de la gare — Commune` pour lever
+      les homonymies au coup d'œil. *(~1 séance)*
+- [ ] **I2** — Transport **par tronçon, additif** — pas de refonte du mode
+      global. `routePlanner.js` garde `mode` (driving/cycling/walking)
+      exactement comme aujourd'hui ; on ajoute un tableau parallèle
+      `stepTransport` (`steps[i]` → `'train' | null`), sur le modèle exact
+      de `stepDays` qui fait déjà ça pour les jours (même fichier, même
+      pattern de `splice`/`map` synchronisé avec `steps`). Quand un pas est
+      marqué `'train'`, le tronçon qui y **mène** saute l'appel OSRM ; tous
+      les autres tronçons continuent d'utiliser `mode` normalement. Un
+      roadtrip sans aucune gare n'a **aucun** `stepTransport` renseigné →
+      code strictement identique à avant, donc **zéro régression possible**
+      sur l'existant. Format de partage : comme `rdays`
+      (`if (dayCount > 1)`), un nouveau paramètre `rtransport=` ne
+      s'ajoute à l'URL **que si** au moins un tronçon train existe —
+      les URLs déjà partagées ne changent pas de format.
+      *(~1.5 séance — plus petit que l'estimation initiale car additif
+      plutôt que remplacement)*
+- [ ] **I3** — UI du tronçon train, alignée sur les codes visuels déjà en
+      place : ligne **pointillée** sur la couche route (le tracé GPX
+      importé est déjà pointillé violet depuis E4 — réutiliser le même
+      langage visuel, couleur dédiée pour le train) au lieu du tracé OSRM
+      plein ; dans la liste des étapes, un petit badge 🚉 sur le pas
+      concerné avec un `<details>` repliable pour la saisie manuelle
+      (heure aller/retour, n° de train optionnel, lien externe
+      « Rechercher ce trajet ») — même composant replié que « En savoir
+      plus » dans les popups (Phase F), pas un nouveau pattern à apprendre.
+      Le calcul de distance/durée totale **exclut** les tronçons train du
+      total OSRM (affiché à part, ex. « 12 km à pied · 1 tronçon train »)
+      plutôt que de fausser une somme qui n'a plus de sens homogène.
+      Fonctionne identiquement en mobile (bottom sheet) et desktop sans
+      composant spécifique. *(~1.5-2 séances)*
+- [ ] **I4** — GPX + partage : la gare et son horaire dans l'export GPX
+      (waypoint + `<desc>`), `rtransport=` dans l'URL de partage (cf. I2).
+      *(~0.5-1 séance)*
+- [ ] **I5** — Tests en continu à chaque étape (pas seulement à la fin) :
+      `routingService`/`routePlanner` pour I1-I2 au fur et à mesure,
+      round-trip GPX/partage pour I4, un test E2E « boucle même ville »
+      global, régression sur les routes 100 % voiture/vélo/marche
+      existantes (aucun `stepTransport`) pour garantir la non-casse.
+      *(~1 séance, réparti sur les commits précédents plutôt qu'en bloc
+      final)*
+
+**Total Option A : ~5.5-7 séances (≈ 3-4 jours de dev)** — légèrement
+revu à la baisse par le passage à un modèle additif pour I2. Réutilise
 ~90 % du moteur d'itinéraire existant (jours, drag & drop, optimisation,
-partage). Aucune migration Supabase requise (le mode/route vit en
-localStorage + URL, pas en base).
+partage). Aucune migration Supabase requise. **Ordre I1 → I2 → I3 → I4,
+I5 en continu** : chaque commit laisse l'app fonctionnelle et les routes
+existantes inchangées, conformément aux conventions déjà suivies dans les
+phases précédentes.
 
 **Coût financier : 0 €.** GitHub Pages (statique) + Supabase (tier
 gratuit) restent le seul hébergement, comme aujourd'hui. Le CSV
