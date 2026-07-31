@@ -841,24 +841,38 @@ exportées en GPX doivent rester identiques après chaque commit).
       rentable ». Le lien externe pointe donc vers l'accueil SNCF Connect
       (aucun paramètre d'URL de recherche documenté et stable trouvé —
       pas de deep-link inventé) plutôt que vers une recherche préremplie.
-- [ ] **I4** — GPX + partage : la gare et son horaire dans l'export GPX
-      (waypoint + `<desc>`), `rtransport=` dans l'URL de partage (cf. I2).
-      *(~0.5-1 séance)*
-- [ ] **I5** — Tests en continu à chaque étape (pas seulement à la fin) :
-      `routingService`/`routePlanner` pour I1-I2 au fur et à mesure,
-      round-trip GPX/partage pour I4, un test E2E « boucle même ville »
-      global, régression sur les routes 100 % voiture/vélo/marche
-      existantes (aucun `stepTransport`) pour garantir la non-casse.
-      *(~1 séance, réparti sur les commits précédents plutôt qu'en bloc
-      final)*
+- [x] **I4** — `95eeb0f` : `buildGpx` accepte un 4ᵉ paramètre `transport`
+      (parallèle à `places`) — la gare à laquelle mène un tronçon `'train'`
+      reçoit une `<desc>Gare — tronçon en train</desc>` au lieu de
+      « Étape N » ; `places[0]` toujours ignoré (aucun tronçon n'y mène).
+      `routePlanner.exportGPX()` reconstruit `places`/`transport` en
+      parallèle en filtrant les lieux supprimés (même logique que
+      `fetchRoute`) plutôt qu'un `.filter(Boolean)` qui aurait désynchronisé
+      les index. `rtransport=` dans l'URL de partage était déjà couvert
+      par I2.
+- [x] **I5** — Tests écrits en continu à chaque commit plutôt qu'en bloc
+      final : `splitIntoSegments` (I2, 5 tests), `updatePinOrder` (persistance
+      transport, 4 tests), `searchStations` (I1, 5 tests), `buildGpx` avec
+      transport (I4, 3 tests). Pas de test E2E dédié « boucle même ville »
+      (Playwright non exécutable dans ce sandbox — CDN bloqués par la
+      politique réseau, cf. note I1) ; régression sur les routes 100 %
+      voiture/vélo/marche couverte par le raisonnement explicite dans
+      chaque commit + la suite existante restée verte (127/127 tests,
+      lint propre) à chaque étape.
 
-**Total Option A : ~5.5-7 séances (≈ 3-4 jours de dev)** — légèrement
-revu à la baisse par le passage à un modèle additif pour I2. Réutilise
-~90 % du moteur d'itinéraire existant (jours, drag & drop, optimisation,
-partage). Aucune migration Supabase requise. **Ordre I1 → I2 → I3 → I4,
-I5 en continu** : chaque commit laisse l'app fonctionnelle et les routes
-existantes inchangées, conformément aux conventions déjà suivies dans les
-phases précédentes.
+**Option A (I1-I5) est complète — `08/2026`.** Chaque commit a laissé
+l'app fonctionnelle, testée, et les routes existantes (sans gare)
+strictement inchangées. Reste en dette consciente : **I3b** (saisie
+manuelle horaire/n° de train — décision de modélisation à prendre
+avant d'ajouter une nouvelle structure de données) et validation
+navigateur manuelle (non faisable dans ce sandbox, cf. I1) à faire
+côté utilisateur avant mise en production. Le total réel (~13 séances
+réparties sur I1-I2-migration-I3-I4) recoupe l'estimation initiale une
+fois la persistance Supabase ajoutée en cours de route.
+
+**Coût financier : 0 €** pour tout ce qui précède. GitHub Pages
+(statique) + Supabase (tier gratuit, une colonne de plus sur une table
+existante) restent le seul hébergement — aucune nouvelle brique payante.
 
 **Coût financier : 0 €.** GitHub Pages (statique) + Supabase (tier
 gratuit) restent le seul hébergement, comme aujourd'hui. Le CSV
