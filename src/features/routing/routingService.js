@@ -49,6 +49,32 @@ export function haversine(lat1, lng1, lat2, lng2) {
 }
 
 /**
+ * Découpe une liste ordonnée de lieux en segments consécutifs, coupés à
+ * chaque tronçon marqué 'train' (isolé dans son propre segment de 2 lieux,
+ * à traiter sans appel OSRM). Un tronçon reliant places[j] à places[j+1]
+ * a pour transport legTransport[j].
+ * @template {{ lat: number, lng: number }} P
+ * @param {P[]} places
+ * @param {(string|null)[]} legTransport - longueur places.length - 1
+ * @returns {Array<{ places: P[], isTrain: boolean }>}
+ */
+export function splitIntoSegments(places, legTransport) {
+  const segments = [];
+  let current = [places[0]];
+  for (let j = 0; j < legTransport.length; j++) {
+    if (legTransport[j] === 'train') {
+      segments.push({ places: current, isTrain: false });
+      segments.push({ places: [places[j], places[j + 1]], isTrain: true });
+      current = [places[j + 1]];
+    } else {
+      current.push(places[j + 1]);
+    }
+  }
+  segments.push({ places: current, isTrain: false });
+  return segments.filter(s => s.isTrain || s.places.length >= 2);
+}
+
+/**
  * Ordonne les lieux par plus proche voisin (départ = premier élément).
  * Ne modifie pas le tableau d'entrée.
  * @template {{ lat: number, lng: number }} P

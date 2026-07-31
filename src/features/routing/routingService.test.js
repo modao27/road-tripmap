@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   estimateDuration, formatDistance, formatDuration,
   haversine, nearestNeighborOrder, buildGpx, fetchOsrmRoute,
+  splitIntoSegments,
 } from './routingService.js';
 
 describe('haversine', () => {
@@ -52,6 +53,49 @@ describe('nearestNeighborOrder', () => {
     const input = [c, a];
     expect(nearestNeighborOrder(input).map(p => p.id)).toEqual(['c', 'a']);
     expect(input).toHaveLength(2);
+  });
+});
+
+describe('splitIntoSegments', () => {
+  const gareA = { id: 'gareA' }, rando = { id: 'rando' }, bivouac = { id: 'bivouac' }, gareB = { id: 'gareB' };
+
+  it('sans aucun tronçon train : un seul segment couvrant tout (comportement actuel)', () => {
+    const places = [gareA, rando, bivouac];
+    const segments = splitIntoSegments(places, [null, null]);
+    expect(segments).toEqual([{ places, isTrain: false }]);
+  });
+
+  it('isole un tronçon train dans son propre segment de 2 lieux', () => {
+    const places = [gareA, rando, bivouac, gareB];
+    const segments = splitIntoSegments(places, [null, null, 'train']);
+    expect(segments).toEqual([
+      { places: [gareA, rando, bivouac], isTrain: false },
+      { places: [bivouac, gareB],        isTrain: true },
+    ]);
+  });
+
+  it('boucle gare -> rando -> gare : deux tronçons train encadrant la marche', () => {
+    const places = [gareA, rando, gareB];
+    const segments = splitIntoSegments(places, ['train', null]);
+    expect(segments).toEqual([
+      { places: [gareA, rando], isTrain: true },
+      { places: [rando, gareB], isTrain: false },
+    ]);
+  });
+
+  it('deux tronçons train consécutifs (aucune marche entre les deux) : pas de segment vide', () => {
+    const places = [gareA, gareB, rando];
+    const segments = splitIntoSegments(places, ['train', 'train']);
+    expect(segments).toEqual([
+      { places: [gareA, gareB], isTrain: true },
+      { places: [gareB, rando], isTrain: true },
+    ]);
+  });
+
+  it('itinéraire 100% train (2 lieux seulement)', () => {
+    const places = [gareA, gareB];
+    const segments = splitIntoSegments(places, ['train']);
+    expect(segments).toEqual([{ places: [gareA, gareB], isTrain: true }]);
   });
 });
 
