@@ -862,13 +862,34 @@ exportées en GPX doivent rester identiques après chaque commit).
 
 **Option A (I1-I5) est complète — `08/2026`.** Chaque commit a laissé
 l'app fonctionnelle, testée, et les routes existantes (sans gare)
-strictement inchangées. Reste en dette consciente : **I3b** (saisie
-manuelle horaire/n° de train — décision de modélisation à prendre
-avant d'ajouter une nouvelle structure de données) et validation
-navigateur manuelle (non faisable dans ce sandbox, cf. I1) à faire
-côté utilisateur avant mise en production. Le total réel (~13 séances
-réparties sur I1-I2-migration-I3-I4) recoupe l'estimation initiale une
-fois la persistance Supabase ajoutée en cours de route.
+strictement inchangées.
+
+- [x] **I3b** — `88655d9` : décision prise avec l'utilisateur — horaire
+      rattaché au **pin** (comme `description`/`tip`/`mood`), pas à
+      l'instance d'itinéraire, car un pin « Gare » appartient déjà à un
+      seul roadtrip (jamais réutilisé entre deux usages différents de la
+      même gare) — pas besoin d'un 2ᵉ tableau parallèle à synchroniser
+      partout où `stepTransport` l'est déjà. Migration 022
+      (`train_departure`/`train_arrival`/`train_number`, texte libre,
+      même principe que `day`/`transport`). 3 champs ajoutés à la modale
+      d'édition de pin existante, visibles uniquement pour la catégorie
+      Gare. Dans la liste des étapes, l'horaire s'affiche s'il est
+      renseigné + un bouton « ✏️ Horaire » qui réutilise la délégation
+      `data-edit-id` déjà câblée dans `pins.js` (pas de nouvelle logique
+      d'ouverture de modale, et surtout pas d'`<input>` éditable inséré
+      dans une liste régénérée en `innerHTML` à chaque render — le champ
+      perdrait sa valeur en cours de frappe dès qu'un fetch OSRM en
+      arrière-plan déclenche un re-render). 6 tests `pinService` dédiés +
+      129/129 tests globaux + lint verts.
+
+Reste en dette consciente : validation navigateur manuelle (non
+faisable dans ce sandbox — CDN Supabase/Leaflet bloqués par la
+politique réseau, cf. I1) à faire côté utilisateur avant mise en
+production, en particulier pour vérifier que les migrations 021/022
+s'appliquent bien et que le formulaire d'horaire s'affiche/se masque
+correctement selon la catégorie. Le total réel (~14-15 séances réparties
+sur I1-I2-migration-I3-I3b-I4) recoupe l'estimation initiale une fois la
+persistance Supabase ajoutée en cours de route.
 
 **Coût financier : 0 €** pour tout ce qui précède. GitHub Pages
 (statique) + Supabase (tier gratuit, une colonne de plus sur une table
