@@ -813,16 +813,16 @@ exportées en GPX doivent rester identiques après chaque commit).
       vérifié par les tests. Partage : `rtransport=` dans l'URL
       uniquement si un tronçon train existe, comme `rdays`. 120/120 tests
       + lint verts.
-      ⚠ **Limite découverte en cours de route** : contrairement à `day`
-      (colonne `pins.day`, migration 018), `stepTransport` n'a **pas**
-      d'équivalent persisté côté Supabase pour le mode roadtrip — un
-      resync temps réel (déplacement de pin par un co-équipier) peut
-      donc effacer les tronçons train marqués cette session. Dégradation
-      sans casse (pas de crash, juste un oubli du marquage), mais une
-      migration `pins.transport` (même modèle que 018) serait nécessaire
-      si ce mode collaboratif est réellement utilisé pour des roadtrips
-      en train — **décision à prendre avant de l'ajouter**, pas incluse
-      ici (changement de schéma = hors scope d'un commit additif).
+      ✅ **Limite fermée le 2026-07-31** — `48e83a3` : décision utilisateur
+      de l'ajouter tout de suite. Migration 021 (`pins.transport`, miroir
+      exact de `day`/018) + `updatePinOrder(steps, days, transport)` +
+      câblage `mapApp.js` (chargement initial, `onStepsChange`,
+      `resyncRouteSteps` compare aussi le transport avant de recharger).
+      Le marquage train survit désormais à un resync temps réel en mode
+      roadtrip collaboratif. 4 tests unitaires dédiés (module Supabase
+      mocké) + 124/124 tests globaux + lint verts. Migration à exécuter
+      en prod comme les précédentes (`db push` — automatique via la CI
+      au merge sur `main`, cf. section Configuration Supabase du README).
 - [ ] **I3** — UI du tronçon train, alignée sur les codes visuels déjà en
       place : ligne **pointillée** sur la couche route (le tracé GPX
       importé est déjà pointillé violet depuis E4 — réutiliser le même
