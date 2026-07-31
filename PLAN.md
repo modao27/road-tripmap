@@ -764,7 +764,7 @@ cette section chiffre l'effort avant de trancher un périmètre.
   gare » est juste un roadtrip à 2 jours (ou plus) dont le 1ᵉʳ et le
   dernier lieu sont identiques.
 
-### Option A — MVP sans horaires temps réel (recommandée)
+### Option A — MVP sans horaires temps réel (validée le 2026-07-31)
 
 Le train devient un **tronçon manuel** : l'utilisateur choisit deux gares,
 l'app ne calcule ni horaire ni prix (aucune API fiable et gratuite pour ça),
@@ -888,10 +888,10 @@ fonctionnalité demandée. Le coût (temps de dev *et* argent) n'apparaît
 qu'avec l'Option B, et seulement si les horaires automatiques s'avèrent
 vraiment nécessaires par rapport à la saisie manuelle + lien externe.
 
-### Recommandation
+### Décision
 
-Démarrer par l'Option A seule : elle livre la fonctionnalité demandée
-(boucle gare → rando/bivouac → gare) sans dépendance externe fragile,
-cohérente avec la philosophie « zéro build, APIs publiques gratuites » du
-projet. L'option B ne se justifie que si la saisie manuelle de l'horaire
-s'avère trop frictionnelle à l'usage réel.
+**Option A validée le 2026-07-31** : périmètre retenu pour la Phase I,
+tronçon train manuel (gare → gare via `trainline-eu/stations`, pas de
+calcul d'horaire automatique). Option B repoussée en backlog, à
+reconsidérer seulement si la saisie manuelle s'avère trop frictionnelle
+à l'usage réel. Prochaine étape : implémenter I1 → I5 dans l'ordre.
