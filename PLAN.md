@@ -816,6 +816,11 @@ elle affiche juste le tronçon et renvoie vers une recherche externe.
 partage). Aucune migration Supabase requise (le mode/route vit en
 localStorage + URL, pas en base).
 
+**Coût financier : 0 €.** GitHub Pages (statique) + Supabase (tier
+gratuit) restent le seul hébergement, comme aujourd'hui. Le CSV
+`trainline-eu/stations` filtré FR est un fichier de quelques centaines
+de Ko ajouté au dépôt — aucune nouvelle brique payante.
+
 ### Option B — Horaires réels (extension future, hors MVP)
 
 Ajouter un vrai calcul d'horaires (date de départ choisie → propositions de
@@ -855,6 +860,33 @@ train ce jour-là » + tests), soit un total
 **Option A + B ≈ 12-17 séances (≈ 7-10 jours)**. Le risque principal n'est
 plus la fiabilité de la donnée (résolu) mais le **coût d'exploitation**
 d'un service supplémentaire à faire tourner en continu.
+
+**Coût financier : premier coût récurrent du projet (~5-15 €/mois,
+~60-180 €/an).** Aujourd'hui l'app tourne à 0 € (GitHub Pages + Supabase
+tier gratuit + APIs publiques gratuites). OpenTripPlanner change ça :
+- **VPS pour faire tourner le serveur OTP en continu** — un petit VPS
+  (type Hetzner CX, ~4 Go RAM) démarre autour de **4-5 €/mois**. Suffisant
+  *si* le graphe est volontairement restreint au réseau ferré (arrêts +
+  horaires GTFS) sans y injecter tout le réseau routier français en OSM
+  (driving/marche restent gérés par OSRM ailleurs dans l'app) — sinon la
+  mémoire nécessaire grimpe vite : la doc officielle d'OTP indique que le
+  besoin va de <1 Go pour une petite ville à 10+ Go pour un pays comme la
+  Finlande, 95 Go pour l'Allemagne avec toutes les données. **Non
+  vérifiable sans un test réel** — à faire avant d'arrêter un budget.
+- **Reconstruction périodique du graphe** (le GTFS SNCF est glissant sur
+  151 jours, need de le réimporter régulièrement) : la phase de
+  *construction* du graphe consomme plus de RAM que le simple service en
+  ligne — une astuce classique OTP est de construire sur une instance
+  jetable plus costaude (facturée à l'heure, quelques centimes) puis de ne
+  déployer que le graphe résultant sur le petit VPS permanent.
+- Domaine/SSL : négligeable (sous-domaine + Let's Encrypt gratuit).
+- Aucune clé API payante : GTFS SNCF et `trainline-eu/stations` sont
+  gratuits et sans quota.
+
+**À retenir** : Option A reste gratuite et suffit pour livrer la
+fonctionnalité demandée. Le coût (temps de dev *et* argent) n'apparaît
+qu'avec l'Option B, et seulement si les horaires automatiques s'avèrent
+vraiment nécessaires par rapport à la saisie manuelle + lien externe.
 
 ### Recommandation
 
