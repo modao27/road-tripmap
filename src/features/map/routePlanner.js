@@ -4,7 +4,7 @@ import { trapFocus } from './ui.js';
 // Logique pure (OSRM, distances, optimisation, GPX) :
 // src/features/routing/routingService.js. Ce module garde DOM et Leaflet.
 import { OSRM_PROFILE, formatDistance, formatDuration, haversine,
-         nearestNeighborOrder, fetchOsrmRoute, buildGpx }
+         nearestNeighborOrder, fetchOsrmRoute, buildGpx, splitIntoSegments }
   from '../routing/routingService.js';
 
 // ── Module ────────────────────────────────────────────────────────────────────
@@ -14,6 +14,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // ── État ──────────────────────────────────────────────────────────────────
   let steps         = [];                 // toujours vide au démarrage — restauré uniquement via ?route=
   let stepDays      = [];                 // parallèle à steps — journée (1..dayCount), toujours groupé
+  // Parallèle à steps — transport du tronçon qui MÈNE à ce pas ('train' ou
+  // null). Additif : quand aucun pas n'est 'train' (cas d'aujourd'hui), le
+  // comportement OSRM/partage/GPX reste strictement identique à avant.
+  let stepTransport = [];
   let dayCount      = 1;                  // nombre de jours affichés (≥ max(stepDays))
   let mode          = loadRouteMode();    // 'driving' | 'cycling' | 'walking'
   let routeData     = null;               // {distance, duration, geometry, legs} OSRM
@@ -89,9 +93,11 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   function moveStepToDay(from, day) {
     const id = steps.splice(from, 1)[0];
     stepDays.splice(from, 1);
+    const transport = stepTransport.splice(from, 1)[0];
     const idx = insertIndexForDay(day);
     steps.splice(idx, 0, id);
     stepDays.splice(idx, 0, day);
+    stepTransport.splice(idx, 0, transport);
     persist();
     renderStepList();
     updateRouteButtons();
@@ -107,6 +113,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     const idx = insertIndexForDay(day);
     steps.splice(idx, 0, placeId);
     stepDays.splice(idx, 0, day);
+    stepTransport.splice(idx, 0, null);
     persist();
     renderStepList();
     updateRouteButtons();
@@ -117,15 +124,30 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   function removeStep(index) {
     steps.splice(index, 1);
     stepDays.splice(index, 1);
+    stepTransport.splice(index, 1);
     persist();
     renderStepList();
     updateRouteButtons();
     scheduleFetch();
   }
 
+  // Marque/démarque le tronçon menant au pas `index` comme 'train'.
+  function applyStepTransport(index, value) {
+    if (index < 0 || index >= stepTransport.length) return;
+    stepTransport[index] = value === 'train' ? 'train' : null;
+    persist();
+    renderStepList();
+    scheduleFetch();
+  }
+
+  function toggleStepTransport(index) {
+    applyStepTransport(index, stepTransport[index] === 'train' ? null : 'train');
+  }
+
   function clearRoute() {
     steps = [];
     stepDays = [];
+    stepTransport = [];
     dayCount = 1;
     routeData = null;
     persist();
@@ -137,7 +159,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   function persist() {
     saveRouteSteps(steps);
-    onStepsChange?.(steps, [...stepDays]);
+    onStepsChange?.(steps, [...stepDays], [...stepTransport]);
   }
 
   // ── Optimisation (plus proche voisin) ─────────────────────────────────────
@@ -149,6 +171,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       return;
     }
     const places = resolvePlaces();
+    // Le transport est attaché au lieu (id), pas à une position — il doit
+    // suivre le pas même si l'optimisation change l'ordre.
+    const transportById = new Map(steps.map((id, i) => [id, stepTransport[i]]));
     const newSteps = [], newDays = [];
     let prevLast = null;
     for (let d = 1; d <= dayCount; d++) {
@@ -163,8 +188,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       ordered.forEach(p => { newSteps.push(p.id); newDays.push(d); });
       prevLast = ordered[ordered.length - 1];
     }
-    steps    = newSteps;
-    stepDays = newDays;
+    steps         = newSteps;
+    stepDays      = newDays;
+    stepTransport = newSteps.map(id => transportById.get(id) ?? null);
     persist();
     renderStepList();
     updateRouteButtons();
@@ -189,21 +215,49 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   async function fetchRoute() {
-    // Liste filtrée (lieux supprimés exclus) + jour de chaque point, pour
-    // apparier les legs OSRM aux journées
+    // Liste filtrée (lieux supprimés exclus) + jour et transport de chaque
+    // point, pour apparier les legs aux journées et sauter l'OSRM sur les
+    // tronçons train
     const resolved = resolvePlaces();
-    const places = [], placeDays = [];
+    const places = [], placeDays = [], placeTransport = [];
     resolved.forEach((p, i) => {
-      if (p) { places.push(p); placeDays.push(stepDays[i]); }
+      if (p) { places.push(p); placeDays.push(stepDays[i]); placeTransport.push(stepTransport[i] || null); }
     });
     if (places.length < 2) return;
+    const legTransport = placeTransport.slice(1); // legTransport[j] : places[j] → places[j+1]
 
     try {
-      routeData = await fetchOsrmRoute(places, mode);
-      // legs[j] relie places[j] → places[j+1] : le trajet appartient à la
-      // journée de l'étape d'arrivée (liaison du matin)
-      routeData.legDays = placeDays.slice(1);
-      drawRoute(routeData.geometry, places);
+      const segments = splitIntoSegments(places, legTransport);
+      const legs = [];
+      const drawSegments = [];
+      for (const seg of segments) {
+        if (seg.isTrain) {
+          const [a, b] = seg.places;
+          legs.push({ distance: null, duration: null, train: true });
+          drawSegments.push({ latLngs: [[a.lat, a.lng], [b.lat, b.lng]], train: true });
+        } else {
+          const segRoute = await fetchOsrmRoute(seg.places, mode);
+          segRoute.legs.forEach(l => legs.push({ ...l, train: false }));
+          drawSegments.push({ latLngs: segRoute.geometry.coordinates.map(([lng, lat]) => [lat, lng]), train: false });
+        }
+      }
+      // Un seul segment non-train couvrant tout l'itinéraire (aucune gare) :
+      // geometry brute conservée telle quelle, comme avant (export GPX).
+      const geometry = segments.length === 1 && !segments[0].isTrain
+        ? { type: 'LineString', coordinates: drawSegments[0].latLngs.map(([lat, lng]) => [lng, lat]) }
+        : null;
+
+      routeData = {
+        distance: legs.reduce((s, l) => s + (l.distance ?? 0), 0),
+        duration: legs.reduce((s, l) => s + (l.duration ?? 0), 0),
+        geometry,
+        legs,
+        // legs[j] relie places[j] → places[j+1] : le trajet appartient à la
+        // journée de l'étape d'arrivée (liaison du matin)
+        legDays: placeDays.slice(1),
+        trainLegCount: legs.filter(l => l.train).length,
+      };
+      drawSegmentedRoute(drawSegments, places);
       if (dayCount > 1) renderStepList(); else renderStats();
     } catch (err) {
       console.warn('[routePlanner]', err);
@@ -221,15 +275,6 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     stepMarkers = [];
   }
 
-  function drawRoute(geometry, places) {
-    clearMapLayers();
-    // Coordonnées GeoJSON : [lng, lat] → Leaflet : [lat, lng]
-    const latLngs = geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-    drawPolyline(latLngs);
-    addStepMarkers(places);
-    fitRoute(latLngs);
-  }
-
   function drawStraightLine(places) {
     clearMapLayers();
     const latLngs = places.map(p => [p.lat, p.lng]);
@@ -238,7 +283,18 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     fitRoute(latLngs);
   }
 
-  function drawPolyline(latLngs, dashed = false) {
+  // Un segment par tronçon OSRM + un segment pointillé par tronçon train
+  // (cf. fetchRoute/splitIntoSegments), dans la couleur de la catégorie
+  // Gare — même langage que le pointillé du fallback ligne droite, teinte
+  // dédiée pour distinguer un vrai tronçon train d'un tracé approximatif.
+  function drawSegmentedRoute(drawSegments, places) {
+    clearMapLayers();
+    drawSegments.forEach(seg => drawPolyline(seg.latLngs, seg.train, seg.train ? (categories.gare?.color ?? '#2c3e6b') : undefined));
+    addStepMarkers(places);
+    fitRoute(drawSegments.flatMap(s => s.latLngs));
+  }
+
+  function drawPolyline(latLngs, dashed = false, color = '#F08C46') {
     // Bordure blanche sous la ligne principale
     L.polyline(latLngs, {
       color: 'white', weight: 9, opacity: 0.5,
@@ -246,7 +302,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     }).addTo(routeLayer);
 
     const poly = L.polyline(latLngs, {
-      color: '#F08C46',
+      color,
       weight: 5,
       opacity: 0.88,
       dashArray: dashed ? '10 7' : null,
@@ -328,7 +384,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     if (routeData.legs.length !== current - 1) return null;
     let dist = 0, dur = 0, count = 0;
     routeData.legs.forEach((leg, j) => {
-      if (routeData.legDays[j] === d) { dist += leg.distance; dur += leg.duration; count++; }
+      // leg.distance/duration valent null pour un tronçon train (pas de
+      // calcul OSRM) — ils ne contribuent pas au total, volontairement.
+      if (routeData.legDays[j] === d) { dist += leg.distance ?? 0; dur += leg.duration ?? 0; count++; }
     });
     return count ? { dist, dur } : null;
   }
@@ -403,20 +461,48 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   // ── Liste des étapes (groupée par jour quand dayCount > 1) ───────────────
+  // Recherche externe : pas de deep-link fiable connu (SNCF Connect/
+  // Trainline ne documentent pas de paramètres d'URL stables) — on ouvre
+  // l'accueil et l'utilisateur saisit lui-même les deux gares.
+  const SNCF_CONNECT_URL = 'https://www.sncf-connect.com/';
+
   function stepHtml(places, i) {
     const place    = places[i];
     const name     = place ? place.name : '[Lieu supprimé]';
     const icon     = place ? (categories[place.category]?.icon ?? '📍') : '?';
     const deleted  = !place ? ' route-step--deleted' : '';
+    // i === 0 : aucun tronçon ne mène au premier pas, stepTransport[0] est
+    // ignoré par fetchRoute (legTransport = placeTransport.slice(1)) — le
+    // badge doit refléter exactement cette règle, même via une URL forgée.
+    const isTrain  = i > 0 && stepTransport[i] === 'train';
+    // Le toggle n'a de sens que sur une gare, et seulement si un tronçon
+    // la précède (i === 0 : premier pas, rien à marquer comme train).
+    const canToggleTrain = i > 0 && place?.category === 'gare';
 
-    // Distance partielle (ligne droite avec lieu précédent)
+    // Distance partielle (ligne droite avec lieu précédent) — remplacée
+    // par un badge + horaire (I3b, saisi via la modale d'édition du pin,
+    // data-edit-id déjà géré par la délégation globale de pins.js) + lien
+    // de recherche quand le tronçon est en train.
     let partialHtml = '';
-    if (i > 0 && place && places[i - 1]) {
+    if (isTrain) {
+      const hasSchedule = place?.trainDeparture || place?.trainArrival;
+      const scheduleHtml = hasSchedule
+        ? ` · 🕐 ${esc(place.trainDeparture || '?')} → ${esc(place.trainArrival || '?')}${place.trainNumber ? ` · ${esc(place.trainNumber)}` : ''}`
+        : '';
+      partialHtml = `<span class="route-step-dist route-step-train">🚉 Train${scheduleHtml}</span>
+        <a class="route-step-train-link" href="${SNCF_CONNECT_URL}" target="_blank" rel="noopener noreferrer">🔎 Chercher ce trajet</a>
+        ${place ? `<button class="route-step-train-edit" data-edit-id="${place.id}" type="button">✏️ Horaire</button>` : ''}`;
+    } else if (i > 0 && place && places[i - 1]) {
       const prev = places[i - 1];
       partialHtml = `<span class="route-step-dist">${formatDistance(
         haversine(prev.lat, prev.lng, place.lat, place.lng)
       )}</span>`;
     }
+
+    const trainToggleHtml = canToggleTrain
+      ? `<button class="route-step-train-toggle${isTrain ? ' active' : ''}" data-train-toggle="${i}"
+                 type="button" title="${isTrain ? 'Ne plus marquer ce tronçon comme un trajet en train' : 'Marquer ce tronçon comme un trajet en train'}">🚉</button>`
+      : '';
 
     return `
       <li class="route-step${deleted}" draggable="true" data-step-index="${i}">
@@ -427,6 +513,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
           <span class="route-step-name">${esc(name)}</span>
           ${partialHtml}
         </span>
+        ${trainToggleHtml}
         <button class="route-step-remove" data-remove-step="${i}"
                 type="button" title="Retirer de l'itinéraire">✕</button>
       </li>`;
@@ -503,8 +590,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         const targetDay = stepDays[target];
         const moved = steps.splice(dragSrcIndex, 1)[0];
         stepDays.splice(dragSrcIndex, 1);
+        const movedTransport = stepTransport.splice(dragSrcIndex, 1)[0];
         steps.splice(target, 0, moved);
         stepDays.splice(target, 0, targetDay);
+        stepTransport.splice(target, 0, movedTransport);
         dragSrcIndex = null;
         persist();
         renderStepList();
@@ -539,7 +628,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   // ── Partage ───────────────────────────────────────────────────────────────
   function serializeRoute() {
-    return { steps: [...steps], days: [...stepDays], mode, version: 2 };
+    return { steps: [...steps], days: [...stepDays], transport: [...stepTransport], mode, version: 2 };
   }
 
   function shareRoute() {
@@ -548,6 +637,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     url.searchParams.set('route', steps.join(','));
     url.searchParams.set('rmode', mode);
     if (dayCount > 1) url.searchParams.set('rdays', stepDays.join(','));
+    // N'apparaît dans l'URL que si un tronçon train existe — les liens déjà
+    // partagés (sans gare) gardent exactement le même format qu'avant.
+    if (stepTransport.some(Boolean)) url.searchParams.set('rtransport', stepTransport.map(t => t || '').join(','));
     navigator.clipboard.writeText(url.toString())
       .then(() => showToastFn(toastWrap, '🔗 Lien itinéraire copié !', 'success'))
       .catch(() => prompt('Copie ce lien :', url.toString()));
@@ -555,10 +647,15 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   // ── Export GPX ────────────────────────────────────────────────────────────
   function exportGPX() {
-    const places = resolvePlaces().filter(Boolean);
+    // Filtre les lieux supprimés en gardant stepTransport aligné (même
+    // logique que fetchRoute) — un simple .filter(Boolean) désynchroniserait
+    // les index dès qu'un pas intermédiaire est supprimé.
+    const resolved = resolvePlaces();
+    const places = [], placeTransport = [];
+    resolved.forEach((p, i) => { if (p) { places.push(p); placeTransport.push(stepTransport[i] || null); } });
     if (!places.length) { showToastFn(toastWrap, 'Itinéraire vide', ''); return; }
 
-    const gpx = buildGpx(places, routeData?.geometry ?? null);
+    const gpx = buildGpx(places, routeData?.geometry ?? null, undefined, placeTransport);
 
     const a = Object.assign(document.createElement('a'), {
       href:     URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' })),
@@ -574,22 +671,24 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // ── Chargement d'un itinéraire complet ────────────────────────────────────
   // Normalise ids + jours : jours entiers ≥ 1, étapes regroupées par jour
   // (tri stable — l'ordre est conservé au sein d'une même journée).
-  function setStepsAndDays(ids, days) {
+  function setStepsAndDays(ids, days, transport) {
     const pairs = ids
-      .map((id, i) => ({ id, day: Math.max(1, Math.trunc(days?.[i]) || 1) }))
+      .map((id, i) => ({ id, day: Math.max(1, Math.trunc(days?.[i]) || 1), transport: transport?.[i] || null }))
       .filter(p => p.id);
     pairs.sort((a, b) => a.day - b.day);
-    steps    = pairs.map(p => p.id);
-    stepDays = pairs.map(p => p.day);
+    steps         = pairs.map(p => p.id);
+    stepDays      = pairs.map(p => p.day);
+    stepTransport = pairs.map(p => p.transport);
     dayCount = steps.length ? Math.max(...stepDays) : 1;
   }
 
   // ── Restauration depuis URL ───────────────────────────────────────────────
   function restoreFromUrl() {
-    const params     = new URLSearchParams(window.location.search);
-    const routeParam = params.get('route');
-    const modeParam  = params.get('rmode');
-    const daysParam  = params.get('rdays');
+    const params        = new URLSearchParams(window.location.search);
+    const routeParam     = params.get('route');
+    const modeParam      = params.get('rmode');
+    const daysParam      = params.get('rdays');
+    const transportParam = params.get('rtransport');
     if (!routeParam) return;
 
     if (modeParam && OSRM_PROFILE[modeParam]) {
@@ -597,13 +696,18 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       if (modeEl) modeEl.value = mode;
       saveRouteMode(mode);
     }
-    const ids  = routeParam.split(',').filter(Boolean);
-    const days = daysParam ? daysParam.split(',').map(Number) : null;
-    setStepsAndDays(ids, days?.length === ids.length ? days : null);
+    const ids       = routeParam.split(',').filter(Boolean);
+    const days      = daysParam ? daysParam.split(',').map(Number) : null;
+    const transport = transportParam ? transportParam.split(',').map(t => t || null) : null;
+    setStepsAndDays(
+      ids,
+      days?.length === ids.length ? days : null,
+      transport?.length === ids.length ? transport : null
+    );
     persist();
 
     // Nettoie l'URL
-    params.delete('route'); params.delete('rmode'); params.delete('rdays');
+    params.delete('route'); params.delete('rmode'); params.delete('rdays'); params.delete('rtransport');
     history.replaceState(null, '',
       window.location.pathname + (params.toString() ? '?' + params.toString() : '')
     );
@@ -614,7 +718,9 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     const btn = e.target.closest('[data-remove-step]');
     if (btn) { removeStep(+btn.dataset.removeStep); return; }
     const dayBtn = e.target.closest('[data-remove-day]');
-    if (dayBtn) removeDay(+dayBtn.dataset.removeDay);
+    if (dayBtn) { removeDay(+dayBtn.dataset.removeDay); return; }
+    const trainBtn = e.target.closest('[data-train-toggle]');
+    if (trainBtn) toggleStepTransport(+trainBtn.dataset.trainToggle);
   });
 
   // Délégation globale : bouton "Ajouter à l'itinéraire" dans popups + cartes
@@ -689,7 +795,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // Clic sur étape → zoom + popup
   stepsEl.addEventListener('click', e => {
     const li = e.target.closest('[data-step-index]');
-    if (!li || e.target.closest('[data-remove-step]')) return;
+    if (!li || e.target.closest('[data-remove-step], [data-train-toggle], [data-edit-id], .route-step-train-link')) return;
     const place = resolvePlaces()[+li.dataset.stepIndex];
     if (!place) return;
     if (focusPlaceFn) focusPlaceFn(place);
@@ -710,13 +816,23 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     serializeRoute,
     refresh:              () => { renderStepList(); updateRouteButtons(); },
     updateRouteButtons,
-    /** @param {string[]} ids @param {number[]|null} [days] parallèle à ids */
-    loadSteps(ids, days = null) {
-      setStepsAndDays(ids, days);
+    /**
+     * @param {string[]} ids
+     * @param {number[]|null} [days] parallèle à ids
+     * @param {(string|null)[]|null} [transport] parallèle à ids ('train' ou null)
+     */
+    loadSteps(ids, days = null, transport = null) {
+      setStepsAndDays(ids, days, transport);
       persist();
       renderStepList();
       updateRouteButtons();
       if (steps.length >= 2) scheduleFetch();
     },
+    /**
+     * Marque le tronçon menant au pas `index` comme 'train' (ou l'annule).
+     * Câblé sur le toggle 🚉 de la liste des étapes (Phase I3).
+     * @param {number} index @param {'train'|null} value
+     */
+    setStepTransport: applyStepTransport,
   };
 }

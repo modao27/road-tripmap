@@ -263,18 +263,28 @@ export async function createRoadtripPin(roadtripId, pin) {
            lat: pin.lat, lng: pin.lng };
 }
 
-/** pin.id UUID → mise à jour, sinon → création via RPC (fin de liste) */
+/**
+ * pin.id UUID → mise à jour, sinon → création via RPC (fin de liste).
+ * `trainDeparture`/`trainArrival`/`trainNumber` (Phase I3b, texte libre)
+ * ne sont écrits qu'à la mise à jour — la RPC create_pin (migration 008)
+ * ne les connaît pas, une gare est toujours créée avant qu'on lui associe
+ * un horaire (via le toggle 🚉 de l'itinéraire, seulement disponible une
+ * fois le pin existant).
+ */
 export async function upsertRoadtripPin(roadtripId, pin) {
   if (isAnyUUID(pin.id)) {
     const { error } = await supabase
       .from('pins')
       .update({
-        title:       pin.name,
-        category:    pin.category,
-        lat:         pin.lat,
-        lng:         pin.lng,
-        description: pin.description || '',
-        updated_at:  new Date().toISOString(),
+        title:           pin.name,
+        category:        pin.category,
+        lat:             pin.lat,
+        lng:             pin.lng,
+        description:     pin.description || '',
+        train_departure: pin.trainDeparture || null,
+        train_arrival:   pin.trainArrival || null,
+        train_number:    pin.trainNumber || null,
+        updated_at:      new Date().toISOString(),
       })
       .eq('id', pin.id);
     if (error) throw error;
@@ -284,22 +294,31 @@ export async function upsertRoadtripPin(roadtripId, pin) {
 }
 
 /**
- * Met à jour l'order_index — et la journée si fournie — de chaque pin
- * (parallèle, UUID seulement). Les échecs individuels sont ignorés —
- * l'ordre sera resynchronisé au prochain drag & drop.
+ * Met à jour l'order_index — et la journée / le transport si fournis —
+ * de chaque pin (parallèle, UUID seulement). Les échecs individuels sont
+ * ignorés — l'ordre sera resynchronisé au prochain drag & drop.
+ * `days`/`transport` omis (null) → champ non touché ; fourni → chaque
+ * position est écrite telle quelle (y compris `null` pour « pas de
+ * transport dédié », qui doit pouvoir effacer un ancien `'train'`).
  * @param {string[]} pinIds
  * @param {number[]} [days] - journée de chaque pin, parallèle à pinIds
+ * @param {(string|null)[]} [transport] - 'train' ou null, parallèle à pinIds
  */
-export async function updatePinOrder(pinIds, days = null) {
+export async function updatePinOrder(pinIds, days = null, transport = null) {
   const rows = pinIds
-    .map((id, i) => ({ id, order_index: i, day: days?.[i] ?? null }))
+    .map((id, i) => ({
+      id, order_index: i,
+      day:       days?.[i] ?? null,
+      transport: transport ? (transport[i] ?? null) : undefined,
+    }))
     .filter(r => isAnyUUID(r.id));
   if (!rows.length) return;
-  await Promise.all(rows.map(({ id, order_index, day }) =>
-    supabase.from('pins')
-      .update(day === null ? { order_index } : { order_index, day })
-      .eq('id', id)
-  ));
+  await Promise.all(rows.map(({ id, order_index, day, transport: t }) => {
+    const fields = { order_index };
+    if (day !== null) fields.day = day;
+    if (t !== undefined) fields.transport = t;
+    return supabase.from('pins').update(fields).eq('id', id);
+  }));
 }
 
 /** @param {string} _roadtripId @param {string} pinId */

@@ -115,8 +115,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // (évite la race condition sur mobile : JWT expiré lu en cache sync au démarrage)
   if (isRoadtripUUID) await sessionReady;
 
-  let roadtripPinIds  = [];
-  let roadtripPinDays = [];
+  let roadtripPinIds      = [];
+  let roadtripPinDays     = [];
+  let roadtripPinTransport = [];
   let roadtripInfo    = null;
   if (!isSharedMap && mapParam && isUUID(mapParam)) {
     let rawPins = null;
@@ -139,8 +140,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
     if (rawPins) {
       rawPins.forEach(pin => userPlaces.push(normalizeRoadtripPin(pin)));
-      roadtripPinIds  = rawPins.map(p => p.id);
-      roadtripPinDays = rawPins.map(p => p.day ?? 1); // colonne absente → Jour 1
+      roadtripPinIds       = rawPins.map(p => p.id);
+      roadtripPinDays      = rawPins.map(p => p.day ?? 1); // colonne absente → Jour 1
+      roadtripPinTransport = rawPins.map(p => p.transport ?? null);
     }
 
     if (roadtripInfo?.title) {
@@ -182,8 +184,14 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       lng:          pin.lng,
       description:  pin.description || '',
       interest: '', tip: '', mood: '',
-      day:          pin.day ?? 1,
-      orderIndex:   pin.order_index ?? 0,
+      day:            pin.day ?? 1,
+      transport:      pin.transport ?? null,
+      // Postgres renvoie "HH:MM:SS" pour une colonne time ; <input type="time">
+      // et l'affichage attendent "HH:MM".
+      trainDeparture: pin.train_departure?.slice(0, 5) ?? '',
+      trainArrival:   pin.train_arrival?.slice(0, 5) ?? '',
+      trainNumber:    pin.train_number ?? '',
+      orderIndex:     pin.order_index ?? 0,
       userCreated:  true,
       user_created: true,
     };
@@ -638,11 +646,11 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
     focusPlaceFn: doFocusPlace,
-    onStepsChange: (steps, days) => {
+    onStepsChange: (steps, days, transport) => {
       updateRouteBadge(); // badges onglet + mobile, quel que soit le mode
       if (isRoadtripMode) {
         clearTimeout(orderSaveTimer);
-        orderSaveTimer = setTimeout(() => updatePinOrder(steps, days), 1000);
+        orderSaveTimer = setTimeout(() => updatePinOrder(steps, days, transport), 1000);
       }
     },
     signal,
@@ -650,7 +658,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
 
   // Charge les étapes du roadtrip si des pins ont été récupérés
   if (roadtripPinIds.length >= 2) {
-    routePlanner.loadSteps(roadtripPinIds, roadtripPinDays);
+    routePlanner.loadSteps(roadtripPinIds, roadtripPinDays, roadtripPinTransport);
   }
 
   // ── Cross-highlight sidebar ↔ carte ──────────────────────────────────────
@@ -782,11 +790,13 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     const rtPlaces = userPlaces
       .filter(p => roadtripPinIds.includes(p.id))
       .sort((a, b) => ((a.day ?? 1) - (b.day ?? 1)) || ((a.orderIndex ?? 0) - (b.orderIndex ?? 0)));
-    const ids  = rtPlaces.map(p => p.id);
-    const days = rtPlaces.map(p => p.day ?? 1);
+    const ids       = rtPlaces.map(p => p.id);
+    const days      = rtPlaces.map(p => p.day ?? 1);
+    const transport = rtPlaces.map(p => p.transport ?? null);
     const cur  = routePlanner.serializeRoute();
-    if (ids.join(',') === cur.steps.join(',') && days.join(',') === cur.days.join(',')) return;
-    routePlanner.loadSteps(ids, days);
+    if (ids.join(',') === cur.steps.join(',') && days.join(',') === cur.days.join(',')
+        && transport.join(',') === cur.transport.join(',')) return;
+    routePlanner.loadSteps(ids, days, transport);
   }
 
   function onRealtimeInsert(row) {

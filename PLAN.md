@@ -738,3 +738,239 @@ Notes :
   côté front deviennent nécessaires un jour, Vite s'insérera après la phase B.
 - Chaque étape de B laisse l'app fonctionnelle — on peut s'arrêter n'importe où
   sans dette supplémentaire.
+
+## Phase I — Road trip en train (estimation, établie le 2026-07-31)
+
+Besoin : boucle **gare de départ → rando/bivouac → même gare d'arrivée**,
+comme alternative au road trip voiture actuel. Pas encore commencée —
+cette section chiffre l'effort avant de trancher un périmètre.
+
+### Constat d'architecture
+
+- Le mode de trajet (`driving`/`cycling`/`walking`) est **global à tout
+  l'itinéraire** (une seule variable `mode` dans `routePlanner.js`, un seul
+  `rmode` dans l'URL partagée) : on ne peut pas aujourd'hui mélanger « train »
+  sur un tronçon et « à pied » sur un autre.
+- `routingService.fetchOsrmRoute` interroge le serveur public **OSRM**, qui
+  ne sait calculer que des trajets routiers/piétons/cyclables — aucune
+  notion d'horaires ferroviaires. Il n'existe pas d'équivalent public
+  gratuit d'OSRM pour le train (SNCF Connect/Trainline n'exposent pas
+  d'API publique pour un développeur indépendant ; Navitia.io, l'ancienne
+  API ouverte de la SNCF, existe mais avec un statut et des quotas
+  incertains dans la durée — cf. les dépendances externes déjà fragiles du
+  projet, type DATAtourisme/ViaFerrata).
+- Le reste (planning par jour E1, drag & drop, GPX, partage par URL,
+  optimisation) est réutilisable tel quel : une boucle « gare → rando →
+  gare » est juste un roadtrip à 2 jours (ou plus) dont le 1ᵉʳ et le
+  dernier lieu sont identiques.
+
+### Option A — MVP sans horaires temps réel (validée le 2026-07-31)
+
+Le train devient un **tronçon manuel** : l'utilisateur choisit deux gares,
+l'app ne calcule ni horaire ni prix (aucune API fiable et gratuite pour ça),
+elle affiche juste le tronçon et renvoie vers une recherche externe.
+
+**Séquençage révisé le 2026-07-31 — au plus rentable, sans rien casser.**
+Chaque étape ci-dessous est livrable seule, réversible, et n'altère aucun
+comportement existant (routes voiture/vélo/marche déjà partagées ou
+exportées en GPX doivent rester identiques après chaque commit).
+
+- [x] **I1** — Catégorie « Gare » (icône 🚉) — `6138b1a` : `categories.js`
+      + `shared/types`, dataset statique de 4187 gares filtré depuis
+      [`trainline-eu/stations`](https://github.com/trainline-eu/stations)
+      (`sncf_is_enabled` + `is_suggestable`, licence ODbL — attribution
+      README ajoutée) — **0 doublon de nom ni d'UIC** vérifié sur ce
+      filtre, pas de désambiguïsation commune/département nécessaire en
+      pratique. `stationsService.js` : recherche par sous-chaîne
+      insensible aux accents, gares principales + préfixes priorisés,
+      chargement JSON paresseux (une fois pour la session). Branché dans
+      la modale d'ajout de pin existante : catégorie « Gare » sélectionnée
+      → recherche sur ce dataset au lieu de Nominatim (résultats reformés
+      à la même forme `display_name/lat/lon` pour réutiliser le rendu et
+      le clic existants), changement de catégorie en cours de frappe
+      relance la recherche dans la bonne source. 100 % additif — aucune
+      catégorie/comportement existant modifié. 5 tests unitaires
+      (recherche, accents, priorisation, cache) + 115/115 tests + lint
+      verts. *Validation navigateur bloquée par la politique réseau du
+      sandbox (CDN Supabase/Leaflet non joignables ici) — à confirmer
+      manuellement : catégorie Gare → recherche "lyon" → gares affichées,
+      changement de catégorie → Nominatim repris.*
+- [x] **I2** — Transport **par tronçon, additif** — `ea13a54` : `mode`
+      global (driving/cycling/walking) inchangé, ajout d'un tableau
+      parallèle `stepTransport` (`steps[i]` → `'train' | null`) sur le
+      modèle exact de `stepDays` (même fichier, synchronisé à chaque
+      mutation existante — `addStep`/`removeStep`/`moveStepToDay`/
+      `optimizeOrder` (suivi par id, pas par position)/drag & drop/
+      `setStepsAndDays`). `fetchRoute` découpe désormais l'itinéraire en
+      segments (`splitIntoSegments`, déplacé dans `routingService.js`
+      car logique pure — 5 tests dédiés) : un appel OSRM par segment
+      non-train, un tronçon train saute l'OSRM et se dessine en ligne
+      pointillée droite, sans contribuer à la distance/durée totale
+      (exclusion automatique, pas de logique dédiée nécessaire). Sans
+      aucune gare marquée (cas de tous les roadtrips existants), un seul
+      segment couvre tout l'itinéraire → **comportement strictement
+      inchangé** (même appel OSRM unique, même géométrie, mêmes stats) —
+      vérifié par les tests. Partage : `rtransport=` dans l'URL
+      uniquement si un tronçon train existe, comme `rdays`. 120/120 tests
+      + lint verts.
+      ✅ **Limite fermée le 2026-07-31** — `48e83a3` : décision utilisateur
+      de l'ajouter tout de suite. Migration 021 (`pins.transport`, miroir
+      exact de `day`/018) + `updatePinOrder(steps, days, transport)` +
+      câblage `mapApp.js` (chargement initial, `onStepsChange`,
+      `resyncRouteSteps` compare aussi le transport avant de recharger).
+      Le marquage train survit désormais à un resync temps réel en mode
+      roadtrip collaboratif. 4 tests unitaires dédiés (module Supabase
+      mocké) + 124/124 tests globaux + lint verts. Migration à exécuter
+      en prod comme les précédentes (`db push` — automatique via la CI
+      au merge sur `main`, cf. section Configuration Supabase du README).
+- [x] **I3** (partiel) — `eeb0b19` : ligne **pointillée** dans la couleur
+      de la catégorie Gare (`#2c3e6b`), distincte de l'orange OSRM et du
+      pointillé de secours (panne OSRM), pour qu'un vrai tronçon train ne
+      se confonde pas avec un tracé approximatif. Toggle 🚉 sur chaque pas
+      dont le lieu est une gare (sauf le premier — pas de tronçon
+      entrant), badge « 🚉 Train » qui remplace la distance à vol d'oiseau
+      + lien externe SNCF Connect. Le total distance/durée exclut déjà
+      les tronçons train depuis I2 (contribution nulle, pas de logique
+      dédiée nécessaire). Même rendu mobile/desktop, pas de composant
+      spécifique.
+      **Reporté à I3b** : la saisie manuelle repliable (heure aller/retour,
+      n° de train) — nécessite une décision de modélisation (donnée liée
+      au pin comme description/tip/mood, ou à l'instance d'itinéraire
+      comme `stepTransport` ?) avant d'ajouter une nouvelle structure de
+      données ; pas fait à la va-vite pour tenir le séquençage « au plus
+      rentable ». Le lien externe pointe donc vers l'accueil SNCF Connect
+      (aucun paramètre d'URL de recherche documenté et stable trouvé —
+      pas de deep-link inventé) plutôt que vers une recherche préremplie.
+- [x] **I4** — `95eeb0f` : `buildGpx` accepte un 4ᵉ paramètre `transport`
+      (parallèle à `places`) — la gare à laquelle mène un tronçon `'train'`
+      reçoit une `<desc>Gare — tronçon en train</desc>` au lieu de
+      « Étape N » ; `places[0]` toujours ignoré (aucun tronçon n'y mène).
+      `routePlanner.exportGPX()` reconstruit `places`/`transport` en
+      parallèle en filtrant les lieux supprimés (même logique que
+      `fetchRoute`) plutôt qu'un `.filter(Boolean)` qui aurait désynchronisé
+      les index. `rtransport=` dans l'URL de partage était déjà couvert
+      par I2.
+- [x] **I5** — Tests écrits en continu à chaque commit plutôt qu'en bloc
+      final : `splitIntoSegments` (I2, 5 tests), `updatePinOrder` (persistance
+      transport, 4 tests), `searchStations` (I1, 5 tests), `buildGpx` avec
+      transport (I4, 3 tests). Pas de test E2E dédié « boucle même ville »
+      (Playwright non exécutable dans ce sandbox — CDN bloqués par la
+      politique réseau, cf. note I1) ; régression sur les routes 100 %
+      voiture/vélo/marche couverte par le raisonnement explicite dans
+      chaque commit + la suite existante restée verte (127/127 tests,
+      lint propre) à chaque étape.
+
+**Option A (I1-I5) est complète — `08/2026`.** Chaque commit a laissé
+l'app fonctionnelle, testée, et les routes existantes (sans gare)
+strictement inchangées.
+
+- [x] **I3b** — `88655d9` : décision prise avec l'utilisateur — horaire
+      rattaché au **pin** (comme `description`/`tip`/`mood`), pas à
+      l'instance d'itinéraire, car un pin « Gare » appartient déjà à un
+      seul roadtrip (jamais réutilisé entre deux usages différents de la
+      même gare) — pas besoin d'un 2ᵉ tableau parallèle à synchroniser
+      partout où `stepTransport` l'est déjà. Migration 022
+      (`train_departure`/`train_arrival`/`train_number`, texte libre,
+      même principe que `day`/`transport`). 3 champs ajoutés à la modale
+      d'édition de pin existante, visibles uniquement pour la catégorie
+      Gare. Dans la liste des étapes, l'horaire s'affiche s'il est
+      renseigné + un bouton « ✏️ Horaire » qui réutilise la délégation
+      `data-edit-id` déjà câblée dans `pins.js` (pas de nouvelle logique
+      d'ouverture de modale, et surtout pas d'`<input>` éditable inséré
+      dans une liste régénérée en `innerHTML` à chaque render — le champ
+      perdrait sa valeur en cours de frappe dès qu'un fetch OSRM en
+      arrière-plan déclenche un re-render). 6 tests `pinService` dédiés +
+      129/129 tests globaux + lint verts.
+
+Reste en dette consciente : validation navigateur manuelle (non
+faisable dans ce sandbox — CDN Supabase/Leaflet bloqués par la
+politique réseau, cf. I1) à faire côté utilisateur avant mise en
+production, en particulier pour vérifier que les migrations 021/022
+s'appliquent bien et que le formulaire d'horaire s'affiche/se masque
+correctement selon la catégorie. Le total réel (~14-15 séances réparties
+sur I1-I2-migration-I3-I3b-I4) recoupe l'estimation initiale une fois la
+persistance Supabase ajoutée en cours de route.
+
+**Coût financier : 0 €** pour tout ce qui précède. GitHub Pages
+(statique) + Supabase (tier gratuit, une colonne de plus sur une table
+existante) restent le seul hébergement — aucune nouvelle brique payante.
+
+**Coût financier : 0 €.** GitHub Pages (statique) + Supabase (tier
+gratuit) restent le seul hébergement, comme aujourd'hui. Le CSV
+`trainline-eu/stations` filtré FR est un fichier de quelques centaines
+de Ko ajouté au dépôt — aucune nouvelle brique payante.
+
+### Option B — Horaires réels (extension future, hors MVP)
+
+Ajouter un vrai calcul d'horaires (date de départ choisie → propositions de
+trains réels, comme OSRM le fait pour la voiture) : révision **2026-07-31**
+suite à vérification — le risque « dépendance tierce fragile » évoqué
+initialement (Navitia.io) est en grande partie levé.
+
+- **Donnée** : depuis 2025, la SNCF publie un **jeu GTFS national unique et
+  officiel** couvrant **TGV + Intercités + TER** (auparavant séparés),
+  sur [transport.data.gouv.fr](https://transport.data.gouv.fr/datasets/horaires-sncf)
+  / [data.gouv.fr](https://www.data.gouv.fr/datasets/horaires-sncf) —
+  horaires théoriques glissants sur 151 jours, mis à jour quotidiennement
+  (intègre les perturbations connues la veille à 17h), formats GTFS et
+  NeTEx, téléchargement direct sans clé API. Ce n'est donc plus une API
+  tierce à la pérennité incertaine mais un **export statique officiel
+  SNCF**, dans l'esprit du reste du projet (fichiers ouverts, pas de clé
+  secrète à gérer côté client).
+- **Moteur de calcul d'itinéraire** : plutôt que ré-implémenter un
+  algorithme de correspondances (RAPTOR et dérivés), s'appuyer sur
+  [OpenTripPlanner](https://github.com/opentripplanner/OpenTripPlanner)
+  (OSS, Java, mature) — il ingère directement GTFS + OSM et expose une API
+  GraphQL pour des itinéraires multimodaux train + marche avec
+  correspondances, exactement l'équivalent d'OSRM mais pour le rail.
+  Auto-hébergeable (conteneur Docker), à alimenter avec le GTFS SNCF filtré
+  sur les gares du dataset I1.
+- Complexité propre au train qui reste entière : la route dépend d'une
+  **date/heure de départ** (contrairement à la route routière, toujours
+  disponible) → UI datepicker, choix parmi plusieurs horaires proposés,
+  cas « pas de train ce jour-là ». Et un service à héberger/maintenir
+  (OTP n'est pas une simple Edge Function : JVM, import GTFS périodique) —
+  coût d'infra et d'opération à ajouter à celui de `via-ferrata-info`,
+  hors du modèle « tout Supabase » actuel.
+
+**Effort additionnel estimé : +6-9 séances** (hébergement + import GTFS
+périodique + intégration OTP + datepicker + gestion des cas « pas de
+train ce jour-là » + tests), soit un total
+**Option A + B ≈ 12-17 séances (≈ 7-10 jours)**. Le risque principal n'est
+plus la fiabilité de la donnée (résolu) mais le **coût d'exploitation**
+d'un service supplémentaire à faire tourner en continu.
+
+**Coût financier : premier coût récurrent du projet (~5-15 €/mois,
+~60-180 €/an).** Aujourd'hui l'app tourne à 0 € (GitHub Pages + Supabase
+tier gratuit + APIs publiques gratuites). OpenTripPlanner change ça :
+- **VPS pour faire tourner le serveur OTP en continu** — un petit VPS
+  (type Hetzner CX, ~4 Go RAM) démarre autour de **4-5 €/mois**. Suffisant
+  *si* le graphe est volontairement restreint au réseau ferré (arrêts +
+  horaires GTFS) sans y injecter tout le réseau routier français en OSM
+  (driving/marche restent gérés par OSRM ailleurs dans l'app) — sinon la
+  mémoire nécessaire grimpe vite : la doc officielle d'OTP indique que le
+  besoin va de <1 Go pour une petite ville à 10+ Go pour un pays comme la
+  Finlande, 95 Go pour l'Allemagne avec toutes les données. **Non
+  vérifiable sans un test réel** — à faire avant d'arrêter un budget.
+- **Reconstruction périodique du graphe** (le GTFS SNCF est glissant sur
+  151 jours, need de le réimporter régulièrement) : la phase de
+  *construction* du graphe consomme plus de RAM que le simple service en
+  ligne — une astuce classique OTP est de construire sur une instance
+  jetable plus costaude (facturée à l'heure, quelques centimes) puis de ne
+  déployer que le graphe résultant sur le petit VPS permanent.
+- Domaine/SSL : négligeable (sous-domaine + Let's Encrypt gratuit).
+- Aucune clé API payante : GTFS SNCF et `trainline-eu/stations` sont
+  gratuits et sans quota.
+
+**À retenir** : Option A reste gratuite et suffit pour livrer la
+fonctionnalité demandée. Le coût (temps de dev *et* argent) n'apparaît
+qu'avec l'Option B, et seulement si les horaires automatiques s'avèrent
+vraiment nécessaires par rapport à la saisie manuelle + lien externe.
+
+### Décision
+
+**Option A validée le 2026-07-31** : périmètre retenu pour la Phase I,
+tronçon train manuel (gare → gare via `trainline-eu/stations`, pas de
+calcul d'horaire automatique). Option B repoussée en backlog, à
+reconsidérer seulement si la saisie manuelle s'avère trop frictionnelle
+à l'usage réel. Prochaine étape : implémenter I1 → I5 dans l'ordre.

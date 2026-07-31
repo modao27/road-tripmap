@@ -1633,6 +1633,30 @@ body.resizing {
   min-height: 68px;
 }
 
+/* ── Horaire du tronçon train dans la modale de pin (Phase I3b) ────────── */
+.pin-train-fields {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(44, 62, 107, 0.06);
+}
+.pin-train-fields[hidden] { display: none; }
+
+.pin-train-fields-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #2c3e6b;
+}
+
+.pin-train-fields-row {
+  display: flex;
+  gap: 10px;
+}
+
+.pin-field--inline { flex: 1; margin-bottom: 10px; }
+
 .pin-modal-actions {
   display: flex;
   gap: 10px;
@@ -2397,6 +2421,47 @@ mark.search-highlight {
   color: var(--color-muted);
 }
 
+/* ── Tronçon train (Phase I3) ──────────────────────────────────────────
+   Couleur dédiée alignée sur la catégorie Gare (#2c3e6b), indépendante
+   du thème (même logique que l'accent orange de .route-day ci-dessous). */
+.route-step-dist.route-step-train { color: #2c3e6b; }
+
+.route-step-train-link,
+.route-step-train-edit {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #2c3e6b;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.route-step-train-link:hover,
+.route-step-train-edit:hover { text-decoration: underline; }
+
+.route-step-train-toggle {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(44, 62, 107, 0.1);
+  color: #2c3e6b;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0.55;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+.route-step-train-toggle:hover  { opacity: 0.85; }
+.route-step-train-toggle.active {
+  background: rgba(44, 62, 107, 0.18);
+  opacity: 1;
+}
+
 .route-step-remove,
 .route-day-remove {
   flex-shrink: 0;
@@ -2915,6 +2980,11 @@ mark.search-highlight {
 
 [data-theme="dark"] .pin-location-tag { background: rgba(44, 110, 147, 0.12); }
 [data-theme="dark"] .share-includes   { background: rgba(44, 110, 147, 0.08); border-color: rgba(44, 110, 147, 0.15); }
+[data-theme="dark"] .pin-train-fields { background: rgba(90, 110, 170, 0.14); }
+[data-theme="dark"] .pin-train-fields-label,
+[data-theme="dark"] .route-step-dist.route-step-train,
+[data-theme="dark"] .route-step-train-link,
+[data-theme="dark"] .route-step-train-edit { color: #7f97d6; }
 
 [data-theme="dark"] .leaflet-popup-content-wrapper { background: var(--color-surface); color: var(--color-text); }
 [data-theme="dark"] .leaflet-popup-tip             { background: var(--color-surface); }

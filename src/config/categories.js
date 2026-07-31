@@ -10,5 +10,6 @@ export const categories = {
   escalade: { label: "Escalade",              color: "#7b4b2a", icon: "🪨" },
   hike:     { label: "Randonnée / belvédère", color: "#6f513f", icon: "🥾" },
   water:    { label: "Cascade / lac",          color: "#2477a6", icon: "💧" },
-  village:  { label: "Village / patrimoine",  color: "#605d80", icon: "🏘️" }
+  village:  { label: "Village / patrimoine",  color: "#605d80", icon: "🏘️" },
+  gare:     { label: "Gare",                   color: "#2c3e6b", icon: "🚉" }
 };
