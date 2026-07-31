@@ -643,6 +643,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // Déclaré en let pour que onRefresh() y ait accès via la closure
   let routePlanner    = null;
   let orderSaveTimer  = null;
+  let resyncTimer     = null;
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
     focusPlaceFn: doFocusPlace,
@@ -799,6 +800,19 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     routePlanner.loadSteps(ids, days, transport);
   }
 
+  // updatePinOrder envoie une écriture par pin (Promise.all) : notre propre
+  // réordonnancement/ajout/suppression revient donc en plusieurs échos temps
+  // réel étalés dans le temps, pas un seul. Resynchroniser sur le premier
+  // écho (avant que les autres pins soient à jour dans userPlaces) comparait
+  // un état encore partiel à l'itinéraire déjà à jour localement, et le
+  // remplaçait par ce mélange obsolète — l'ajout/suppression semblait ne
+  // "pas se mettre à jour" (en fait, mis à jour puis aussitôt écrasé).
+  // On laisse les échos d'une même rafale se poser avant de comparer.
+  function scheduleResyncRouteSteps() {
+    clearTimeout(resyncTimer);
+    resyncTimer = setTimeout(resyncRouteSteps, 500);
+  }
+
   function onRealtimeInsert(row) {
     if (row.status && row.status !== 'active') return;
     if (userPlaces.some(p => p.id === row.id)) return; // écho local
@@ -808,7 +822,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     addMarker(place, markers, makePopupHtml, makeIconFn);
     setupMarkerHover(place);
     onRefresh();
-    resyncRouteSteps();
+    scheduleResyncRouteSteps();
     showToast(toastWrap, `📍 « ${place.name} » ajouté au road trip`, 'success');
   }
 
@@ -827,7 +841,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       setupMarkerHover(place);
       onRefresh();
     }
-    resyncRouteSteps();
+    scheduleResyncRouteSteps();
   }
 
   function onRealtimeDelete(row) {
@@ -837,7 +851,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     roadtripPinIds = roadtripPinIds.filter(id => id !== row.id);
     removeRoadtripMarker(row.id);
     onRefresh();
-    resyncRouteSteps();
+    scheduleResyncRouteSteps();
     showToast(toastWrap, `🗑 « ${removed.name} » retiré du road trip`, '');
   }
 
@@ -879,6 +893,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   return function destroy() {
     clearTimeout(orderSaveTimer);
     clearTimeout(viewSaveTimer);
+    clearTimeout(resyncTimer);
     map.remove();                 // instance Leaflet : markers, popups, listeners carte
   };
 }
