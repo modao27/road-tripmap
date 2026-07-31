@@ -776,18 +776,23 @@ elle affiche juste le tronçon et renvoie vers une recherche externe.
       donnée collaborative sans identifiant canonique fiable — doublons,
       gares mal taguées (`halt` vs `station`), pas de code officiel pour
       lever les homonymies (plusieurs communes françaises partagent un
-      nom de gare). Utiliser à la place le **référentiel officiel des
-      gares SNCF** (open data Gares & Connexions / transport.data.gouv.fr :
-      code UIC, nom, commune, lat/lon), embarqué en JSON statique comme
-      `places.js` l'est déjà pour les 35 lieux — même philosophie
-      « donnée statique versionnée » plutôt que dépendance réseau pour
-      une info qui ne bouge jamais. Autocomplétion : recherche sur
-      nom **+ commune/département affichés** pour désambiguïser les
-      homonymes (ex. plusieurs « Gare de Saint-X » en France), code UIC
-      comme identifiant unique stable (au lieu d'un id généré côté
-      client). Nominatim reste en repli uniquement si une gare
-      manque au référentiel (rare, ex. halte très récente). *(~1-1.5 séance,
-      + télécharger/nettoyer le dataset une fois)*
+      nom de gare). Source recommandée :
+      [`trainline-eu/stations`](https://github.com/trainline-eu/stations)
+      (`stations.csv`, licence ODbL) — déjà le résultat d'une réconciliation
+      OSM + SNCF Open Data + GeoNames, avec code UIC stable par gare, noms
+      + coordonnées + pays. Un seul fichier à filtrer sur `country = FR` et
+      embarquer en JSON statique comme `places.js` l'est déjà pour les 35
+      lieux — même philosophie « donnée versionnée » plutôt que dépendance
+      réseau pour une info qui ne bouge jamais. Licence ODbL : attribution
+      requise (mention dans le README, aux côtés d'OSM/DATAtourisme déjà
+      créditées) et republier en ODbL si le fichier filtré est modifié —
+      pas de contrainte sur le code de l'app, seulement sur la donnée.
+      Autocomplétion : recherche sur nom **+ commune affichée** pour
+      désambiguïser visuellement les homonymes, code UIC comme identifiant
+      stable (au lieu d'un id généré côté client). Nominatim reste en
+      repli uniquement si une gare manque au dataset (rare, ex. halte très
+      récente). *(~1 séance, dataset déjà nettoyé — pas de travail de
+      réconciliation à refaire)*
 - [ ] **I2** — Mode par tronçon plutôt que mode global : `routePlanner.js`
       passe de `mode: string` à un mode par leg (`steps[i].mode`), avec
       `'train'` comme nouvelle valeur ne déclenchant **pas** d'appel OSRM.
@@ -814,18 +819,42 @@ localStorage + URL, pas en base).
 ### Option B — Horaires réels (extension future, hors MVP)
 
 Ajouter un vrai calcul d'horaires (date de départ choisie → propositions de
-trains réels, comme OSRM le fait pour la voiture) suppose une **Edge
-Function proxy** vers Navitia.io ou un jeu GTFS France
-(transport.data.gouv.fr), sur le modèle de `via-ferrata-info` (clé secrète
-côté Supabase, cache). Complexité supplémentaire propre au train : la
-route dépend d'une **date/heure** (contrairement à la route routière,
-toujours disponible), gestion des correspondances, et absence de garantie
-de pérennité de l'API choisie (déjà vécu avec des sources externes du
-projet).
+trains réels, comme OSRM le fait pour la voiture) : révision **2026-07-31**
+suite à vérification — le risque « dépendance tierce fragile » évoqué
+initialement (Navitia.io) est en grande partie levé.
 
-**Effort additionnel estimé : +6-8 séances** (proxy + cache + datepicker +
-gestion des cas « pas de train ce jour-là » + tests), soit un total
-**Option A + B ≈ 12-16 séances (≈ 7-10 jours)**.
+- **Donnée** : depuis 2025, la SNCF publie un **jeu GTFS national unique et
+  officiel** couvrant **TGV + Intercités + TER** (auparavant séparés),
+  sur [transport.data.gouv.fr](https://transport.data.gouv.fr/datasets/horaires-sncf)
+  / [data.gouv.fr](https://www.data.gouv.fr/datasets/horaires-sncf) —
+  horaires théoriques glissants sur 151 jours, mis à jour quotidiennement
+  (intègre les perturbations connues la veille à 17h), formats GTFS et
+  NeTEx, téléchargement direct sans clé API. Ce n'est donc plus une API
+  tierce à la pérennité incertaine mais un **export statique officiel
+  SNCF**, dans l'esprit du reste du projet (fichiers ouverts, pas de clé
+  secrète à gérer côté client).
+- **Moteur de calcul d'itinéraire** : plutôt que ré-implémenter un
+  algorithme de correspondances (RAPTOR et dérivés), s'appuyer sur
+  [OpenTripPlanner](https://github.com/opentripplanner/OpenTripPlanner)
+  (OSS, Java, mature) — il ingère directement GTFS + OSM et expose une API
+  GraphQL pour des itinéraires multimodaux train + marche avec
+  correspondances, exactement l'équivalent d'OSRM mais pour le rail.
+  Auto-hébergeable (conteneur Docker), à alimenter avec le GTFS SNCF filtré
+  sur les gares du dataset I1.
+- Complexité propre au train qui reste entière : la route dépend d'une
+  **date/heure de départ** (contrairement à la route routière, toujours
+  disponible) → UI datepicker, choix parmi plusieurs horaires proposés,
+  cas « pas de train ce jour-là ». Et un service à héberger/maintenir
+  (OTP n'est pas une simple Edge Function : JVM, import GTFS périodique) —
+  coût d'infra et d'opération à ajouter à celui de `via-ferrata-info`,
+  hors du modèle « tout Supabase » actuel.
+
+**Effort additionnel estimé : +6-9 séances** (hébergement + import GTFS
+périodique + intégration OTP + datepicker + gestion des cas « pas de
+train ce jour-là » + tests), soit un total
+**Option A + B ≈ 12-17 séances (≈ 7-10 jours)**. Le risque principal n'est
+plus la fiabilité de la donnée (résolu) mais le **coût d'exploitation**
+d'un service supplémentaire à faire tourner en continu.
 
 ### Recommandation
 
