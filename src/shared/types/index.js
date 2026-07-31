@@ -29,7 +29,7 @@
 // ── Pin ───────────────────────────────────────────────────────────────────────
 
 /**
- * @typedef {'bivouac'|'water'|'hike'|'village'|'via'|'base'|'cascade'} PinCategory
+ * @typedef {'bivouac'|'water'|'hike'|'village'|'via'|'base'|'cascade'|'gare'} PinCategory
  */
 
 /**

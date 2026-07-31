@@ -2,6 +2,7 @@ import { saveUserPins, saveOverrides } from './storage.js';
 import { addMarker, refreshMarker } from './map.js';
 import { trapFocus } from './ui.js';
 import { escapeHtml as esc, safeUrl } from '../../shared/utils/escape.js';
+import { searchStations } from '../sources/stationsService.js';
 
 function openInOSM(lat, lng, zoom = 14) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
@@ -203,6 +204,19 @@ export function initPins({
     return res.json();
   }
 
+  // Catégorie « Gare » : dataset statique (trainline-eu/stations, cf.
+  // README) plutôt que Nominatim — identifiants fiables (code UIC), pas
+  // d'ambiguïté de nom. Résultats reformés à la forme Nominatim
+  // (display_name/lat/lon) pour réutiliser le même rendu et le même clic.
+  async function stationSearch(query) {
+    const stations = await searchStations(query, config.geocodeLimit);
+    return stations.map(s => ({ display_name: `${s.name}, Gare SNCF`, lat: s.lat, lon: s.lng }));
+  }
+
+  function locationSearch(query, signal) {
+    return pinCategorySelect.value === 'gare' ? stationSearch(query) : geocodeSearch(query, signal);
+  }
+
   function renderGeocodeResults(listEl, candidates) {
     if (!candidates.length) { listEl.hidden = true; return; }
     listEl.innerHTML = candidates.map((r, i) => {
@@ -388,12 +402,19 @@ export function initPins({
       if (geocodeController) geocodeController.abort();
       geocodeController = new AbortController();
       try {
-        geocodeCandidates = await geocodeSearch(q, geocodeController.signal);
+        geocodeCandidates = await locationSearch(q, geocodeController.signal);
         renderGeocodeResults(geocodeResultsEl, geocodeCandidates);
       } catch (e) {
         if (e.name !== 'AbortError') showToastFn(toastWrap, 'Recherche indisponible', 'error', 3000);
       }
     }, config.geocodeDebounce);
+  });
+
+  // Changer de catégorie en cours de recherche doit relancer la recherche
+  // dans la bonne source (ex. bascule vers « Gare » après avoir tapé une
+  // requête sur Nominatim) plutôt que de laisser des résultats obsolètes.
+  pinCategorySelect.addEventListener('change', () => {
+    pinGeocodeInput.dispatchEvent(new Event('input'));
   });
 
   geocodeResultsEl.addEventListener('click', (e) => {

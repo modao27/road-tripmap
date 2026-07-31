@@ -31,6 +31,8 @@ Aucun outil de build — ES modules natifs, Leaflet en CDN, Supabase pour la per
 ### Pins personnalisés
 - Ajouter, modifier, supprimer des lieux
 - Recherche de localisation via **Nominatim** (OpenStreetMap, sans clé API)
+- Catégorie **Gare** : recherche dédiée sur un dataset de gares françaises
+  (identifiants fiables, pas d'homonymes) plutôt que Nominatim
 - Placement manuel au clic sur la carte
 - Édition des lieux statiques (overrides réinitialisables)
 - Persistance locale (localStorage) + synchronisation **Supabase**
@@ -195,7 +197,7 @@ road-tripmap/
 │   │   ├── roadtrips/      roadtripService — CRUD roadtrips + invitations
 │   │   ├── routing/        routingService — OSRM, haversine, optimisation, GPX
 │   │   ├── sharing/        sharingService — snapshots publics + slugs
-│   │   ├── sources/        Services Overpass, DATAtourisme, Wikivoyage
+│   │   ├── sources/        Services Overpass, DATAtourisme, Wikivoyage, gares
 │   │   ├── auth/           AuthStore + services profil
 │   │   └── dashboard/      Composants liste de roadtrips
 │   └── shared/
@@ -229,6 +231,7 @@ push et pull request ; les erreurs front remontent dans la table
 | Randonnée / belvédère | 🥾 | Sentiers et points de vue |
 | Cascade / lac | 💧 | Sites aquatiques |
 | Village / patrimoine | 🏘️ | Villages, villes, gastronomie |
+| Gare | 🚉 | Gares SNCF (recherche sur dataset dédié) |
 
 ---
 
@@ -264,6 +267,7 @@ push et pull request ; les erreurs front remontent dans la table
 | [Wikivoyage](https://fr.wikivoyage.org/) | Enrichissement popup ville (API MediaWiki) |
 | [Open-Meteo](https://open-meteo.com/) | Prévisions météo 7 jours dans les popups |
 | [DATAtourisme](https://datadocs.datatourisme.fr/) | POIs touristiques officiels français |
+| [trainline-eu/stations](https://github.com/trainline-eu/stations) | Référentiel des gares françaises (licence [ODbL](https://opendatacommons.org/licenses/odbl/)) |
 | [Supabase](https://supabase.com/) | Base de données cloud + RLS + Edge Functions |
 | [IGN Géoportail](https://geoservices.ign.fr/) | Fond de carte topographique |
 | ES Modules natifs | Pas de build tool |
