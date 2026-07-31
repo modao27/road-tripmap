@@ -212,13 +212,32 @@ export function initPins({
   // README) plutôt que Nominatim — identifiants fiables (code UIC), pas
   // d'ambiguïté de nom. Résultats reformés à la forme Nominatim
   // (display_name/lat/lon) pour réutiliser le même rendu et le même clic.
-  async function stationSearch(query) {
-    const stations = await searchStations(query, config.geocodeLimit);
-    return stations.map(s => ({ display_name: `${s.name}, Gare SNCF`, lat: s.lat, lon: s.lng }));
+  async function stationSearch(query, limit = config.geocodeLimit) {
+    const stations = await searchStations(query, limit);
+    return stations.map(s => ({ display_name: `${s.name}, Gare SNCF`, lat: s.lat, lon: s.lng, category: 'gare' }));
   }
 
   function locationSearch(query, signal) {
     return pinCategorySelect.value === 'gare' ? stationSearch(query) : geocodeSearch(query, signal);
+  }
+
+  // Ajout rapide (H6) : pas de sélecteur de catégorie (2 interactions, cf.
+  // quickAddPin plus bas), donc on fusionne gares + adresses dans la même
+  // recherche — une gare choisie porte directement category: 'gare',
+  // sinon la catégorie par défaut s'applique comme avant. Un échec
+  // Nominatim n'empêche pas d'afficher les gares (Promise.allSettled),
+  // mais une annulation (AbortError, frappe rapide) remonte comme avant.
+  async function quickAddSearch(query, signal) {
+    const [stationsResult, addressesResult] = await Promise.allSettled([
+      stationSearch(query, 3),
+      geocodeSearch(query, signal),
+    ]);
+    if (addressesResult.status === 'rejected' && addressesResult.reason?.name === 'AbortError') {
+      throw addressesResult.reason;
+    }
+    const stations  = stationsResult.status === 'fulfilled' ? stationsResult.value : [];
+    const addresses = addressesResult.status === 'fulfilled' ? addressesResult.value : [];
+    return [...stations, ...addresses];
   }
 
   function renderGeocodeResults(listEl, candidates) {
@@ -278,8 +297,10 @@ export function initPins({
   // défaut raisonnables, sans formulaire préalable — l'utilisateur ajuste
   // ensuite via ✏️ sur la fiche qui s'ouvre si le nom/la catégorie ne
   // conviennent pas. Objectif : poser un lieu en 2 interactions, < 15 s.
-  function quickAddPin(lat, lng, name) {
-    saveUserPin(name?.trim() || 'Nouveau lieu', Object.keys(categories)[0], '', lat, lng);
+  // `category` : renseignée quand le résultat choisi vient de la
+  // recherche de gares (quickAddSearch) ; sinon la catégorie par défaut.
+  function quickAddPin(lat, lng, name, category) {
+    saveUserPin(name?.trim() || 'Nouveau lieu', category || Object.keys(categories)[0], '', lat, lng);
   }
 
   function makePopupHtml(place) {
@@ -455,7 +476,7 @@ export function initPins({
       if (quickAddController) quickAddController.abort();
       quickAddController = new AbortController();
       try {
-        quickAddCandidates = await geocodeSearch(q, quickAddController.signal);
+        quickAddCandidates = await quickAddSearch(q, quickAddController.signal);
         renderGeocodeResults(quickAddResultsEl, quickAddCandidates);
       } catch (e) {
         if (e.name !== 'AbortError') showToastFn(toastWrap, 'Recherche indisponible', 'error', 3000);
@@ -470,7 +491,7 @@ export function initPins({
     if (!r) return;
     const parts = r.display_name.split(', ');
     setPinMode(false);
-    quickAddPin(parseFloat(r.lat), parseFloat(r.lon), parts[0]);
+    quickAddPin(parseFloat(r.lat), parseFloat(r.lon), parts[0], r.category);
   });
 
   quickAddInput.addEventListener('keydown', (e) => {
