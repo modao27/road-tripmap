@@ -775,20 +775,26 @@ Chaque étape ci-dessous est livrable seule, réversible, et n'altère aucun
 comportement existant (routes voiture/vélo/marche déjà partagées ou
 exportées en GPX doivent rester identiques après chaque commit).
 
-- [ ] **I1** — Catégorie « Gare » (icône 🚉) dans `categories.js` +
-      `shared/types`, alimentée par
+- [x] **I1** — Catégorie « Gare » (icône 🚉) — `6138b1a` : `categories.js`
+      + `shared/types`, dataset statique de 4187 gares filtré depuis
       [`trainline-eu/stations`](https://github.com/trainline-eu/stations)
-      (`stations.csv` filtré `country = FR`, licence ODbL — attribution
-      README, code UIC comme id stable) embarqué en JSON statique comme
-      `places.js`. **100 % additif** : une nouvelle catégorie de pin ne
-      touche à rien d'existant (elle apparaît dans les filtres comme les
-      7 autres, gratuitement, via le système de catégories déjà en place).
-      *Rentable dès ce commit* : dès I1 seul, on peut déjà poser une gare
-      sur la carte et la voir dans l'itinéraire (tronçon calculé à pied
-      comme n'importe quel autre pin) — utile même avant I2/I3.
-      UI recherche : réutilise la recherche par nom déjà présente pour les
-      pins perso, résultat affiché `Nom de la gare — Commune` pour lever
-      les homonymies au coup d'œil. *(~1 séance)*
+      (`sncf_is_enabled` + `is_suggestable`, licence ODbL — attribution
+      README ajoutée) — **0 doublon de nom ni d'UIC** vérifié sur ce
+      filtre, pas de désambiguïsation commune/département nécessaire en
+      pratique. `stationsService.js` : recherche par sous-chaîne
+      insensible aux accents, gares principales + préfixes priorisés,
+      chargement JSON paresseux (une fois pour la session). Branché dans
+      la modale d'ajout de pin existante : catégorie « Gare » sélectionnée
+      → recherche sur ce dataset au lieu de Nominatim (résultats reformés
+      à la même forme `display_name/lat/lon` pour réutiliser le rendu et
+      le clic existants), changement de catégorie en cours de frappe
+      relance la recherche dans la bonne source. 100 % additif — aucune
+      catégorie/comportement existant modifié. 5 tests unitaires
+      (recherche, accents, priorisation, cache) + 115/115 tests + lint
+      verts. *Validation navigateur bloquée par la politique réseau du
+      sandbox (CDN Supabase/Leaflet non joignables ici) — à confirmer
+      manuellement : catégorie Gare → recherche "lyon" → gares affichées,
+      changement de catégorie → Nominatim repris.*
 - [ ] **I2** — Transport **par tronçon, additif** — pas de refonte du mode
       global. `routePlanner.js` garde `mode` (driving/cycling/walking)
       exactement comme aujourd'hui ; on ajoute un tableau parallèle
