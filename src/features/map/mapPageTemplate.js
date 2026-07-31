@@ -319,6 +319,23 @@ export const MAP_PAGE_HTML = `
         Note (facultatif)
         <textarea id="pinNote" placeholder="Description, conseil…"></textarea>
       </label>
+      <div class="pin-train-fields" id="pinTrainFields" hidden>
+        <span class="pin-train-fields-label">🚉 Horaire (facultatif) — affichage seulement, pas de calcul</span>
+        <div class="pin-train-fields-row">
+          <label class="pin-field pin-field--inline">
+            Départ
+            <input type="text" id="pinTrainDeparture" placeholder="08:42" maxlength="20">
+          </label>
+          <label class="pin-field pin-field--inline">
+            Arrivée
+            <input type="text" id="pinTrainArrival" placeholder="11:15" maxlength="20">
+          </label>
+        </div>
+        <label class="pin-field">
+          N° de train (facultatif)
+          <input type="text" id="pinTrainNumber" placeholder="Ex : TGV 6612" maxlength="40">
+        </label>
+      </div>
       <div class="pin-modal-actions">
         <button class="secondary" id="pinCancelBtn" type="button">Annuler</button>
         <button class="button" id="pinConfirmBtn" type="button">Créer le pin</button>

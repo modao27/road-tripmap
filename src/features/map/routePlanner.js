@@ -480,11 +480,18 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     const canToggleTrain = i > 0 && place?.category === 'gare';
 
     // Distance partielle (ligne droite avec lieu précédent) — remplacée
-    // par un badge + lien de recherche quand le tronçon est en train.
+    // par un badge + horaire (I3b, saisi via la modale d'édition du pin,
+    // data-edit-id déjà géré par la délégation globale de pins.js) + lien
+    // de recherche quand le tronçon est en train.
     let partialHtml = '';
     if (isTrain) {
-      partialHtml = `<span class="route-step-dist route-step-train">🚉 Train</span>
-        <a class="route-step-train-link" href="${SNCF_CONNECT_URL}" target="_blank" rel="noopener noreferrer">🔎 Chercher ce trajet</a>`;
+      const hasSchedule = place?.trainDeparture || place?.trainArrival;
+      const scheduleHtml = hasSchedule
+        ? ` · 🕐 ${esc(place.trainDeparture || '?')} → ${esc(place.trainArrival || '?')}${place.trainNumber ? ` · ${esc(place.trainNumber)}` : ''}`
+        : '';
+      partialHtml = `<span class="route-step-dist route-step-train">🚉 Train${scheduleHtml}</span>
+        <a class="route-step-train-link" href="${SNCF_CONNECT_URL}" target="_blank" rel="noopener noreferrer">🔎 Chercher ce trajet</a>
+        ${place ? `<button class="route-step-train-edit" data-edit-id="${place.id}" type="button">✏️ Horaire</button>` : ''}`;
     } else if (i > 0 && place && places[i - 1]) {
       const prev = places[i - 1];
       partialHtml = `<span class="route-step-dist">${formatDistance(
@@ -788,7 +795,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // Clic sur étape → zoom + popup
   stepsEl.addEventListener('click', e => {
     const li = e.target.closest('[data-step-index]');
-    if (!li || e.target.closest('[data-remove-step], [data-train-toggle], .route-step-train-link')) return;
+    if (!li || e.target.closest('[data-remove-step], [data-train-toggle], [data-edit-id], .route-step-train-link')) return;
     const place = resolvePlaces()[+li.dataset.stepIndex];
     if (!place) return;
     if (focusPlaceFn) focusPlaceFn(place);

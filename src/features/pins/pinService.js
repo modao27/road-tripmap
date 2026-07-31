@@ -263,18 +263,28 @@ export async function createRoadtripPin(roadtripId, pin) {
            lat: pin.lat, lng: pin.lng };
 }
 
-/** pin.id UUID → mise à jour, sinon → création via RPC (fin de liste) */
+/**
+ * pin.id UUID → mise à jour, sinon → création via RPC (fin de liste).
+ * `trainDeparture`/`trainArrival`/`trainNumber` (Phase I3b, texte libre)
+ * ne sont écrits qu'à la mise à jour — la RPC create_pin (migration 008)
+ * ne les connaît pas, une gare est toujours créée avant qu'on lui associe
+ * un horaire (via le toggle 🚉 de l'itinéraire, seulement disponible une
+ * fois le pin existant).
+ */
 export async function upsertRoadtripPin(roadtripId, pin) {
   if (isAnyUUID(pin.id)) {
     const { error } = await supabase
       .from('pins')
       .update({
-        title:       pin.name,
-        category:    pin.category,
-        lat:         pin.lat,
-        lng:         pin.lng,
-        description: pin.description || '',
-        updated_at:  new Date().toISOString(),
+        title:           pin.name,
+        category:        pin.category,
+        lat:             pin.lat,
+        lng:             pin.lng,
+        description:     pin.description || '',
+        train_departure: pin.trainDeparture || null,
+        train_arrival:   pin.trainArrival || null,
+        train_number:    pin.trainNumber || null,
+        updated_at:      new Date().toISOString(),
       })
       .eq('id', pin.id);
     if (error) throw error;

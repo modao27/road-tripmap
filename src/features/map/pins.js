@@ -162,6 +162,10 @@ export function initPins({
   const pinNameInput     = document.getElementById('pinName');
   const pinCategorySelect = document.getElementById('pinCategory');
   const pinNoteInput     = document.getElementById('pinNote');
+  const pinTrainFieldsEl       = document.getElementById('pinTrainFields');
+  const pinTrainDepartureInput = document.getElementById('pinTrainDeparture');
+  const pinTrainArrivalInput   = document.getElementById('pinTrainArrival');
+  const pinTrainNumberInput    = document.getElementById('pinTrainNumber');
   const pinGeocodeInput  = document.getElementById('pinGeocode');
   const geocodeResultsEl = document.getElementById('geocodeResults');
   const pinLocationTag   = document.getElementById('pinLocationTag');
@@ -294,6 +298,10 @@ export function initPins({
     pinNoteInput.value   = isEdit ? (existingPin.description || '') : '';
     if (isEdit) pinCategorySelect.value = existingPin.category;
     else pinCategorySelect.selectedIndex = 0;
+    if (pinTrainDepartureInput) pinTrainDepartureInput.value = isEdit ? (existingPin.trainDeparture || '') : '';
+    if (pinTrainArrivalInput)   pinTrainArrivalInput.value   = isEdit ? (existingPin.trainArrival   || '') : '';
+    if (pinTrainNumberInput)    pinTrainNumberInput.value    = isEdit ? (existingPin.trainNumber    || '') : '';
+    updateTrainFieldsVisibility();
 
     const coordLat = lat ?? (existingPin ? existingPin.lat : null);
     const coordLng = lng ?? (existingPin ? existingPin.lng : null);
@@ -329,7 +337,7 @@ export function initPins({
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
-  function saveUserPin(name, category, note, lat, lng) {
+  function saveUserPin(name, category, note, lat, lng, trainSchedule = {}) {
     const pin = {
       id: crypto.randomUUID(),
       name, category, lat, lng,
@@ -337,6 +345,7 @@ export function initPins({
       interest: '', tip: '', mood: '',
       user_created: true,
       userCreated: true,
+      ...(category === 'gare' ? trainSchedule : {}),
     };
     userPlacesRef.push(pin);
     saveUserPins(userPlacesRef);
@@ -349,11 +358,12 @@ export function initPins({
     showToastFn(toastWrap, `Pin "${name}" créé`, 'success');
   }
 
-  function updateUserPin(id, name, category, note, lat, lng) {
+  function updateUserPin(id, name, category, note, lat, lng, trainSchedule = {}) {
     const pin = userPlacesRef.find(p => p.id === id);
     if (!pin) return;
     pin.name = name; pin.category = category;
     pin.description = note; pin.lat = lat; pin.lng = lng;
+    if (category === 'gare') Object.assign(pin, trainSchedule);
     saveUserPins(userPlacesRef);
     syncRemote(upsertUserPinFn, pin);
     doRefreshMarker(pin);
@@ -413,9 +423,15 @@ export function initPins({
   // Changer de catégorie en cours de recherche doit relancer la recherche
   // dans la bonne source (ex. bascule vers « Gare » après avoir tapé une
   // requête sur Nominatim) plutôt que de laisser des résultats obsolètes.
+  // Les champs horaire (I3b) n'ont de sens que pour une gare.
   pinCategorySelect.addEventListener('change', () => {
     pinGeocodeInput.dispatchEvent(new Event('input'));
+    updateTrainFieldsVisibility();
   });
+
+  function updateTrainFieldsVisibility() {
+    if (pinTrainFieldsEl) pinTrainFieldsEl.hidden = pinCategorySelect.value !== 'gare';
+  }
 
   geocodeResultsEl.addEventListener('click', (e) => {
     const item = e.target.closest('.geocode-result-item');
@@ -502,15 +518,20 @@ export function initPins({
     const { lat, lng } = pendingPinCoords;
     const category = pinCategorySelect.value;
     const note = pinNoteInput.value.trim();
+    const trainSchedule = {
+      trainDeparture: pinTrainDepartureInput?.value.trim() ?? '',
+      trainArrival:   pinTrainArrivalInput?.value.trim() ?? '',
+      trainNumber:    pinTrainNumberInput?.value.trim() ?? '',
+    };
     if (editingPinId) {
       const id = editingPinId;
       const isUserPin = userPlacesRef.some(p => p.id === id);
       closePinModal();
-      if (isUserPin) updateUserPin(id, name, category, note, lat, lng);
+      if (isUserPin) updateUserPin(id, name, category, note, lat, lng, trainSchedule);
       else saveOverride(id, name, category, note, lat, lng);
     } else {
       closePinModal();
-      saveUserPin(name, category, note, lat, lng);
+      saveUserPin(name, category, note, lat, lng, trainSchedule);
     }
   });
 
