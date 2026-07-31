@@ -823,20 +823,24 @@ exportées en GPX doivent rester identiques après chaque commit).
       mocké) + 124/124 tests globaux + lint verts. Migration à exécuter
       en prod comme les précédentes (`db push` — automatique via la CI
       au merge sur `main`, cf. section Configuration Supabase du README).
-- [ ] **I3** — UI du tronçon train, alignée sur les codes visuels déjà en
-      place : ligne **pointillée** sur la couche route (le tracé GPX
-      importé est déjà pointillé violet depuis E4 — réutiliser le même
-      langage visuel, couleur dédiée pour le train) au lieu du tracé OSRM
-      plein ; dans la liste des étapes, un petit badge 🚉 sur le pas
-      concerné avec un `<details>` repliable pour la saisie manuelle
-      (heure aller/retour, n° de train optionnel, lien externe
-      « Rechercher ce trajet ») — même composant replié que « En savoir
-      plus » dans les popups (Phase F), pas un nouveau pattern à apprendre.
-      Le calcul de distance/durée totale **exclut** les tronçons train du
-      total OSRM (affiché à part, ex. « 12 km à pied · 1 tronçon train »)
-      plutôt que de fausser une somme qui n'a plus de sens homogène.
-      Fonctionne identiquement en mobile (bottom sheet) et desktop sans
-      composant spécifique. *(~1.5-2 séances)*
+- [x] **I3** (partiel) — `eeb0b19` : ligne **pointillée** dans la couleur
+      de la catégorie Gare (`#2c3e6b`), distincte de l'orange OSRM et du
+      pointillé de secours (panne OSRM), pour qu'un vrai tronçon train ne
+      se confonde pas avec un tracé approximatif. Toggle 🚉 sur chaque pas
+      dont le lieu est une gare (sauf le premier — pas de tronçon
+      entrant), badge « 🚉 Train » qui remplace la distance à vol d'oiseau
+      + lien externe SNCF Connect. Le total distance/durée exclut déjà
+      les tronçons train depuis I2 (contribution nulle, pas de logique
+      dédiée nécessaire). Même rendu mobile/desktop, pas de composant
+      spécifique.
+      **Reporté à I3b** : la saisie manuelle repliable (heure aller/retour,
+      n° de train) — nécessite une décision de modélisation (donnée liée
+      au pin comme description/tip/mood, ou à l'instance d'itinéraire
+      comme `stepTransport` ?) avant d'ajouter une nouvelle structure de
+      données ; pas fait à la va-vite pour tenir le séquençage « au plus
+      rentable ». Le lien externe pointe donc vers l'accueil SNCF Connect
+      (aucun paramètre d'URL de recherche documenté et stable trouvé —
+      pas de deep-link inventé) plutôt que vers une recherche préremplie.
 - [ ] **I4** — GPX + partage : la gare et son horaire dans l'export GPX
       (waypoint + `<desc>`), `rtransport=` dans l'URL de partage (cf. I2).
       *(~0.5-1 séance)*
