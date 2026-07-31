@@ -771,9 +771,23 @@ l'app ne calcule ni horaire ni prix (aucune API fiable et gratuite pour ça),
 elle affiche juste le tronçon et renvoie vers une recherche externe.
 
 - [ ] **I1** — Catégorie « Gare » (icône 🚉) dans `categories.js` +
-      `shared/types` ; recherche de gare via Nominatim (filtré
-      `railway=station`) ou petite liste statique des gares SNCF
-      (dataset ouvert, ~3000 lignes) pour l'autocomplétion. *(~1 séance)*
+      `shared/types`. **Identification des gares : ne pas utiliser
+      Nominatim en source principale.** OSM (`railway=station`) est une
+      donnée collaborative sans identifiant canonique fiable — doublons,
+      gares mal taguées (`halt` vs `station`), pas de code officiel pour
+      lever les homonymies (plusieurs communes françaises partagent un
+      nom de gare). Utiliser à la place le **référentiel officiel des
+      gares SNCF** (open data Gares & Connexions / transport.data.gouv.fr :
+      code UIC, nom, commune, lat/lon), embarqué en JSON statique comme
+      `places.js` l'est déjà pour les 35 lieux — même philosophie
+      « donnée statique versionnée » plutôt que dépendance réseau pour
+      une info qui ne bouge jamais. Autocomplétion : recherche sur
+      nom **+ commune/département affichés** pour désambiguïser les
+      homonymes (ex. plusieurs « Gare de Saint-X » en France), code UIC
+      comme identifiant unique stable (au lieu d'un id généré côté
+      client). Nominatim reste en repli uniquement si une gare
+      manque au référentiel (rare, ex. halte très récente). *(~1-1.5 séance,
+      + télécharger/nettoyer le dataset une fois)*
 - [ ] **I2** — Mode par tronçon plutôt que mode global : `routePlanner.js`
       passe de `mode: string` à un mode par leg (`steps[i].mode`), avec
       `'train'` comme nouvelle valeur ne déclenchant **pas** d'appel OSRM.
