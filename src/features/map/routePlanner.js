@@ -640,10 +640,15 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   // ── Export GPX ────────────────────────────────────────────────────────────
   function exportGPX() {
-    const places = resolvePlaces().filter(Boolean);
+    // Filtre les lieux supprimés en gardant stepTransport aligné (même
+    // logique que fetchRoute) — un simple .filter(Boolean) désynchroniserait
+    // les index dès qu'un pas intermédiaire est supprimé.
+    const resolved = resolvePlaces();
+    const places = [], placeTransport = [];
+    resolved.forEach((p, i) => { if (p) { places.push(p); placeTransport.push(stepTransport[i] || null); } });
     if (!places.length) { showToastFn(toastWrap, 'Itinéraire vide', ''); return; }
 
-    const gpx = buildGpx(places, routeData?.geometry ?? null);
+    const gpx = buildGpx(places, routeData?.geometry ?? null, undefined, placeTransport);
 
     const a = Object.assign(document.createElement('a'), {
       href:     URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' })),

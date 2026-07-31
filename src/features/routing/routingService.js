@@ -141,13 +141,19 @@ function escapeXml(s) {
  * @param {Array<{ lat: number, lng: number, name: string }>} places
  * @param {{ coordinates: Array<[number, number]> }|null} [geometry]
  * @param {string} [name]
+ * @param {(string|null)[]|null} [transport] - parallèle à places, 'train'
+ *   pour le tronçon menant à ce point (places[0] n'a pas de tronçon entrant)
  * @returns {string}
  */
-export function buildGpx(places, geometry = null, name = 'Road Trip Jura') {
-  const wpts = places.map((p, i) => `  <wpt lat="${p.lat}" lon="${p.lng}">
+export function buildGpx(places, geometry = null, name = 'Road Trip Jura', transport = null) {
+  const wpts = places.map((p, i) => {
+    const isTrain = i > 0 && transport?.[i] === 'train';
+    const desc    = isTrain ? 'Gare — tronçon en train' : `Étape ${i + 1}`;
+    return `  <wpt lat="${p.lat}" lon="${p.lng}">
     <name>${escapeXml(p.name)}</name>
-    <desc>Étape ${i + 1}</desc>
-  </wpt>`).join('\n');
+    <desc>${escapeXml(desc)}</desc>
+  </wpt>`;
+  }).join('\n');
 
   const rtePoints = places.map(p =>
     `    <rtept lat="${p.lat}" lon="${p.lng}"><name>${escapeXml(p.name)}</name></rtept>`

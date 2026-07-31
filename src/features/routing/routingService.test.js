@@ -168,4 +168,23 @@ describe('buildGpx', () => {
     expect(gpx).toContain('<trk><name>Tracé Road Trip</name>');
     expect(gpx).toContain('<trkpt lat="46.709" lon="5.646"/>');
   });
+
+  it('sans transport fourni, garde la description "Étape N" par défaut', () => {
+    const gpx = buildGpx(places);
+    expect(gpx).toContain('<desc>Étape 1</desc>');
+    expect(gpx).toContain('<desc>Étape 2</desc>');
+  });
+
+  it('annote la gare d\'un tronçon train, sans toucher au premier point', () => {
+    const gpx = buildGpx(places, null, undefined, [null, 'train']);
+    expect(gpx).toContain('<desc>Étape 1</desc>');
+    expect(gpx).toContain('<desc>Gare — tronçon en train</desc>');
+  });
+
+  it('ignore transport[0] même marqué train (pas de tronçon entrant sur le 1er point)', () => {
+    const gpx = buildGpx(places, null, undefined, ['train', null]);
+    expect(gpx).toContain('<desc>Étape 1</desc>');
+    expect(gpx).toContain('<desc>Étape 2</desc>');
+    expect(gpx).not.toContain('Gare — tronçon en train');
+  });
 });
