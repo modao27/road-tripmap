@@ -186,8 +186,10 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       interest: '', tip: '', mood: '',
       day:            pin.day ?? 1,
       transport:      pin.transport ?? null,
-      trainDeparture: pin.train_departure ?? '',
-      trainArrival:   pin.train_arrival ?? '',
+      // Postgres renvoie "HH:MM:SS" pour une colonne time ; <input type="time">
+      // et l'affichage attendent "HH:MM".
+      trainDeparture: pin.train_departure?.slice(0, 5) ?? '',
+      trainArrival:   pin.train_arrival?.slice(0, 5) ?? '',
       trainNumber:    pin.train_number ?? '',
       orderIndex:     pin.order_index ?? 0,
       userCreated:  true,

@@ -324,11 +324,11 @@ export const MAP_PAGE_HTML = `
         <div class="pin-train-fields-row">
           <label class="pin-field pin-field--inline">
             Départ
-            <input type="text" id="pinTrainDeparture" placeholder="08:42" maxlength="20">
+            <input type="time" id="pinTrainDeparture">
           </label>
           <label class="pin-field pin-field--inline">
             Arrivée
-            <input type="text" id="pinTrainArrival" placeholder="11:15" maxlength="20">
+            <input type="time" id="pinTrainArrival">
           </label>
         </div>
         <label class="pin-field">
