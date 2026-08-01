@@ -248,6 +248,7 @@ async function rpcCreatePin(roadtripId, pin, id) {
     p_type:        pin.type || 'stop',
     p_status:      'active',
     p_order_index: pin.order_index ?? 0,
+    p_day:         pin.day ?? 1,
   });
   if (error) throw error;
 }
