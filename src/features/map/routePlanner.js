@@ -585,9 +585,34 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
     }
     stepsEl.innerHTML = html;
 
+    // Variables pour le drag & drop tactile (mobile)
+    let touchDragSrc = null;
+    let touchClone = null;
+    let touchCurrentTarget = null;
+    let autoScrollInterval = null;
+
+    // Fonction d'auto-scroll pendant le drag tactile
+    function autoScrollContainer(containerEl, direction) {
+      if (autoScrollInterval) return; // Déjà en cours
+      
+      autoScrollInterval = setInterval(() => {
+        const scrollAmount = direction === 'up' ? -8 : 8;
+        containerEl.scrollBy(0, scrollAmount);
+      }, 20);
+    }
+
+    function stopAutoScroll() {
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+      }
+    }
+
     // Drag & drop — étapes
     stepsEl.querySelectorAll('[data-step-index]').forEach(el => {
       if (isReadOnly) return; // Pas de drag & drop en lecture seule
+      
+      // Desktop drag & drop
       el.addEventListener('dragstart', e => {
         dragSrcIndex = +e.currentTarget.dataset.stepIndex;
         e.currentTarget.classList.add('dragging');
@@ -628,6 +653,116 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         renderStepList();
         scheduleFetch();
       });
+
+      // Mobile touch drag & drop
+      el.addEventListener('touchstart', _e => {
+        touchDragSrc = el;
+        dragSrcIndex = +el.dataset.stepIndex;
+        
+        // Créer un clone visuel qui suit le doigt
+        setTimeout(() => {
+          if (touchDragSrc) {
+            touchClone = el.cloneNode(true);
+            touchClone.style.position = 'fixed';
+            touchClone.style.zIndex = '10000';
+            touchClone.style.pointerEvents = 'none';
+            touchClone.style.opacity = '0.8';
+            touchClone.style.width = el.offsetWidth + 'px';
+            touchClone.style.left = el.getBoundingClientRect().left + 'px';
+            touchClone.classList.add('dragging');
+            document.body.appendChild(touchClone);
+            el.style.opacity = '0.3';
+          }
+        }, 100); // Délai pour différencier scroll et drag
+      }, { passive: true });
+
+      el.addEventListener('touchmove', e => {
+        if (!touchDragSrc || !touchClone) return;
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        touchClone.style.top = (touch.clientY - 30) + 'px';
+        
+        // Auto-scroll si proche des bords du conteneur
+        const scrollContainer = stepsEl.closest('.sidebar-body') || stepsEl.parentElement;
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const edgeThreshold = 80; // pixels du bord pour déclencher l'auto-scroll
+        
+        stopAutoScroll();
+        
+        if (touch.clientY < containerRect.top + edgeThreshold) {
+          // Proche du haut, scroll vers le haut
+          autoScrollContainer(scrollContainer, 'up');
+        } else if (touch.clientY > containerRect.bottom - edgeThreshold) {
+          // Proche du bas, scroll vers le bas
+          autoScrollContainer(scrollContainer, 'down');
+        }
+        
+        // Trouver l'élément sous le doigt
+        touchClone.style.display = 'none';
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        touchClone.style.display = '';
+        
+        stepsEl.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+        
+        const stepBelow = elementBelow?.closest('[data-step-index]');
+        if (stepBelow && stepBelow !== el) {
+          stepBelow.classList.add('drag-over');
+          touchCurrentTarget = stepBelow;
+        } else {
+          touchCurrentTarget = null;
+        }
+      }, { passive: false });
+
+      el.addEventListener('touchend', _e => {
+        if (!touchDragSrc) return;
+        
+        stopAutoScroll();
+        
+        if (touchClone) {
+          touchClone.remove();
+          touchClone = null;
+        }
+        
+        el.style.opacity = '';
+        stepsEl.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+        
+        if (touchCurrentTarget) {
+          const target = +touchCurrentTarget.dataset.stepIndex;
+          if (dragSrcIndex !== null && dragSrcIndex !== target) {
+            const targetDay = stepDays[target];
+            const moved = steps.splice(dragSrcIndex, 1)[0];
+            stepDays.splice(dragSrcIndex, 1);
+            const movedTransport = stepTransport.splice(dragSrcIndex, 1)[0];
+            steps.splice(target, 0, moved);
+            stepDays.splice(target, 0, targetDay);
+            stepTransport.splice(target, 0, movedTransport);
+            persist();
+            renderStepList();
+            scheduleFetch();
+          }
+        }
+        
+        touchDragSrc = null;
+        dragSrcIndex = null;
+        touchCurrentTarget = null;
+      }, { passive: true });
+
+      el.addEventListener('touchcancel', _e => {
+        stopAutoScroll();
+        
+        if (touchClone) {
+          touchClone.remove();
+          touchClone = null;
+        }
+        if (touchDragSrc) {
+          touchDragSrc.style.opacity = '';
+        }
+        stepsEl.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+        touchDragSrc = null;
+        dragSrcIndex = null;
+        touchCurrentTarget = null;
+      }, { passive: true });
     });
 
     // Drag & drop — en-têtes de jour et jours vides (dépose en fin de journée)
