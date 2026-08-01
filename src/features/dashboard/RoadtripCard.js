@@ -29,9 +29,10 @@ function relativeDate(iso) {
  * Retourne le HTML d'une card de roadtrip.
  * @param {Roadtrip} trip
  * @param {number}   index - Pour la couleur de couverture
+ * @param {string|null} currentUserId - ID de l'utilisateur courant
  * @returns {string}
  */
-export function renderRoadtripCard(trip, index) {
+export function renderRoadtripCard(trip, index, currentUserId = null) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
   const n = trip.pin_count ?? 0;
   const meta = [
@@ -43,11 +44,20 @@ export function renderRoadtripCard(trip, index) {
   // (collaboration) : échappement obligatoire, y compris en attribut.
   const id    = esc(trip.id);
   const title = esc(trip.title);
+  const isOwner = currentUserId && trip.owner_id === currentUserId;
+  
+  // Badge de visibilité
+  const visibilityBadge = {
+    'private': { emoji: '🔒', label: 'Privé' },
+    'shared': { emoji: '👥', label: 'Partagé' },
+    'public': { emoji: '🌍', label: 'Public' },
+  }[trip.visibility || 'private'] || { emoji: '🔒', label: 'Privé' };
 
   return `
     <article class="rt-card" data-id="${id}">
       <div class="rt-card__cover" style="background:${gradient}" aria-hidden="true">
         <span class="rt-card__icon">🗺️</span>
+        ${isOwner ? `<span class="rt-card__visibility-badge" data-action="visibility" data-id="${id}" data-current="${trip.visibility || 'private'}" title="Changer la visibilité">${visibilityBadge.emoji} ${visibilityBadge.label}</span>` : ''}
       </div>
       <div class="rt-card__body">
         <h2 class="rt-card__title">${title}</h2>
@@ -58,16 +68,16 @@ export function renderRoadtripCard(trip, index) {
         <a class="btn btn--primary btn--sm" href="#/roadtrips/${id}">
           Ouvrir →
         </a>
-        <button class="btn btn--icon" data-action="invite" data-id="${id}"
-                title="Inviter un membre" aria-label="Inviter sur ${title}">👥</button>
-        <button class="btn btn--icon" data-action="edit" data-id="${id}"
+        ${isOwner ? `<button class="btn btn--icon" data-action="invite" data-id="${id}"
+                title="Inviter un membre" aria-label="Inviter sur ${title}">👥</button>` : ''}
+        ${isOwner ? `<button class="btn btn--icon" data-action="edit" data-id="${id}"
                 data-title="${title}"
                 data-desc="${esc(trip.description || '')}"
-                title="Renommer" aria-label="Modifier ${title}">✏️</button>
+                title="Renommer" aria-label="Modifier ${title}">✏️</button>` : ''}
         <button class="btn btn--icon" data-action="share" data-id="${id}"
                 title="Copier le lien" aria-label="Partager ${title}">🔗</button>
-        <button class="btn btn--icon" data-action="delete" data-id="${id}"
-                title="Supprimer" aria-label="Supprimer ${title}">✕</button>
+        ${isOwner ? `<button class="btn btn--icon" data-action="delete" data-id="${id}"
+                title="Supprimer" aria-label="Supprimer ${title}">✕</button>` : ''}
       </div>
     </article>`;
 }

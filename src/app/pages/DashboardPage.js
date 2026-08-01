@@ -173,7 +173,14 @@ export function renderDashboardPage(container) {
   // ── Recherche client-side (pas de round-trip réseau par frappe) ──────────
   function applyTripSearch() {
     const query = container.querySelector('#tripSearchInput').value.trim().toLowerCase();
-    const handlers = { onDelete: openDeleteModal, onShare: shareTrip, onEdit: openEditModal, onInvite: openInviteModal };
+    const handlers = { 
+      onDelete: openDeleteModal, 
+      onShare: shareTrip, 
+      onEdit: openEditModal, 
+      onInvite: openInviteModal,
+      onVisibility: changeVisibility,
+      currentUserId: user?.id,
+    };
     if (!query) { renderList(listWrap, allTrips, handlers); return; }
 
     const filtered = allTrips.filter(t => t.title?.toLowerCase().includes(query));
@@ -387,6 +394,29 @@ export function renderDashboardPage(container) {
     navigator.clipboard.writeText(url)
       .then(() => toast.success('Lien copié ! La carte est accessible sans compte.'))
       .catch(() => prompt('Copie ce lien :', url));
+  }
+
+  // ── Changement de visibilité ─────────────────────────────────
+  async function changeVisibility(id, current) {
+    const visibilityOptions = [
+      { value: 'private', label: '🔒 Privé (uniquement moi)', desc: 'Seul toi et tes collaborateurs peuvent voir ce road trip' },
+      { value: 'shared', label: '👥 Partagé (avec lien)', desc: 'Toute personne avec le lien peut voir ce road trip' },
+      { value: 'public', label: '🌍 Public (découvrable)', desc: 'Visible par tout le monde dans la liste publique' },
+    ];
+    
+    // Cycle : private → shared → public → private
+    const currentIndex = visibilityOptions.findIndex(opt => opt.value === current);
+    const nextIndex = (currentIndex + 1) % visibilityOptions.length;
+    const nextVisibility = visibilityOptions[nextIndex].value;
+    
+    try {
+      await updateRoadtrip(id, { visibility: nextVisibility });
+      const option = visibilityOptions[nextIndex];
+      toast.success(`${option.label} — ${option.desc}`);
+      loadTrips(); // Recharge pour mettre à jour le badge
+    } catch {
+      toast.error('⚠️ Impossible de modifier la visibilité');
+    }
   }
 
   // ── Suppression ───────────────────────────────────────────────────────────

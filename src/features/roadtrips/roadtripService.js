@@ -45,26 +45,59 @@ function localRemove(id) {
 
 /**
  * Liste tous les roadtrips accessibles par l'utilisateur courant.
- * Le filtre est appliqué par RLS côté Supabase — aucun userId requis.
- * Inclut : roadtrips possédés + roadtrips où l'utilisateur est membre.
+ * Inclut :
+ *   - roadtrips possédés (owner_id = user)
+ *   - roadtrips où l'utilisateur est membre (via roadtrip_members)
+ *   - roadtrips publics des autres utilisateurs (visibility = 'public')
+ * Exclut : roadtrips partagés (shared) des autres utilisateurs.
  * Repli sur localStorage si Supabase indisponible.
  * @returns {Promise<Roadtrip[]>}
  */
 export async function listRoadtrips() {
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase.auth.getSession();
+    const currentUserId = data?.session?.user?.id;
+    
+    const { data: roadtripsData, error } = await supabase
       .from('roadtrips')
       .select('*, pins(count)')
       .order('updated_at', { ascending: false });
     if (error) throw error;
-    // Normalise : extrait le compte de pins et le met à plat sur l'objet
-    const trips = (data ?? []).map(({ pins, ...t }) => ({
-      ...t,
-      pin_count: pins?.[0]?.count ?? 0,
-    }));
+
+    // Récupère les IDs des roadtrips où l'utilisateur est membre
+    const { data: memberships } = currentUserId
+      ? await supabase
+          .from('roadtrip_members')
+          .select('roadtrip_id')
+          .eq('user_id', currentUserId)
+      : { data: [] };
+    
+    const memberRoadtripIds = new Set(
+      (memberships ?? []).map(m => m.roadtrip_id)
+    );
+
+    // Filtre :
+    // - Garde les roadtrips possédés
+    // - Garde les roadtrips où on est membre
+    // - Garde les roadtrips public des autres
+    // - Exclut les roadtrips shared des autres (accessible uniquement via lien direct)
+    const trips = (roadtripsData ?? [])
+      .filter(t => {
+        const isOwner = currentUserId && t.owner_id === currentUserId;
+        const isMember = memberRoadtripIds.has(t.id);
+        const isPublic = t.visibility === 'public';
+        
+        return isOwner || isMember || isPublic;
+      })
+      .map(({ pins, ...t }) => ({
+        ...t,
+        pin_count: pins?.[0]?.count ?? 0,
+      }));
+    
     localSave(trips);
     return trips;
-  } catch {
+  } catch (err) {
+    console.error('[listRoadtrips] Error:', err);
     return localList();
   }
 }
