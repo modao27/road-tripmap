@@ -15,3 +15,9 @@ reference-screenshots/
 # OS
 .DS_Store
 Thumbs.db
+
+# Capacitor (build iOS/Android)
+www/
+resources/
+ios/
+android/
