@@ -55,6 +55,9 @@ export function renderListError(container, message) {
  *   onShare:  (id: string) => void,
  *   onEdit:   (id: string, title: string, desc: string) => void,
  *   onInvite: (id: string) => void,
+ *   onVisibility?: (id: string, current: string) => void,
+ *   onDuplicate?: (id: string, title: string) => void,
+ *   currentUserId?: string|null,
  * }} handlers
  */
 export function renderList(container, trips, handlers) {
@@ -62,7 +65,7 @@ export function renderList(container, trips, handlers) {
 
   container.innerHTML = `
     <div class="rt-grid">
-      ${trips.map((trip, i) => renderRoadtripCard(trip, i)).join('')}
+      ${trips.map((trip, i) => renderRoadtripCard(trip, i, handlers.currentUserId)).join('')}
     </div>`;
 
   container.querySelector('.rt-grid').addEventListener('click', e => {
@@ -73,5 +76,7 @@ export function renderList(container, trips, handlers) {
     if (btn.dataset.action === 'edit')
       handlers.onEdit?.(btn.dataset.id, btn.dataset.title, btn.dataset.desc);
     if (btn.dataset.action === 'invite') handlers.onInvite?.(btn.dataset.id);
+    if (btn.dataset.action === 'visibility') handlers.onVisibility?.(btn.dataset.id, btn.dataset.current);
+    if (btn.dataset.action === 'duplicate') handlers.onDuplicate?.(btn.dataset.id, btn.dataset.title);
   });
 }

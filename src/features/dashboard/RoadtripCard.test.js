@@ -21,13 +21,14 @@ describe('renderRoadtripCard', () => {
   it('neutralise titre et description malveillants (XSS)', () => {
     const evil = {
       ...trip,
+      owner_id: 'user-123',
       title: '<img src=x onerror=alert(1)>',
       description: '" onmouseover="alert(2)',
     };
-    const html = renderRoadtripCard(evil, 1);
+    const html = renderRoadtripCard(evil, 1, 'user-123');
     expect(html).not.toContain('<img');
     expect(html).not.toContain('onmouseover="alert');
-    // data-title doit rester une valeur d'attribut inerte
+    // data-title (sur les boutons edit/duplicate) doit rester une valeur d'attribut inerte
     expect(html).toContain('data-title="&lt;img');
   });
 });

@@ -45,26 +45,59 @@ function localRemove(id) {
 
 /**
  * Liste tous les roadtrips accessibles par l'utilisateur courant.
- * Le filtre est appliqué par RLS côté Supabase — aucun userId requis.
- * Inclut : roadtrips possédés + roadtrips où l'utilisateur est membre.
+ * Inclut :
+ *   - roadtrips possédés (owner_id = user)
+ *   - roadtrips où l'utilisateur est membre (via roadtrip_members)
+ *   - roadtrips publics des autres utilisateurs (visibility = 'public')
+ * Exclut : roadtrips partagés (shared) des autres utilisateurs.
  * Repli sur localStorage si Supabase indisponible.
  * @returns {Promise<Roadtrip[]>}
  */
 export async function listRoadtrips() {
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase.auth.getSession();
+    const currentUserId = data?.session?.user?.id;
+    
+    const { data: roadtripsData, error } = await supabase
       .from('roadtrips')
       .select('*, pins(count)')
       .order('updated_at', { ascending: false });
     if (error) throw error;
-    // Normalise : extrait le compte de pins et le met à plat sur l'objet
-    const trips = (data ?? []).map(({ pins, ...t }) => ({
-      ...t,
-      pin_count: pins?.[0]?.count ?? 0,
-    }));
+
+    // Récupère les IDs des roadtrips où l'utilisateur est membre
+    const { data: memberships } = currentUserId
+      ? await supabase
+          .from('roadtrip_members')
+          .select('roadtrip_id')
+          .eq('user_id', currentUserId)
+      : { data: [] };
+    
+    const memberRoadtripIds = new Set(
+      (memberships ?? []).map(m => m.roadtrip_id)
+    );
+
+    // Filtre :
+    // - Garde les roadtrips possédés
+    // - Garde les roadtrips où on est membre
+    // - Garde les roadtrips public des autres
+    // - Exclut les roadtrips shared des autres (accessible uniquement via lien direct)
+    const trips = (roadtripsData ?? [])
+      .filter(t => {
+        const isOwner = currentUserId && t.owner_id === currentUserId;
+        const isMember = memberRoadtripIds.has(t.id);
+        const isPublic = t.visibility === 'public';
+        
+        return isOwner || isMember || isPublic;
+      })
+      .map(({ pins, ...t }) => ({
+        ...t,
+        pin_count: pins?.[0]?.count ?? 0,
+      }));
+    
     localSave(trips);
     return trips;
-  } catch {
+  } catch (err) {
+    console.error('[listRoadtrips] Error:', err);
     return localList();
   }
 }
@@ -271,6 +304,57 @@ export async function publishRoadtrip(id, baseSlug) {
  */
 export async function unpublishRoadtrip(id) {
   return updateRoadtrip(id, { visibility: 'private', slug: null });
+}
+
+// ── Duplication ───────────────────────────────────────────────────────────────
+
+/**
+ * Duplique un roadtrip avec tous ses pins.
+ * @param {string} sourceId - ID du roadtrip à dupliquer
+ * @param {string} userId - ID de l'utilisateur courant
+ * @param {string} [newTitle] - Nouveau titre (par défaut: "Copie de [titre]")
+ * @returns {Promise<Roadtrip>}
+ */
+export async function duplicateRoadtrip(sourceId, userId, newTitle) {
+  // 1. Charge le roadtrip source
+  const source = await getRoadtrip(sourceId);
+  if (!source) throw new Error('Roadtrip introuvable');
+
+  // 2. Charge tous les pins du roadtrip source
+  const { data: sourcePins, error: pinsError } = await supabase
+    .from('pins')
+    .select('*')
+    .eq('roadtrip_id', sourceId)
+    .order('order_index', { ascending: true });
+  
+  if (pinsError) throw pinsError;
+
+  // 3. Crée le nouveau roadtrip
+  const title = newTitle || `Copie de ${source.title}`;
+  const newRoadtrip = await createRoadtrip({
+    title,
+    description: source.description,
+    startLabel: source.start_label,
+    startLat: source.start_lat,
+    startLng: source.start_lng,
+    userId,
+    coverColor: source.cover_color,
+  });
+
+  // 4. Copie tous les pins (séquentiel pour préserver l'ordre)
+  for (const pin of sourcePins ?? []) {
+    await createRoadtripPin(newRoadtrip.id, {
+      name: pin.title,
+      category: pin.category || 'base',
+      lat: pin.lat,
+      lng: pin.lng,
+      description: pin.description,
+      order_index: pin.order_index,
+      type: pin.type || 'stop',
+    });
+  }
+
+  return newRoadtrip;
 }
 
 // ── Suppression ───────────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ import { OSRM_PROFILE, formatDistance, formatDuration, haversine,
 
 // ── Module ────────────────────────────────────────────────────────────────────
 
-export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn, onStepsChange, signal }) {
+export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, showToastFn, focusPlaceFn, isReadOnly, onStepsChange, signal }) {
 
   // ── État ──────────────────────────────────────────────────────────────────
   let steps         = [];                 // toujours vide au démarrage — restauré uniquement via ?route=
@@ -76,12 +76,20 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   function addDay() {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     dayCount++;
     renderStepList();
   }
 
   // Supprime la journée d : ses étapes rejoignent la journée précédente
   function removeDay(d) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     if (dayCount <= 1) return;
     stepDays = stepDays.map(x => (x === d ? Math.max(1, d - 1) : (x > d ? x - 1 : x)));
     dayCount--;
@@ -91,6 +99,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   function moveStepToDay(from, day) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     const id = steps.splice(from, 1)[0];
     stepDays.splice(from, 1);
     const transport = stepTransport.splice(from, 1)[0];
@@ -105,8 +117,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   // ── Ajout / suppression d'étapes ─────────────────────────────────────────
-  function addStep(placeId, day = dayCount) {
-    if (steps.includes(placeId)) {
+  function addStep(placeId, day = dayCount) {    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }    if (steps.includes(placeId)) {
       showToastFn(toastWrap, "Déjà dans l'itinéraire", '');
       return;
     }
@@ -122,6 +136,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   function removeStep(index) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     steps.splice(index, 1);
     stepDays.splice(index, 1);
     stepTransport.splice(index, 1);
@@ -133,6 +151,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   // Marque/démarque le tronçon menant au pas `index` comme 'train'.
   function applyStepTransport(index, value) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     if (index < 0 || index >= stepTransport.length) return;
     stepTransport[index] = value === 'train' ? 'train' : null;
     persist();
@@ -145,6 +167,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   function clearRoute() {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     steps = [];
     stepDays = [];
     stepTransport = [];
@@ -165,8 +191,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   // ── Optimisation (plus proche voisin) ─────────────────────────────────────
   // Multi-jours : chaque journée est optimisée séparément, en partant de la
   // dernière étape du jour précédent (chaînage réaliste des matinées).
-  function optimizeOrder() {
-    if (steps.length < 3) {
+  function optimizeOrder() {    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }    if (steps.length < 3) {
       showToastFn(toastWrap, "3 étapes minimum pour optimiser", '');
       return;
     }
@@ -559,6 +587,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
     // Drag & drop — étapes
     stepsEl.querySelectorAll('[data-step-index]').forEach(el => {
+      if (isReadOnly) return; // Pas de drag & drop en lecture seule
       el.addEventListener('dragstart', e => {
         dragSrcIndex = +e.currentTarget.dataset.stepIndex;
         e.currentTarget.classList.add('dragging');
@@ -603,6 +632,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
     // Drag & drop — en-têtes de jour et jours vides (dépose en fin de journée)
     stepsEl.querySelectorAll('[data-day]').forEach(el => {
+      if (isReadOnly) return; // Pas de drag & drop en lecture seule
       el.addEventListener('dragover', e => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
@@ -714,8 +744,10 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
   }
 
   // ── Listeners ─────────────────────────────────────────────────────────────
-  stepsEl.addEventListener('click', e => {
-    const btn = e.target.closest('[data-remove-step]');
+  stepsEl.addEventListener('click', e => {    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }    const btn = e.target.closest('[data-remove-step]');
     if (btn) { removeStep(+btn.dataset.removeStep); return; }
     const dayBtn = e.target.closest('[data-remove-day]');
     if (dayBtn) { removeDay(+dayBtn.dataset.removeDay); return; }
@@ -725,6 +757,7 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
 
   // Délégation globale : bouton "Ajouter à l'itinéraire" dans popups + cartes
   document.addEventListener('click', e => {
+    if (isReadOnly) return; // Pas d'ajout en lecture seule
     const btn = e.target.closest('[data-add-route-id]');
     if (btn) addStep(btn.dataset.addRouteId);
   }, { signal });
