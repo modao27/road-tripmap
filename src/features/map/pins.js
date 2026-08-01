@@ -1,4 +1,5 @@
 import { saveUserPins, saveOverrides } from './storage.js';
+import { generateUUID } from '../../shared/utils/storage.js';
 import { addMarker, refreshMarker } from './map.js';
 import { trapFocus } from './ui.js';
 import { escapeHtml as esc, safeUrl } from '../../shared/utils/escape.js';
@@ -132,6 +133,7 @@ export function initPins({
   focusPlaceFn,
   onMapClick,
   onMarkerAdded,
+  onPinChange,
   config,
   // Supabase (optionnel — graceful degradation si non fourni)
   mapId,
@@ -360,7 +362,7 @@ export function initPins({
 
   function saveUserPin(name, category, note, lat, lng, trainSchedule = {}) {
     const pin = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name, category, lat, lng,
       description: note,
       interest: '', tip: '', mood: '',
@@ -375,6 +377,7 @@ export function initPins({
     if (activeCategories.has(category)) markerLayer.addLayer(markers.get(pin.id));
     onMarkerAdded?.(pin);
     onRefresh();
+    onPinChange?.('create', pin);
     focusPlaceFn(pin);
     showToastFn(toastWrap, `Pin "${name}" créé`, 'success');
   }
@@ -388,7 +391,7 @@ export function initPins({
     saveUserPins(userPlacesRef);
     syncRemote(upsertUserPinFn, pin);
     doRefreshMarker(pin);
-    map.closePopup(); onRefresh(); focusPlaceFn(pin);
+    map.closePopup(); onRefresh(); onPinChange?.('update', pin); focusPlaceFn(pin);
     showToastFn(toastWrap, `"${name}" mis à jour`, 'success');
   }
 
@@ -399,7 +402,7 @@ export function initPins({
     syncRemote(deleteUserPinFn, id);
     const marker = markers.get(id);
     if (marker) { markerLayer.removeLayer(marker); markers.delete(id); }
-    map.closePopup(); onRefresh();
+    map.closePopup(); onRefresh(); onPinChange?.('delete', { id });
     showToastFn(toastWrap, 'Pin supprimé', '');
   }
 

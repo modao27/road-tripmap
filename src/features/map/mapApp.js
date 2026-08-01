@@ -572,6 +572,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // roadtripInfo !== null = le UUID est dans la table roadtrips = nouvelle archi
   const isRoadtripMode = !isSharedMap && roadtripInfo !== null;
 
+  // Déclaration anticipée pour permettre à initPins d'y faire référence
+  let scheduleResyncRouteSteps = null;
+
   // ── Pins (sync Supabase désactivée pour les cartes partagées) ────────────
   let pinsModule = null;
   pinsModule = initPins({
@@ -584,6 +587,14 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     onRefresh,
     focusPlaceFn:     doFocusPlace,
     onMarkerAdded:    setupMarkerHover,
+    onPinChange:      isRoadtripMode ? (action, pin) => {
+      if (action === 'create' && pin.id && !roadtripPinIds.includes(pin.id)) {
+        roadtripPinIds.push(pin.id);
+      } else if (action === 'delete' && pin.id) {
+        roadtripPinIds = roadtripPinIds.filter(id => id !== pin.id);
+      }
+      scheduleResyncRouteSteps?.();
+    } : null,
     config:           CONFIG,
     mapId,
     createUserPinFn:  isSharedMap ? null : (isRoadtripMode ? (_ignored, pin) => createRoadtripPin(mapParam, pin) : upsertPinRemote),
@@ -820,10 +831,10 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // remplaçait par ce mélange obsolète — l'ajout/suppression semblait ne
   // "pas se mettre à jour" (en fait, mis à jour puis aussitôt écrasé).
   // On laisse les échos d'une même rafale se poser avant de comparer.
-  function scheduleResyncRouteSteps() {
+  scheduleResyncRouteSteps = function() {
     clearTimeout(resyncTimer);
     resyncTimer = setTimeout(resyncRouteSteps, 500);
-  }
+  };
 
   function onRealtimeInsert(row) {
     if (row.status && row.status !== 'active') return;
