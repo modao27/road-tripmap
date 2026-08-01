@@ -243,6 +243,17 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     });
   }
 
+  function deactivate() {
+    if (searchCircle) {
+      searchCircle.remove();
+      searchCircle = null;
+    }
+    if (centerMarker) {
+      centerMarker.remove();
+      centerMarker = null;
+    }
+  }
+
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const searchBtn     = document.getElementById('overpassSearch');
   const clearBtn      = document.getElementById('overpassClear');
@@ -511,5 +522,5 @@ export function initOverpass({ map, toastWrap, showToastFn, onAddToMap, appCateg
     return { lat: center.lat, lng: center.lng, radiusKm: radiusMeters / 1000 };
   }
 
-  return { activate: ensureCircle, doSearch, clearResults, getCircleState };
+  return { activate: ensureCircle, deactivate, doSearch, clearResults, getCircleState };
 }
