@@ -183,6 +183,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       lat:          pin.lat,
       lng:          pin.lng,
       description:  pin.description || '',
+      notes:        pin.notes || '',
       interest: '', tip: '', mood: '',
       day:            pin.day ?? 1,
       transport:      pin.transport ?? null,
