@@ -11,15 +11,26 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "screenshot:home": "node scripts/screenshot-home.mjs",
-    "screenshot:reference": "node scripts/reference-screenshots.mjs"
+    "screenshot:reference": "node scripts/reference-screenshots.mjs",
+    "build:capacitor": "node scripts/build-capacitor.mjs",
+    "cap:sync": "npm run build:capacitor && npx cap sync",
+    "cap:open:ios": "npx cap open ios"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
+    "cordova-res": "^0.15.4",
     "eslint": "^10.6.0",
     "globals": "^17.7.0",
     "happy-dom": "^20.10.6",
     "supabase": "^2.109.1",
     "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@capacitor/geolocation": "^8.2.0",
+    "@capacitor/splash-screen": "^8.0.2"
   }
 }

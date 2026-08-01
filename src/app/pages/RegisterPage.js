@@ -3,10 +3,12 @@
  */
 
 import { signUp }    from '../../features/auth/authService.js';
+import { themeToggleHtml, mountThemeToggle } from '../../shared/ui/themeToggle.js';
 
 export function renderRegisterPage(container) {
   container.innerHTML = `
     <main class="page page--auth">
+      ${themeToggleHtml()}
       <div class="auth-card">
         <div class="auth-card__header">
           <a class="auth-back" href="#/">← Accueil</a>
@@ -63,6 +65,9 @@ export function renderRegisterPage(container) {
   const alertEl    = container.querySelector('#authAlert');
   const successEl  = container.querySelector('#authSuccess');
   const submitBtn  = container.querySelector('#regSubmit');
+
+  // Monte le bouton de thème
+  mountThemeToggle();
 
   container.querySelectorAll('.btn-eye').forEach(btn => {
     btn.addEventListener('click', () => {

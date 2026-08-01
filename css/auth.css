@@ -161,6 +161,14 @@ html, body {
   justify-content: center;
   padding: 24px 16px;
   background: linear-gradient(160deg, var(--color-bg) 0%, var(--color-sand) 140%);
+  position: relative;
+}
+
+/* Theme toggle dans les pages auth : positionné en haut à droite */
+.page--auth .theme-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 
 .auth-card {

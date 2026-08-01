@@ -7,10 +7,12 @@
 import { updatePassword } from '../../features/auth/authService.js';
 import { authStore }      from '../../features/auth/AuthStore.js';
 import { router }         from '../router.js';
+import { themeToggleHtml, mountThemeToggle } from '../../shared/ui/themeToggle.js';
 
 export function renderResetPasswordPage(container) {
   container.innerHTML = `
     <main class="page page--auth">
+      ${themeToggleHtml()}
       <div class="auth-card">
         <div class="auth-card__header">
           <h1 class="auth-card__title">Nouveau mot de passe</h1>
@@ -49,6 +51,9 @@ export function renderResetPasswordPage(container) {
         </form>
       </div>
     </main>`;
+
+  // Monte le bouton de thème
+  mountThemeToggle();
 
   container.querySelectorAll('.btn-eye').forEach(btn => {
     btn.addEventListener('click', () => {

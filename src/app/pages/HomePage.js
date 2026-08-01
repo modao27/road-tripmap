@@ -4,6 +4,7 @@
 
 import { router } from '../router.js';
 import { observeScrollReveal } from '../../shared/ui/scrollReveal.js';
+import { themeToggleHtml } from '../../shared/ui/themeToggle.js';
 import {
   ICON_MAP_PIN, ICON_IMAGE, ICON_SHARE,
   ICON_CALENDAR, ICON_WIFI_OFF, ICON_USERS, ICON_CLOUD, ICON_DOWNLOAD, ICON_COMPASS,
@@ -101,7 +102,10 @@ export function renderHomePage(container) {
 
         <nav class="home-hero__nav">
           <span class="home-hero__badge">🗺️ Road Trip Map</span>
-          <button class="home-hero__navlink" id="heroLogin" type="button">Se connecter</button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${themeToggleHtml()}
+            <button class="home-hero__navlink" id="heroLogin" type="button">Se connecter</button>
+          </div>
         </nav>
 
         <div class="home-hero__content">

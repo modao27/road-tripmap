@@ -4,10 +4,12 @@
 
 import { signIn }    from '../../features/auth/authService.js';
 import { authStore } from '../../features/auth/AuthStore.js';
+import { themeToggleHtml, mountThemeToggle } from '../../shared/ui/themeToggle.js';
 
 export function renderLoginPage(container) {
   container.innerHTML = `
     <main class="page page--auth">
+      ${themeToggleHtml()}
       <div class="auth-card">
         <div class="auth-card__header">
           <a class="auth-back" href="#/">← Accueil</a>
@@ -55,6 +57,9 @@ export function renderLoginPage(container) {
   const form      = container.querySelector('#loginForm');
   const alertEl   = container.querySelector('#authAlert');
   const submitBtn = container.querySelector('#loginSubmit');
+
+  // Monte le bouton de thème
+  mountThemeToggle();
 
   // Toggle password visibility
   container.querySelectorAll('.btn-eye').forEach(btn => {

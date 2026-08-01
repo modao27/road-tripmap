@@ -240,7 +240,11 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     return getVisiblePlaces(getAllPlaces, activeCategories, searchQuery, categoryRank);
   }
   function doRenderMap()     { renderMap(getVisible(), markers, markerLayer); }
-  function doRenderPlaces()  { renderPlaces(getVisible(), placeListEl, visibleCountEl, categories, searchQuery); }
+  function doRenderPlaces()  { 
+    renderPlaces(getVisible(), placeListEl, visibleCountEl, categories, searchQuery);
+    // Sync route buttons state after rendering place list
+    routePlanner?.updateRouteButtons();
+  }
   function doRenderFilters() {
     renderFilters(filtersEl, categories, getAllPlaces, activeCategories);
     updateFilterSummary();

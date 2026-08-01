@@ -6,10 +6,12 @@
  */
 
 import { resetPasswordForEmail } from '../../features/auth/authService.js';
+import { themeToggleHtml, mountThemeToggle } from '../../shared/ui/themeToggle.js';
 
 export function renderForgotPasswordPage(container) {
   container.innerHTML = `
     <main class="page page--auth">
+      ${themeToggleHtml()}
       <div class="auth-card">
         <div class="auth-card__header">
           <a class="auth-back" href="#/login">← Retour à la connexion</a>
@@ -46,6 +48,9 @@ export function renderForgotPasswordPage(container) {
   const alertEl   = container.querySelector('#authAlert');
   const successEl = container.querySelector('#authSuccess');
   const submitBtn = container.querySelector('#forgotSubmit');
+
+  // Monte le bouton de thème
+  mountThemeToggle();
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
