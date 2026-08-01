@@ -76,6 +76,9 @@ export function renderRoadtripCard(trip, index, currentUserId = null) {
                 title="Renommer" aria-label="Modifier ${title}">✏️</button>` : ''}
         <button class="btn btn--icon" data-action="share" data-id="${id}"
                 title="Copier le lien" aria-label="Partager ${title}">🔗</button>
+        ${isOwner ? `<button class="btn btn--icon" data-action="duplicate" data-id="${id}"
+                data-title="${title}"
+                title="Dupliquer" aria-label="Dupliquer ${title}">📋</button>` : ''}
         ${isOwner ? `<button class="btn btn--icon" data-action="delete" data-id="${id}"
                 title="Supprimer" aria-label="Supprimer ${title}">✕</button>` : ''}
       </div>

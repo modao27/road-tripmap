@@ -5,7 +5,7 @@
 import { authStore }                                  from '../../features/auth/AuthStore.js';
 import { signOut }                                    from '../../features/auth/authService.js';
 import { listRoadtrips, createRoadtrip, deleteRoadtrip, updateRoadtrip, inviteMember,
-         importFreeMapAsRoadtrip } from '../../features/roadtrips/roadtripService.js';
+         importFreeMapAsRoadtrip, duplicateRoadtrip } from '../../features/roadtrips/roadtripService.js';
 import { loadUserPins } from '../../features/map/storage.js';
 import { storageGet, storageSet } from '../../shared/utils/storage.js';
 import { renderList, renderListLoading, renderListError, renderListEmpty } from '../../features/dashboard/RoadtripList.js';
@@ -179,6 +179,7 @@ export function renderDashboardPage(container) {
       onEdit: openEditModal, 
       onInvite: openInviteModal,
       onVisibility: changeVisibility,
+      onDuplicate: duplicateTrip,
       currentUserId: user?.id,
     };
     if (!query) { renderList(listWrap, allTrips, handlers); return; }
@@ -416,6 +417,21 @@ export function renderDashboardPage(container) {
       loadTrips(); // Recharge pour mettre à jour le badge
     } catch {
       toast.error('⚠️ Impossible de modifier la visibilité');
+    }
+  }
+
+  // ── Duplication ─────────────────────────────────────────────────────
+  async function duplicateTrip(id, title) {
+    const newTitle = prompt(`Nouveau nom pour la copie :`, `Copie de ${title}`);
+    if (!newTitle || !newTitle.trim()) return;
+
+    try {
+      const newTrip = await duplicateRoadtrip(id, user?.id, newTitle.trim());
+      toast.success(`📋 Road trip dupliqué : « ${newTrip.title} »`);
+      loadTrips();
+    } catch (err) {
+      console.error('[duplicateTrip]', err);
+      toast.error('⚠️ Impossible de dupliquer le road trip');
     }
   }
 

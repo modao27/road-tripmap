@@ -306,6 +306,57 @@ export async function unpublishRoadtrip(id) {
   return updateRoadtrip(id, { visibility: 'private', slug: null });
 }
 
+// ── Duplication ───────────────────────────────────────────────────────────────
+
+/**
+ * Duplique un roadtrip avec tous ses pins.
+ * @param {string} sourceId - ID du roadtrip à dupliquer
+ * @param {string} userId - ID de l'utilisateur courant
+ * @param {string} [newTitle] - Nouveau titre (par défaut: "Copie de [titre]")
+ * @returns {Promise<Roadtrip>}
+ */
+export async function duplicateRoadtrip(sourceId, userId, newTitle) {
+  // 1. Charge le roadtrip source
+  const source = await getRoadtrip(sourceId);
+  if (!source) throw new Error('Roadtrip introuvable');
+
+  // 2. Charge tous les pins du roadtrip source
+  const { data: sourcePins, error: pinsError } = await supabase
+    .from('pins')
+    .select('*')
+    .eq('roadtrip_id', sourceId)
+    .order('order_index', { ascending: true });
+  
+  if (pinsError) throw pinsError;
+
+  // 3. Crée le nouveau roadtrip
+  const title = newTitle || `Copie de ${source.title}`;
+  const newRoadtrip = await createRoadtrip({
+    title,
+    description: source.description,
+    startLabel: source.start_label,
+    startLat: source.start_lat,
+    startLng: source.start_lng,
+    userId,
+    coverColor: source.cover_color,
+  });
+
+  // 4. Copie tous les pins (séquentiel pour préserver l'ordre)
+  for (const pin of sourcePins ?? []) {
+    await createRoadtripPin(newRoadtrip.id, {
+      name: pin.title,
+      category: pin.category || 'base',
+      lat: pin.lat,
+      lng: pin.lng,
+      description: pin.description,
+      order_index: pin.order_index,
+      type: pin.type || 'stop',
+    });
+  }
+
+  return newRoadtrip;
+}
+
 // ── Suppression ───────────────────────────────────────────────────────────────
 
 /**
