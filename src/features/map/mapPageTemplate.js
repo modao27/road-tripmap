@@ -7,6 +7,7 @@
  */
 
 import { userMenuHtml } from '../../shared/ui/userMenu.js';
+import { themeToggleHtml } from '../../shared/ui/themeToggle.js';
 
 export const MAP_PAGE_HTML = `
   <main class="app">
@@ -18,6 +19,7 @@ export const MAP_PAGE_HTML = `
           <a class="map-back-link" href="index.html#/dashboard">← Mes road trips</a>
           <div class="sidebar-header-top-actions">
             <button class="btn btn--ghost btn--icon" id="shareButton" type="button" title="Partager cette carte" aria-label="Partager cette carte">🔗</button>
+            ${themeToggleHtml()}
             ${userMenuHtml()}
           </div>
         </div>
@@ -228,7 +230,7 @@ export const MAP_PAGE_HTML = `
         <button class="layer-btn" data-base="sat" type="button">🛰 Satellite</button>
       </div>
       <button class="route-badge" id="routeBadge" hidden type="button" aria-label="Voir l'itinéraire">
-        🗺 <span id="routeBadgeCount">0</span> étape<span id="routeBadgePlural">s</span>
+        🗺 <span><span id="routeBadgeCount">0</span> étape<span id="routeBadgePlural">s</span></span>
       </button>
       <div id="map"></div>
     </section>

@@ -18,6 +18,7 @@
  */
 
 import { MAP_PAGE_HTML } from '../../features/map/mapPageTemplate.js';
+import { mountThemeToggle } from '../../shared/ui/themeToggle.js';
 
 // Versions épinglées + hash SRI (Leaflet était dans index.html avant
 // d'être chargé ici à la demande — mêmes URLs, mêmes hash)
@@ -93,6 +94,9 @@ export function renderMapPage(container, params = {}) {
   const lifecycle     = new AbortController();
 
   container.innerHTML = MAP_PAGE_HTML;
+
+  // Monte le bouton de thème
+  mountThemeToggle();
 
   const ready = ensureMapAssets()
     .then(() => {

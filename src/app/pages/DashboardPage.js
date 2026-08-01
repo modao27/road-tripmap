@@ -13,6 +13,7 @@ import { toast }                                      from '../../shared/ui/toas
 import { router }                                     from '../router.js';
 import { escapeHtml as esc }                          from '../../shared/utils/escape.js';
 import { userMenuHtml, wireUserMenu }                 from '../../shared/ui/userMenu.js';
+import { themeToggleHtml, mountThemeToggle }          from '../../shared/ui/themeToggle.js';
 
 export function renderDashboardPage(container) {
   const { user } = authStore.getState();
@@ -33,6 +34,7 @@ export function renderDashboardPage(container) {
           <button class="btn btn--primary" id="newTripBtn">
             + Nouveau road trip
           </button>
+          ${themeToggleHtml()}
           ${userMenuHtml()}
         </div>
       </header>
@@ -157,6 +159,9 @@ export function renderDashboardPage(container) {
   let   pendingEditId       = null;
   let   pendingInviteId     = null;
   let   allTrips            = [];
+
+  // Monte le bouton de thème
+  mountThemeToggle();
 
   // ── Chargement ────────────────────────────────────────────────────────────
   async function loadTrips() {

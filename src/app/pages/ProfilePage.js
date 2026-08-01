@@ -8,6 +8,7 @@ import { signOut }         from '../../features/auth/authService.js';
 import { toast }           from '../../shared/ui/toast.js';
 import { router }          from '../router.js';
 import { escapeHtml as esc, safeUrl } from '../../shared/utils/escape.js';
+import { themeToggleHtml, mountThemeToggle } from '../../shared/ui/themeToggle.js';
 
 /**
  * @param {HTMLElement} container
@@ -26,6 +27,9 @@ export function renderProfilePage(container) {
       <header class="profile-header">
         <button class="btn btn--ghost btn--sm" id="backBtn">← Dashboard</button>
         <h1 class="profile-header__title">Mon profil</h1>
+        <div style="margin-left: auto;">
+          ${themeToggleHtml()}
+        </div>
       </header>
 
       <main class="profile-main">
@@ -87,6 +91,9 @@ export function renderProfilePage(container) {
         </div>
       </main>
     </div>`;
+
+  // Monte le bouton de thème
+  mountThemeToggle();
 
   container.querySelector('#backBtn').addEventListener('click', () => {
     router.navigate('dashboard');

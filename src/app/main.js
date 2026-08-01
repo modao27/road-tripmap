@@ -21,13 +21,13 @@ window.addEventListener('error', ({ message, filename, lineno }) => {
 import { initErrorReporter }               from '../shared/lib/errorReporter.js';
 import { authStore }                       from '../features/auth/AuthStore.js';
 import { router }                          from './router.js';
-import { mountThemeToggle }                from '../shared/ui/themeToggle.js';
 
 // Remonte les erreurs non capturées vers Supabase (table client_errors)
 initErrorReporter();
 
-// Bouton clair/sombre — flottant, hors #app : survit aux changements de page
-mountThemeToggle();
+// Note : Le bouton theme-toggle est maintenant monté individuellement dans
+// chaque page (DashboardPage, MapPage) au lieu d'être global pour éviter
+// qu'il ne se déplace entre les vues mobile/desktop
 import { acceptPendingInvitations }        from '../features/roadtrips/roadtripService.js';
 import { toast }                           from '../shared/ui/toast.js';
 import { renderHomePage }           from './pages/HomePage.js';

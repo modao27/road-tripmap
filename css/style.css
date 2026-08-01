@@ -47,7 +47,7 @@ body {
 
 .sidebar {
   position: relative;
-  z-index: 500;
+  z-index: 800;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -174,7 +174,7 @@ body {
   z-index: 650;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .map-fabs[hidden] { display: none; }
@@ -1186,8 +1186,8 @@ a.dt-name:hover { text-decoration: underline; }
 
 .mobile-toggle {
   position: absolute;
-  top: calc(14px + env(safe-area-inset-top));
-  left: calc(14px + env(safe-area-inset-left));
+  top: calc(16px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
   z-index: 700;
   display: none;
   align-items: center;
@@ -2748,7 +2748,7 @@ mark.search-highlight {
   z-index: 500;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .layer-btn {
@@ -2756,7 +2756,7 @@ mark.search-highlight {
   align-items: center;
   gap: 6px;
   min-height: 44px;
-  padding: 7px 10px;
+  padding: 8px 12px;
   border: 1px solid rgba(30, 41, 59, 0.14);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.95);
@@ -2767,10 +2767,13 @@ mark.search-highlight {
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   white-space: nowrap;
-  transition: background 120ms ease;
+  transition: background 120ms ease, transform 100ms ease;
 }
 
-.layer-btn:hover { background: white; }
+.layer-btn:hover {
+  background: white;
+  transform: translateY(-1px);
+}
 
 .layer-btn.active {
   background: var(--color-primary);
@@ -2795,6 +2798,51 @@ mark.search-highlight {
   .leaflet-popup-content {
     width: min(285px, 82vw) !important;
     margin: 14px;
+  }
+
+  /* Sélecteur de couche au-dessus du zoom sur mobile */
+  .layer-switcher {
+    bottom: calc(160px + env(safe-area-inset-bottom));
+    right: calc(10px + env(safe-area-inset-right));
+    gap: 6px;
+  }
+
+  .layer-btn {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    min-height: 46px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* FAB plus espacés sur mobile pour faciliter l'interaction tactile */
+  .map-fabs {
+    gap: 14px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .map-fab {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+    box-shadow: 0 6px 18px rgba(30, 41, 59, 0.28);
+  }
+
+  /* Contrôles de zoom Leaflet visibles en bas à droite */
+  .leaflet-bottom.leaflet-right {
+    bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+    right: calc(10px + env(safe-area-inset-right)) !important;
+  }
+
+  .leaflet-control-zoom {
+    margin: 0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .leaflet-control-zoom a {
+    width: 46px !important;
+    height: 46px !important;
+    line-height: 46px !important;
+    font-size: 20px !important;
   }
 
   .popup-body { max-height: 36vh; }
@@ -2863,24 +2911,24 @@ mark.search-highlight {
 /* ── Badge itinéraire mobile ─────────────────────────────────────────────── */
 .route-badge {
   position: absolute;
-  bottom: calc(96px + env(safe-area-inset-bottom));
+  bottom: calc(106px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 700;
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
-  padding: 9px 20px;
+  min-height: 48px;
+  padding: 10px 22px;
   border: none;
   border-radius: 999px;
   background: var(--color-accent);
   color: var(--color-on-accent);
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(30, 41, 59, 0.38);
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.38);
   white-space: nowrap;
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
