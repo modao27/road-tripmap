@@ -101,24 +101,28 @@ body {
 .sidebar-header-main h1 { flex: 1; }
 
 .sidebar-collapse-btn {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  transform: translateY(-50%);
+  z-index: 10;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin: -8px -10px 0 0;
-  background: none;
+  width: 26px;
+  height: 64px;
+  background: var(--color-surface);
   border: none;
+  border-radius: 12px 0 0 12px;
   color: var(--color-muted);
   font-size: 0.75rem;
   cursor: pointer;
-  border-radius: 8px;
-  line-height: 1;
-  transition: color 120ms ease, background 120ms ease;
+  box-shadow: -6px 0 20px rgba(30, 41, 59, 0.18);
+  transition: background-color 150ms ease, width 150ms ease;
 }
 
-.sidebar-collapse-btn:hover { color: var(--color-primary-text); background: rgba(35, 93, 126, 0.08); }
+.sidebar-collapse-btn:hover { color: var(--color-primary-text); background: var(--color-primary-tint); width: 30px; }
 
 .sidebar-intro {
   margin-top: 10px;
@@ -151,9 +155,7 @@ body {
 
 .sidebar-expand-tab:hover { background: var(--color-primary-tint); width: 30px; }
 
-@media (min-width: 961px) {
-  .sidebar-expand-tab:not([hidden]) { display: inline-flex; }
-}
+.sidebar-expand-tab:not([hidden]) { display: inline-flex; }
 
 .sidebar-header-top-actions {
   display: flex;
@@ -646,6 +648,13 @@ h1 {
 
 .leaflet-control-attribution {
   font-size: 0.72rem;
+  z-index: 400 !important;
+}
+
+/* Réduire le z-index de l'échelle pour qu'elle soit derrière les boutons et menus */
+.leaflet-bottom.leaflet-left {
+  left: 20px !important;
+  z-index: 400 !important;
 }
 
 /* Apparition (Phase H11) : Leaflet recrée l'élément DOM du marqueur à
@@ -1186,7 +1195,7 @@ a.dt-name:hover { text-decoration: underline; }
 
 .mobile-toggle {
   position: absolute;
-  top: calc(16px + env(safe-area-inset-top));
+  top: calc(16px);
   left: calc(16px + env(safe-area-inset-left));
   z-index: 700;
   display: none;
@@ -2802,22 +2811,28 @@ mark.search-highlight {
 
   /* Sélecteur de couche au-dessus du zoom sur mobile */
   .layer-switcher {
-    bottom: calc(160px + env(safe-area-inset-bottom));
+    bottom: calc(180px + env(safe-area-inset-bottom));
     right: calc(10px + env(safe-area-inset-right));
     gap: 6px;
   }
 
   .layer-btn {
-    padding: 10px 14px;
-    font-size: 0.85rem;
+    padding: 10px;
+    font-size: 1.3rem;
     min-height: 46px;
+    min-width: 46px;
+    justify-content: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .layer-btn__text {
+    display: none;
   }
 
   /* FAB plus espacés sur mobile pour faciliter l'interaction tactile */
   .map-fabs {
-    gap: 14px;
-    bottom: calc(20px + env(safe-area-inset-bottom));
+    gap: 10px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
   }
 
   .map-fab {
@@ -2829,8 +2844,9 @@ mark.search-highlight {
 
   /* Contrôles de zoom Leaflet visibles en bas à droite */
   .leaflet-bottom.leaflet-right {
-    bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(10px) !important;
     right: calc(10px + env(safe-area-inset-right)) !important;
+    z-index: 400 !important;
   }
 
   .leaflet-control-zoom {
@@ -2885,14 +2901,30 @@ mark.search-highlight {
     min-height: 100dvh;
   }
 
-  .mobile-toggle {
-    display: inline-flex;
+  /* La carte passe sous la Dynamic Island sur iOS */
+  #map {
+    height: 100vh !important;
+    min-height: 100vh !important;
   }
 
-  /* L'escamotage complet (Phase H2) est un concept desktop : sur mobile,
-     l'off-canvas ci-dessus fait déjà le travail via .mobile-toggle. */
-  .sidebar-collapse-btn {
+  /* Sur mobile, utiliser sidebar-expand-tab au lieu de mobile-toggle */
+  .mobile-toggle {
     display: none;
+  }
+
+  /* Forcer l'affichage du bouton expand-tab sur mobile */
+  .sidebar-expand-tab {
+    display: inline-flex !important;
+  }
+
+  /* Masquer le bouton expand-tab quand la sidebar est ouverte */
+  .sidebar.open ~ .map-wrap .sidebar-expand-tab {
+    display: none !important;
+  }
+
+  /* Le bouton de fermeture est visible sur mobile dans la sidebar */
+  .sidebar-collapse-btn {
+    display: inline-flex;
   }
 
   .sidebar-header {
@@ -2911,7 +2943,7 @@ mark.search-highlight {
 /* ── Badge itinéraire mobile ─────────────────────────────────────────────── */
 .route-badge {
   position: absolute;
-  bottom: calc(106px + env(safe-area-inset-bottom));
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 700;

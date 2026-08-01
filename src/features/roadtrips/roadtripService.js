@@ -351,6 +351,7 @@ export async function duplicateRoadtrip(sourceId, userId, newTitle) {
       description: pin.description,
       order_index: pin.order_index,
       type: pin.type || 'stop',
+      day: pin.day || 1,
     });
   }
 
