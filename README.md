@@ -177,6 +177,41 @@ export const SUPABASE_ANON_KEY = 'VOTRE_CLE_ANON';
 
 ---
 
+## Compte de test E2E
+
+`e2e/authenticated-journey.spec.js` couvre le parcours connecté complet
+(connexion → création d'un road trip → ajout d'une gare → itinéraire →
+tronçon train → horaire → export GPX → partage → retrait d'un pas — sans
+ce compte, cette suite est **automatiquement ignorée** (skip, aucun échec
+CI) tant que les secrets ci-dessous ne sont pas renseignés.
+
+Un signup automatisé ne peut pas passer la confirmation par email
+(Supabase l'exige avant la première connexion) : le compte doit donc être
+créé une fois, à la main.
+
+1. Créer un compte dédié aux tests via le formulaire d'inscription du site
+   (une adresse que vous contrôlez, pour cliquer le lien de confirmation).
+2. Confirmer l'email.
+3. Ajouter deux secrets dans **Settings → Secrets and variables → Actions**
+   du dépôt GitHub :
+
+| Secret | Valeur |
+|---|---|
+| `E2E_TEST_EMAIL` | Email du compte de test |
+| `E2E_TEST_PASSWORD` | Mot de passe du compte de test |
+
+La suite crée un road trip nommé `E2E <timestamp>` à chaque exécution et
+le supprime à la fin (dernière étape du test) — en cas d'échec avant cette
+étape, un road trip de test peut rester dans le compte ; il est identifiable
+par ce préfixe et sans risque à supprimer manuellement.
+
+En local :
+```bash
+E2E_TEST_EMAIL=... E2E_TEST_PASSWORD=... npm run test:e2e
+```
+
+---
+
 ## Structure du projet
 
 ```
@@ -213,7 +248,8 @@ road-tripmap/
 
 Outillage (dev uniquement, le déploiement reste sans build) :
 `npm run lint` (ESLint) · `npm test` (Vitest, ~90 tests) ·
-`npm run test:e2e` (Playwright, parcours publics) · `npm run serve`
+`npm run test:e2e` (Playwright, parcours publics + parcours authentifié
+optionnel — cf. section "Compte de test E2E") · `npm run serve`
 La CI GitHub Actions rejoue lint + tests unitaires + E2E sur chaque
 push et pull request ; les erreurs front remontent dans la table
 `client_errors` (purge automatique après 30 jours).

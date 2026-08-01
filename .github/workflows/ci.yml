@@ -45,3 +45,9 @@ jobs:
 
       - name: Tests E2E (Playwright)
         run: npm run test:e2e
+        env:
+          # Parcours authentifié (e2e/authenticated-journey.spec.js) : ignoré
+          # (skip, pas d'échec) tant que ces secrets ne sont pas renseignés.
+          # Cf. README, section "Compte de test E2E".
+          E2E_TEST_EMAIL:    ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
