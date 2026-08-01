@@ -183,6 +183,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
       lat:          pin.lat,
       lng:          pin.lng,
       description:  pin.description || '',
+      notes:        pin.notes || '',
       interest: '', tip: '', mood: '',
       day:            pin.day ?? 1,
       transport:      pin.transport ?? null,
@@ -403,6 +404,8 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     });
   }
 
+  let currentTab = null;
+
   function switchTab(tab) {
     const active = { places: tab === 'places', route: tab === 'route', discover: tab === 'discover' };
     tabPlacesBtn?.classList.toggle('active', active.places);
@@ -414,7 +417,15 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     panePlaces?.classList.toggle('active', active.places);
     paneRoute?.classList.toggle('active', active.route);
     paneDiscover?.classList.toggle('active', active.discover);
-    if (active.discover) overpassModule?.activate();
+    
+    // Gérer le cercle de découverte : activer uniquement si on entre sur discover
+    if (active.discover && currentTab !== 'discover') {
+      overpassModule?.activate();
+    } else if (!active.discover && currentTab === 'discover') {
+      overpassModule?.deactivate();
+    }
+    currentTab = tab;
+    
     // Lieux et Découvrir se rangent tous deux sous « Modifier » : ce sont
     // des outils de curation des lieux, pas un mode à part entière.
     setActiveMode(active.route ? 'roadtrip' : 'edit');

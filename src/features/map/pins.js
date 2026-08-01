@@ -676,6 +676,73 @@ export function initPins({
     if (onMapClick) onMapClick(e);
   });
 
+  // ── Long press tactile pour ajouter un pin (mobile) ──────────────────────
+  let longPressTimer = null;
+  let longPressLatlng = null;
+  let touchStartPos = null;
+
+  map.getContainer().addEventListener('touchstart', (e) => {
+    if (isReadOnly) return;
+    if (e.touches.length !== 1) return; // Un seul doigt
+    
+    const touch = e.touches[0];
+    touchStartPos = { x: touch.clientX, y: touch.clientY };
+    
+    // Convertir les coordonnées écran en coordonnées géographiques
+    const point = map.containerPointToLatLng([touch.clientX, touch.clientY]);
+    longPressLatlng = point;
+    
+    // Démarrer le timer de long press (500ms)
+    longPressTimer = setTimeout(() => {
+      if (longPressLatlng && !pinMode) {
+        // Long press détecté ! Ouvrir le modal d'ajout de pin
+        // Vibration tactile pour feedback (si supporté)
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+        quickAddPin(longPressLatlng.lat, longPressLatlng.lng);
+        longPressTimer = null;
+        longPressLatlng = null;
+        touchStartPos = null;
+      }
+    }, 500);
+  }, { passive: true, signal });
+
+  map.getContainer().addEventListener('touchmove', (e) => {
+    if (!longPressTimer) return;
+    
+    // Si l'utilisateur bouge son doigt (scroll), annuler le long press
+    const touch = e.touches[0];
+    const moved = Math.abs(touch.clientX - touchStartPos.x) > 10 
+               || Math.abs(touch.clientY - touchStartPos.y) > 10;
+    
+    if (moved) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+      longPressLatlng = null;
+      touchStartPos = null;
+    }
+  }, { passive: true, signal });
+
+  map.getContainer().addEventListener('touchend', (_e) => {
+    // Annuler le long press si l'utilisateur relâche avant 500ms
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+      longPressLatlng = null;
+      touchStartPos = null;
+    }
+  }, { passive: true, signal });
+
+  map.getContainer().addEventListener('touchcancel', (_e) => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+      longPressLatlng = null;
+      touchStartPos = null;
+    }
+  }, { passive: true, signal });
+
   // ── Pré-remplissage depuis un résultat Overpass ──────────────────────────
   function openForOverpass({ name, lat, lng, appCategory, description }) {
     editingPinId = null;

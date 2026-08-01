@@ -190,11 +190,13 @@ export const MAP_PAGE_HTML = `
            ajout rapide H6) — un conteneur commun pour éviter les
            chevauchements/décalages magiques entre ces éléments. -->
       <div class="map-top-stack">
+        <!-- Mode switcher masqué
         <div class="mode-switcher" id="modeSwitcher" role="tablist" aria-label="Mode">
           <button class="mode-btn" data-mode="explore" role="tab" type="button" aria-selected="false">🧭 <span class="mode-btn-label">Explorer</span></button>
           <button class="mode-btn" data-mode="edit" role="tab" type="button" aria-selected="false">✏️ <span class="mode-btn-label">Modifier</span></button>
           <button class="mode-btn" data-mode="roadtrip" role="tab" type="button" aria-selected="false">🗺️ <span class="mode-btn-label">Road Trip</span></button>
         </div>
+        -->
 
         <div class="pin-hint" id="pinHint" hidden>Cliquez sur la carte pour placer un pin <button type="button" id="pinHintCancel">Annuler</button></div>
 
