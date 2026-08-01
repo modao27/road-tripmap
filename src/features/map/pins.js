@@ -96,6 +96,17 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false, 
                <div class="popup-fold-body">${SKELETON}</div>
              </details>`
           : ''}
+        <details class="popup-fold popup-notes" ${place.notes ? 'open' : ''}>
+          <summary>📝 Mes notes</summary>
+          <div class="popup-fold-body">
+            <textarea 
+              class="popup-notes-textarea" 
+              data-notes-pin-id="${id}"
+              placeholder="Ajoutez vos notes personnelles ici..."
+              ${isReadOnly ? 'readonly' : ''}
+            >${esc(place.notes || '')}</textarea>
+          </div>
+        </details>
       </div>
       ${!isReadOnly
         ? `<button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${id}" type="button">
@@ -372,6 +383,7 @@ export function initPins({
       id: generateUUID(),
       name, category, lat, lng,
       description: note,
+      notes: '',
       interest: '', tip: '', mood: '',
       user_created: true,
       userCreated: true,
@@ -419,6 +431,19 @@ export function initPins({
     if (marker) { markerLayer.removeLayer(marker); markers.delete(id); }
     map.closePopup(); onRefresh(); onPinChange?.('delete', { id });
     showToastFn(toastWrap, 'Pin supprimé', '');
+  }
+
+  function updatePinNotes(id, notes) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
+    const pin = userPlacesRef.find(p => p.id === id);
+    if (!pin) return;
+    pin.notes = notes;
+    saveUserPins(userPlacesRef);
+    syncRemote(upsertUserPinFn, pin);
+    onPinChange?.('update', pin);
   }
 
   function saveOverride(id, name, category, note, lat, lng) {
@@ -591,6 +616,21 @@ export function initPins({
   }, { signal });
 
   // ── Popup action delegation ───────────────────────────────────────────────
+  let notesDebounceTimer = null;
+  
+  document.addEventListener('input', (e) => {
+    const notesTextarea = e.target.closest('[data-notes-pin-id]');
+    if (notesTextarea) {
+      clearTimeout(notesDebounceTimer);
+      const pinId = notesTextarea.dataset.notesPinId;
+      const notes = notesTextarea.value;
+      notesDebounceTimer = setTimeout(() => {
+        updatePinNotes(pinId, notes);
+        showToastFn(toastWrap, '💾 Notes sauvegardées', 'success', 2000);
+      }, 1000);
+    }
+  }, { signal });
+  
   document.addEventListener('click', (e) => {
     // Description clampée : tap pour déplier / replier
     const desc = e.target.closest('[data-desc-toggle]');
@@ -612,6 +652,7 @@ export function initPins({
     geocodeController?.abort();
     clearTimeout(quickAddDebounce);
     quickAddController?.abort();
+    clearTimeout(notesDebounceTimer);
   }, { once: true });
 
   // ── Map click ─────────────────────────────────────────────────────────────
