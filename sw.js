@@ -15,7 +15,7 @@
  *
  * Incrémenter VERSION invalide tous les caches à l'activation.
  */
-const VERSION    = 'v3'; // v3 : nouvelle identité visuelle (Phase G) — favicon/icônes PWA changés
+const VERSION    = 'v4'; // v4 : UI mobile améliorée — sidebar arrow, layer buttons icon-only, z-index fixes
 const APP_CACHE  = `app-${VERSION}`;
 const CDN_CACHE  = `cdn-${VERSION}`;
 const TILE_CACHE = `tiles-${VERSION}`;
