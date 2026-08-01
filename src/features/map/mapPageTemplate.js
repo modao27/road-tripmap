@@ -225,9 +225,9 @@ export const MAP_PAGE_HTML = `
         <button class="map-fab" id="pinModeButton" type="button" title="Ajouter un pin" aria-label="Ajouter un pin">📌</button>
       </div>
       <div class="layer-switcher" id="layerSwitcher" role="group" aria-label="Fond de carte">
-        <button class="layer-btn active" data-base="osm" type="button">🗺 Carte</button>
-        <button class="layer-btn" data-base="ign" type="button">⛰ IGN</button>
-        <button class="layer-btn" data-base="sat" type="button">🛰 Satellite</button>
+        <button class="layer-btn active" data-base="osm" type="button">🗺<span class="layer-btn__text"> Carte</span></button>
+        <button class="layer-btn" data-base="ign" type="button">⛰<span class="layer-btn__text"> IGN</span></button>
+        <button class="layer-btn" data-base="sat" type="button">🛰<span class="layer-btn__text"> Satellite</span></button>
       </div>
       <button class="route-badge" id="routeBadge" hidden type="button" aria-label="Voir l'itinéraire">
         🗺 <span><span id="routeBadgeCount">0</span> étape<span id="routeBadgePlural">s</span></span>

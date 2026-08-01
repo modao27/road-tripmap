@@ -456,6 +456,9 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   let focusCollapsedSidebar = false;
 
   function setSidebarCollapsed(collapsed, { persist = true } = {}) {
+    // Sur mobile, utiliser le système .open au lieu de sidebar-collapsed
+    if (mobileQuery.matches) return;
+    
     appEl?.classList.toggle('sidebar-collapsed', collapsed);
     if (sidebarExpandTab) sidebarExpandTab.hidden = !collapsed;
     if (persist) localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
@@ -469,15 +472,41 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // un état que l'utilisateur vient de choisir explicitement.
   sidebarCollapseBtn?.addEventListener('click', () => {
     focusCollapsedSidebar = false;
-    setSidebarCollapsed(true);
-    setActiveMode('explore');
+    if (mobileQuery.matches) {
+      // Sur mobile, utiliser le système .open
+      sidebarEl.classList.remove('open');
+      sidebarToggleEl?.setAttribute('aria-expanded', 'false');
+      setActiveMode('explore');
+      // Forcer le recalcul de la carte après la transition
+      setTimeout(() => {
+        map.invalidateSize({ pan: false });
+        // Second appel pour garantir le recalcul complet
+        setTimeout(() => map.invalidateSize({ pan: false }), 100);
+      }, 250);
+    } else {
+      setSidebarCollapsed(true);
+      setActiveMode('explore');
+    }
   });
   sidebarExpandTab?.addEventListener('click', () => {
     focusCollapsedSidebar = false;
-    setSidebarCollapsed(false);
-    // Reflète l'onglet déjà actif plutôt que de forcer un mode — la
-    // réouverture ne change pas ce qu'on regardait avant le repli.
-    setActiveMode(tabRouteBtn?.classList.contains('active') ? 'roadtrip' : 'edit');
+    if (mobileQuery.matches) {
+      // Sur mobile, utiliser le système .open au lieu de sidebar-collapsed
+      sidebarEl.classList.add('open');
+      sidebarToggleEl?.setAttribute('aria-expanded', 'true');
+      // Reflète l'onglet déjà actif
+      setActiveMode(tabRouteBtn?.classList.contains('active') ? 'roadtrip' : 'edit');
+      // Forcer le recalcul de la carte après la transition
+      setTimeout(() => {
+        map.invalidateSize({ pan: false });
+        setTimeout(() => map.invalidateSize({ pan: false }), 100);
+      }, 250);
+    } else {
+      setSidebarCollapsed(false);
+      // Reflète l'onglet déjà actif plutôt que de forcer un mode — la
+      // réouverture ne change pas ce qu'on regardait avant le repli.
+      setActiveMode(tabRouteBtn?.classList.contains('active') ? 'roadtrip' : 'edit');
+    }
   });
 
   // Replié par défaut après la première visite (jamais sur mobile : l'état
@@ -500,12 +529,16 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     if (mobileQuery.matches) {
       sidebarEl.classList.add('open');
       sidebarToggleEl.setAttribute('aria-expanded', 'true');
+      switchTab(tab);
+      setTimeout(() => {
+        map.invalidateSize({ pan: false });
+        setTimeout(() => map.invalidateSize({ pan: false }), 100);
+      }, 250);
     } else {
       focusCollapsedSidebar = false;
       setSidebarCollapsed(false);
+      switchTab(tab);
     }
-    switchTab(tab); // met aussi à jour l'indicateur de mode
-    setTimeout(() => map.invalidateSize(), 230);
   }
 
   function closeSidebarForExplore() {
@@ -513,7 +546,10 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     if (mobileQuery.matches) {
       sidebarEl.classList.remove('open');
       sidebarToggleEl.setAttribute('aria-expanded', 'false');
-      setTimeout(() => map.invalidateSize(), 230);
+      setTimeout(() => {
+        map.invalidateSize({ pan: false });
+        setTimeout(() => map.invalidateSize({ pan: false }), 100);
+      }, 250);
     } else {
       focusCollapsedSidebar = false;
       setSidebarCollapsed(true);
