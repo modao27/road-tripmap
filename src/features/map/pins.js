@@ -47,7 +47,7 @@ function renderDescription(desc) {
   return out;
 }
 
-export function popupHtml(place, categories, placeOverrides, isInRoute = false) {
+export function popupHtml(place, categories, placeOverrides, isInRoute = false, isReadOnly = false) {
   const category    = categories[place.category] || categories.water;
   const isOverridden = !place.userCreated && !!placeOverrides[place.id];
 
@@ -97,19 +97,23 @@ export function popupHtml(place, categories, placeOverrides, isInRoute = false) 
              </details>`
           : ''}
       </div>
-      <button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${id}" type="button">
+      ${!isReadOnly
+        ? `<button class="popup-add-route${isInRoute ? ' in-route' : ''}" data-add-route-id="${id}" type="button">
         ${isInRoute ? "✓ Dans l'itinéraire" : "➕ Ajouter à l'itinéraire"}
-      </button>
+      </button>`
+        : ''}
       <footer class="popup-foot">
         <a class="popup-foot-btn" href="${esc(openInOSM(place.lat, place.lng))}" target="_blank"
            rel="noopener" title="Voir sur OpenStreetMap" aria-label="Voir sur OpenStreetMap">🌍</a>
         <span class="popup-foot-spacer"></span>
-        <button class="popup-foot-btn" data-edit-id="${id}" type="button" title="Modifier" aria-label="Modifier">✏️</button>
+        ${!isReadOnly
+          ? `<button class="popup-foot-btn" data-edit-id="${id}" type="button" title="Modifier" aria-label="Modifier">✏️</button>
         ${place.userCreated
           ? `<button class="popup-foot-btn popup-foot-btn--danger" data-delete-id="${id}" type="button" title="Supprimer" aria-label="Supprimer">🗑️</button>`
           : isOverridden
             ? `<button class="popup-foot-btn" data-reset-id="${id}" type="button" title="Réinitialiser le lieu" aria-label="Réinitialiser">↺</button>`
-            : ''}
+            : ''}`
+          : ''}
       </footer>
     </article>
   `;
@@ -137,6 +141,7 @@ export function initPins({
   config,
   // Supabase (optionnel — graceful degradation si non fourni)
   mapId,
+  isReadOnly,
   createUserPinFn,
   upsertUserPinFn,
   deleteUserPinFn,
@@ -306,7 +311,7 @@ export function initPins({
   }
 
   function makePopupHtml(place) {
-    return popupHtml(place, categories, placeOverridesRef);
+    return popupHtml(place, categories, placeOverridesRef, false, isReadOnly || false);
   }
 
   function openPinModal(lat, lng, existingPin) {
@@ -360,8 +365,10 @@ export function initPins({
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
-  function saveUserPin(name, category, note, lat, lng, trainSchedule = {}) {
-    const pin = {
+  function saveUserPin(name, category, note, lat, lng, trainSchedule = {}) {    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }    const pin = {
       id: generateUUID(),
       name, category, lat, lng,
       description: note,
@@ -383,6 +390,10 @@ export function initPins({
   }
 
   function updateUserPin(id, name, category, note, lat, lng, trainSchedule = {}) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     const pin = userPlacesRef.find(p => p.id === id);
     if (!pin) return;
     pin.name = name; pin.category = category;
@@ -396,6 +407,10 @@ export function initPins({
   }
 
   function deleteUserPin(id) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     const idx = userPlacesRef.findIndex(p => p.id === id);
     if (idx !== -1) userPlacesRef.splice(idx, 1);
     saveUserPins(userPlacesRef);
@@ -407,6 +422,10 @@ export function initPins({
   }
 
   function saveOverride(id, name, category, note, lat, lng) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     placeOverridesRef[id] = { name, category, description: note, lat, lng };
     saveOverrides(placeOverridesRef);
     syncRemote(upsertOverrideFn, id, placeOverridesRef[id]);
@@ -417,6 +436,10 @@ export function initPins({
   }
 
   function resetOverride(id) {
+    if (isReadOnly) {
+      showToastFn(toastWrap, '⚠️ Modification impossible en mode lecture seule', 'error');
+      return;
+    }
     delete placeOverridesRef[id];
     saveOverrides(placeOverridesRef);
     syncRemote(deleteOverrideFn, id);

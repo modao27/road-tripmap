@@ -231,7 +231,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // ── Factories ─────────────────────────────────────────────────────────────
   function makeIconFn(place)    { return makeIcon(place, categories); }
   function makePopupHtml(place) {
-    return popupHtml(place, categories, placeOverrides, routePlanner?.hasStep(place.id) ?? false);
+    return popupHtml(place, categories, placeOverrides, routePlanner?.hasStep(place.id) ?? false, isReadOnly ?? false);
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -572,6 +572,12 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   // roadtripInfo !== null = le UUID est dans la table roadtrips = nouvelle archi
   const isRoadtripMode = !isSharedMap && roadtripInfo !== null;
 
+  // Mode lecture seule : on n'est pas le propriétaire du roadtrip
+  const currentUserId = getCurrentUserId();
+  const isReadOnly    = isRoadtripMode &&
+    roadtripInfo?.owner_id &&
+    roadtripInfo.owner_id !== currentUserId;
+
   // Déclaration anticipée pour permettre à initPins d'y faire référence
   let scheduleResyncRouteSteps = null;
 
@@ -597,6 +603,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     } : null,
     config:           CONFIG,
     mapId,
+    isReadOnly,
     createUserPinFn:  isSharedMap ? null : (isRoadtripMode ? (_ignored, pin) => createRoadtripPin(mapParam, pin) : upsertPinRemote),
     upsertUserPinFn:  isSharedMap ? null : (isRoadtripMode ? upsertRoadtripPin : upsertPinRemote),
     deleteUserPinFn:  isSharedMap ? null : (isRoadtripMode ? deleteRoadtripPin : deletePinRemote),
@@ -667,6 +674,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
   routePlanner = initRoutePlanner({
     map, getAllPlaces, categories, toastWrap, showToastFn: showToast,
     focusPlaceFn: doFocusPlace,
+    isReadOnly,
     onStepsChange: (steps, days, transport) => {
       updateRouteBadge(); // badges onglet + mobile, quel que soit le mode
       previousItineraryIds.forEach(id => { if (!steps.includes(id)) locallyRemovedPinIds.add(id); });
@@ -725,12 +733,7 @@ export async function initMapApp({ mapParam = null, signal } = {}) {
     setTimeout(() => map.invalidateSize(), 230);
   });
 
-  // ── Mode lecture seule (public/partagé sans être le propriétaire) ───────────
-  const currentUserId = getCurrentUserId();
-  const isReadOnly    = isRoadtripMode &&
-    roadtripInfo?.owner_id &&
-    roadtripInfo.owner_id !== currentUserId;
-
+  // ── Interface lecture seule (masquer les boutons d'édition) ──────────────
   if (isReadOnly) {
     // Masque les contrôles d'édition
     document.getElementById('pinModeButton')?.setAttribute('hidden', '');
