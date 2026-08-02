@@ -2535,9 +2535,19 @@ mark.search-highlight {
   border-radius: 8px;
   background: rgba(240, 140, 70, 0.08);
   user-select: none;
+  cursor: grab;
+  transition: background 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
 }
 
+.route-day:active { cursor: grabbing; }
+.route-day.dragging { opacity: 0.4; }
 .route-day:first-child { margin-top: 0; }
+
+.route-day-handle {
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  flex-shrink: 0;
+}
 
 .route-day-label {
   font-size: 0.76rem;
