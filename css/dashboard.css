@@ -13,6 +13,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 0 24px;
+  padding-top: max(0px, env(safe-area-inset-top));
   height: 60px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -228,7 +229,7 @@
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .dash-main        { padding: 20px 14px 40px; }
-  .dash-header      { height: auto; flex-wrap: wrap; padding: 10px 14px; }
+  .dash-header      { height: auto; flex-wrap: wrap; padding: max(10px, env(safe-area-inset-top)) 14px 10px; }
   .dash-header__name { display: none; }
   .dash-header__search { order: 3; flex: 1 1 100%; max-width: none; }
   .rt-grid          { grid-template-columns: 1fr; }
