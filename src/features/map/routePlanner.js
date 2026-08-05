@@ -446,8 +446,28 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       if (pos > 0) {
         const prevPlace = places[idxs[pos - 1]];
         if (prevPlace && place) {
-          const dist = haversine(prevPlace.lat, prevPlace.lng, place.lat, place.lng);
-          stepsHtml += `<div class="timeline-connector" aria-hidden="true">↓ ${formatDistance(dist)}</div>`;
+          // Calculer l'index du leg OSRM correspondant (compter les places valides avant i)
+          let legIndex = -1;
+          if (routeData?.legs?.length) {
+            let validCount = 0;
+            for (let j = 0; j < i; j++) {
+              if (places[j]) validCount++;
+            }
+            // validCount est l'index de la place actuelle dans les places filtrées
+            // Le leg qui y mène est à validCount - 1
+            if (validCount > 0 && validCount - 1 < routeData.legs.length) {
+              legIndex = validCount - 1;
+            }
+          }
+          
+          // Utiliser les données OSRM si disponibles, sinon haversine
+          const leg = legIndex >= 0 ? routeData.legs[legIndex] : null;
+          if (leg && leg.distance != null && leg.duration != null) {
+            stepsHtml += `<div class="timeline-connector" aria-hidden="true">↓ ${formatDistance(leg.distance)} · ${formatDuration(leg.duration)}</div>`;
+          } else {
+            const dist = haversine(prevPlace.lat, prevPlace.lng, place.lat, place.lng);
+            stepsHtml += `<div class="timeline-connector" aria-hidden="true">↓ ${formatDistance(dist)}</div>`;
+          }
         }
       }
       stepsHtml += timelineStepHtml(place, i);
@@ -521,10 +541,30 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         <a class="route-step-train-link" href="${SNCF_CONNECT_URL}" target="_blank" rel="noopener noreferrer">🔎 Chercher ce trajet</a>
         ${place ? `<button class="route-step-train-edit" data-edit-id="${place.id}" type="button">✏️ Horaire</button>` : ''}`;
     } else if (i > 0 && place && places[i - 1]) {
-      const prev = places[i - 1];
-      partialHtml = `<span class="route-step-dist">${formatDistance(
-        haversine(prev.lat, prev.lng, place.lat, place.lng)
-      )}</span>`;
+      // Calculer l'index du leg OSRM correspondant (compter les places valides avant i)
+      let legIndex = -1;
+      if (routeData?.legs?.length) {
+        let validCount = 0;
+        for (let j = 0; j < i; j++) {
+          if (places[j]) validCount++;
+        }
+        // validCount est l'index de la place actuelle dans les places filtrées
+        // Le leg qui y mène est à validCount - 1
+        if (validCount > 0 && validCount - 1 < routeData.legs.length) {
+          legIndex = validCount - 1;
+        }
+      }
+      
+      // Utiliser les données OSRM si disponibles, sinon haversine
+      const leg = legIndex >= 0 ? routeData.legs[legIndex] : null;
+      if (leg && leg.distance != null && leg.duration != null) {
+        partialHtml = `<span class="route-step-dist">${formatDistance(leg.distance)} · ${formatDuration(leg.duration)}</span>`;
+      } else {
+        const prev = places[i - 1];
+        partialHtml = `<span class="route-step-dist">${formatDistance(
+          haversine(prev.lat, prev.lng, place.lat, place.lng)
+        )}</span>`;
+      }
     }
 
     const trainToggleHtml = canToggleTrain
@@ -553,7 +593,8 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       ? `${formatDistance(s.dist)} · ${formatDuration(s.dur)}`
       : `${stepCount} étape${stepCount > 1 ? 's' : ''}`;
     return `
-      <li class="route-day" data-day="${d}">
+      <li class="route-day" data-day="${d}" draggable="true">
+        <span class="route-day-handle" aria-hidden="true">⠿</span>
         <span class="route-day-label">Jour ${d}</span>
         <span class="route-day-stats">${stats}</span>
         <button class="route-day-remove" data-remove-day="${d}" type="button"
@@ -765,6 +806,186 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       }, { passive: true });
     });
 
+    // Drag & drop — jours complets (réorganisation)
+    let dragSrcDay = null;
+    let touchDragSrcDay = null;
+    let touchCloneDay = null;
+    let touchCurrentTargetDay = null;
+
+    // Fonction pour réorganiser les jours (insertion au lieu d'échange)
+    function reorderDays(fromDay, toDay) {
+      if (fromDay === toDay) return;
+      
+      // Créer l'ordre actuel de TOUS les jours (de 1 à dayCount)
+      const currentOrder = Array.from({ length: dayCount }, (_, i) => i + 1);
+      
+      // Trouver les indices
+      const fromIdx = currentOrder.indexOf(fromDay);
+      const toIdx = currentOrder.indexOf(toDay);
+      
+      if (fromIdx === -1 || toIdx === -1) return;
+      
+      // Réorganiser : retirer fromDay puis l'insérer à la position de toDay
+      const newOrder = [...currentOrder];
+      newOrder.splice(fromIdx, 1);
+      // Ajuster l'index si nécessaire (après avoir retiré un élément)
+      const adjustedToIdx = fromIdx < toIdx ? toIdx - 1 : toIdx;
+      newOrder.splice(adjustedToIdx, 0, fromDay);
+      
+      // Créer un mapping ancien numéro -> nouveau numéro
+      const mapping = {};
+      newOrder.forEach((oldDay, idx) => {
+        mapping[oldDay] = idx + 1;
+      });
+      
+      // Appliquer le mapping à tous les stepDays
+      stepDays = stepDays.map(d => mapping[d]);
+      
+      persist();
+      renderStepList();
+      scheduleFetch();
+    }
+
+    stepsEl.querySelectorAll('.route-day[draggable="true"]').forEach(el => {
+      if (isReadOnly) return;
+
+      // Desktop drag & drop
+      el.addEventListener('dragstart', e => {
+        // Ne pas démarrer le drag si on clique sur le bouton de suppression
+        if (e.target.closest('.route-day-remove')) {
+          e.preventDefault();
+          return;
+        }
+        dragSrcDay = +e.currentTarget.dataset.day;
+        e.currentTarget.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      el.addEventListener('dragend', e => {
+        e.currentTarget.classList.remove('dragging');
+        stepsEl.querySelectorAll('.route-day.drag-over').forEach(x => x.classList.remove('drag-over'));
+      });
+
+      el.addEventListener('dragover', e => {
+        if (!dragSrcDay) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        stepsEl.querySelectorAll('.route-day.drag-over').forEach(x => x.classList.remove('drag-over'));
+        e.currentTarget.classList.add('drag-over');
+      });
+
+      el.addEventListener('dragleave', e => {
+        e.currentTarget.classList.remove('drag-over');
+      });
+
+      el.addEventListener('drop', e => {
+        if (!dragSrcDay) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.classList.remove('drag-over');
+        const targetDay = +e.currentTarget.dataset.day;
+        reorderDays(dragSrcDay, targetDay);
+        dragSrcDay = null;
+      });
+
+      // Mobile touch drag & drop
+      el.addEventListener('touchstart', e => {
+        // Ne pas démarrer le drag si on touche le bouton de suppression
+        if (e.target.closest('.route-day-remove')) return;
+        
+        touchDragSrcDay = el;
+        dragSrcDay = +el.dataset.day;
+
+        setTimeout(() => {
+          if (touchDragSrcDay) {
+            touchCloneDay = el.cloneNode(true);
+            touchCloneDay.style.position = 'fixed';
+            touchCloneDay.style.zIndex = '10000';
+            touchCloneDay.style.pointerEvents = 'none';
+            touchCloneDay.style.opacity = '0.8';
+            touchCloneDay.style.width = el.offsetWidth + 'px';
+            touchCloneDay.style.left = el.getBoundingClientRect().left + 'px';
+            touchCloneDay.classList.add('dragging');
+            document.body.appendChild(touchCloneDay);
+            el.style.opacity = '0.3';
+          }
+        }, 100);
+      }, { passive: true });
+
+      el.addEventListener('touchmove', e => {
+        if (!touchDragSrcDay || !touchCloneDay) return;
+        e.preventDefault();
+
+        const touch = e.touches[0];
+        touchCloneDay.style.top = (touch.clientY - 30) + 'px';
+
+        const scrollContainer = stepsEl.closest('.sidebar-body') || stepsEl.parentElement;
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const edgeThreshold = 80;
+
+        stopAutoScroll();
+
+        if (touch.clientY < containerRect.top + edgeThreshold) {
+          autoScrollContainer(scrollContainer, 'up');
+        } else if (touch.clientY > containerRect.bottom - edgeThreshold) {
+          autoScrollContainer(scrollContainer, 'down');
+        }
+
+        touchCloneDay.style.display = 'none';
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        touchCloneDay.style.display = '';
+
+        stepsEl.querySelectorAll('.route-day.drag-over').forEach(x => x.classList.remove('drag-over'));
+
+        const dayBelow = elementBelow?.closest('.route-day[draggable="true"]');
+        if (dayBelow && dayBelow !== el) {
+          dayBelow.classList.add('drag-over');
+          touchCurrentTargetDay = dayBelow;
+        } else {
+          touchCurrentTargetDay = null;
+        }
+      }, { passive: false });
+
+      el.addEventListener('touchend', _e => {
+        if (!touchDragSrcDay) return;
+
+        stopAutoScroll();
+
+        if (touchCloneDay) {
+          touchCloneDay.remove();
+          touchCloneDay = null;
+        }
+
+        el.style.opacity = '';
+        stepsEl.querySelectorAll('.route-day.drag-over').forEach(x => x.classList.remove('drag-over'));
+
+        if (touchCurrentTargetDay && dragSrcDay) {
+          const targetDay = +touchCurrentTargetDay.dataset.day;
+          reorderDays(dragSrcDay, targetDay);
+        }
+
+        touchDragSrcDay = null;
+        dragSrcDay = null;
+        touchCurrentTargetDay = null;
+      }, { passive: true });
+
+      el.addEventListener('touchcancel', _e => {
+        stopAutoScroll();
+
+        if (touchCloneDay) {
+          touchCloneDay.remove();
+          touchCloneDay = null;
+        }
+        if (touchDragSrcDay) {
+          touchDragSrcDay.style.opacity = '';
+        }
+        stepsEl.querySelectorAll('.route-day.drag-over').forEach(x => x.classList.remove('drag-over'));
+        touchDragSrcDay = null;
+        dragSrcDay = null;
+        touchCurrentTargetDay = null;
+      }, { passive: true });
+    });
+
     // Drag & drop — en-têtes de jour et jours vides (dépose en fin de journée)
     stepsEl.querySelectorAll('[data-day]').forEach(el => {
       if (isReadOnly) return; // Pas de drag & drop en lecture seule
@@ -779,8 +1000,19 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         e.stopPropagation();
         el.classList.remove('drag-over');
         const d = +el.dataset.day;
+        
+        // Drop d'un jour complet (réorganisation)
+        if (dragSrcDay !== null) {
+          reorderDays(dragSrcDay, d);
+          dragSrcDay = null;
+          return;
+        }
+        
+        // Drop d'une carte de lieu → ajout dans cette journée
         const placeId = e.dataTransfer.getData('text/place-id');
         if (placeId) { dragSrcIndex = null; addStep(placeId, d); return; }
+        
+        // Drop d'une étape → déplacement vers cette journée
         if (dragSrcIndex === null) return;
         const from = dragSrcIndex;
         dragSrcIndex = null;

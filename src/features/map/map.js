@@ -57,10 +57,14 @@ export function makeIcon(place, categories) {
   const size = isBase ? [44, 44] : [34, 34];
   const anchor = isBase ? [22, 42] : [17, 32];
   const className = isBase ? 'custom-marker base' : 'custom-marker';
+  const hasNotes = place.notes && place.notes.trim().length > 0;
 
   return L.divIcon({
     className: '',
-    html: `<div class="${className}" style="--color:${category.color}"><span>${category.icon}</span></div>`,
+    html: `<div class="${className}" style="--color:${category.color}">
+      <span>${category.icon}</span>
+      ${hasNotes ? '<span class="marker-note-badge">📝</span>' : ''}
+    </div>`,
     iconSize: size,
     iconAnchor: anchor,
     popupAnchor: [0, -31]
