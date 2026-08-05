@@ -666,6 +666,7 @@ h1 {
 }
 
 .custom-marker {
+  position: relative;
   display: grid;
   place-items: center;
   width: 34px;
@@ -691,6 +692,24 @@ h1 {
   height: 44px;
   border-width: 3px;
   box-shadow: 0 0 0 9px rgba(145, 45, 45, 0.18), 0 12px 25px rgba(30, 41, 59, 0.35);
+}
+
+/* Badge de note sur le marker */
+.marker-note-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 50%;
+  font-size: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: rotate(45deg);
+  z-index: 10;
 }
 
 .leaflet-popup-content-wrapper {
