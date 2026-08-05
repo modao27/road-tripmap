@@ -446,8 +446,28 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
       if (pos > 0) {
         const prevPlace = places[idxs[pos - 1]];
         if (prevPlace && place) {
-          const dist = haversine(prevPlace.lat, prevPlace.lng, place.lat, place.lng);
-          stepsHtml += `<div class="timeline-connector" aria-hidden="true">↓ ${formatDistance(dist)}</div>`;
+          // Calculer l'index du leg OSRM correspondant (compter les places valides avant i)
+          let legIndex = -1;
+          if (routeData?.legs?.length) {
+            let validCount = 0;
+            for (let j = 0; j < i; j++) {
+              if (places[j]) validCount++;
+            }
+            // validCount est l'index de la place actuelle dans les places filtrées
+            // Le leg qui y mène est à validCount - 1
+            if (validCount > 0 && validCount - 1 < routeData.legs.length) {
+              legIndex = validCount - 1;
+            }
+          }
+          
+          // Utiliser les données OSRM si disponibles, sinon haversine
+          const leg = legIndex >= 0 ? routeData.legs[legIndex] : null;
+          if (leg && leg.distance != null && leg.duration != null) {
+            stepsHtml += `<div class="timeline-connector" aria-hidden="true">↓ ${formatDistance(leg.distance)} · ${formatDuration(leg.duration)}</div>`;
+          } else {
+            const dist = haversine(prevPlace.lat, prevPlace.lng, place.lat, place.lng);
+            stepsHtml += `<div class="timeline-connector" aria-hidden="true">↓ ${formatDistance(dist)}</div>`;
+          }
         }
       }
       stepsHtml += timelineStepHtml(place, i);
@@ -521,10 +541,30 @@ export function initRoutePlanner({ map, getAllPlaces, categories, toastWrap, sho
         <a class="route-step-train-link" href="${SNCF_CONNECT_URL}" target="_blank" rel="noopener noreferrer">🔎 Chercher ce trajet</a>
         ${place ? `<button class="route-step-train-edit" data-edit-id="${place.id}" type="button">✏️ Horaire</button>` : ''}`;
     } else if (i > 0 && place && places[i - 1]) {
-      const prev = places[i - 1];
-      partialHtml = `<span class="route-step-dist">${formatDistance(
-        haversine(prev.lat, prev.lng, place.lat, place.lng)
-      )}</span>`;
+      // Calculer l'index du leg OSRM correspondant (compter les places valides avant i)
+      let legIndex = -1;
+      if (routeData?.legs?.length) {
+        let validCount = 0;
+        for (let j = 0; j < i; j++) {
+          if (places[j]) validCount++;
+        }
+        // validCount est l'index de la place actuelle dans les places filtrées
+        // Le leg qui y mène est à validCount - 1
+        if (validCount > 0 && validCount - 1 < routeData.legs.length) {
+          legIndex = validCount - 1;
+        }
+      }
+      
+      // Utiliser les données OSRM si disponibles, sinon haversine
+      const leg = legIndex >= 0 ? routeData.legs[legIndex] : null;
+      if (leg && leg.distance != null && leg.duration != null) {
+        partialHtml = `<span class="route-step-dist">${formatDistance(leg.distance)} · ${formatDuration(leg.duration)}</span>`;
+      } else {
+        const prev = places[i - 1];
+        partialHtml = `<span class="route-step-dist">${formatDistance(
+          haversine(prev.lat, prev.lng, place.lat, place.lng)
+        )}</span>`;
+      }
     }
 
     const trainToggleHtml = canToggleTrain
